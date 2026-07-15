@@ -1,0 +1,12 @@
+---
+// 画面に実際に表示されている内容だけを構造化データへ含めてください（19章）。
+interface Props {
+  schemas: Record<string, unknown>[];
+}
+
+const { schemas } = Astro.props;
+---
+
+{schemas.map((schema) => (
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
+))}

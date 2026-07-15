@@ -1,0 +1,21 @@
+---
+interface Props {
+  slug: string;
+  title: string;
+  theme: string;
+  lastUpdated: Date;
+  responseCount?: number;
+}
+
+const { slug, title, theme, lastUpdated, responseCount } = Astro.props;
+const dateLabel = lastUpdated.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+---
+
+<a href={`/voices/reports/${slug}`} class="card flex flex-col gap-2 hover:shadow-md transition-shadow">
+  <span class="text-xs font-bold text-ink">{theme}</span>
+  <h3 class="font-bold text-ink leading-snug">{title}</h3>
+  <div class="text-xs text-ink-soft flex items-center gap-3">
+    <time datetime={lastUpdated.toISOString()}>最終更新：{dateLabel}</time>
+    {typeof responseCount === "number" && <span>回答数：{responseCount}件</span>}
+  </div>
+</a>

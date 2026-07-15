@@ -1,0 +1,19 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+  response: string;
+}
+
+const { response } = Astro.props;
+---
+
+{response && (
+  <div class="card border-l-4 border-accent-welfare">
+    <h3 class="font-bold text-ink flex items-center gap-2">
+      <Icon name="document" class="w-5 h-5 text-accent-welfare" />
+      事務局からの回答
+    </h3>
+    <p class="mt-3 text-ink-soft text-sm leading-relaxed whitespace-pre-line">{response}</p>
+  </div>
+)}

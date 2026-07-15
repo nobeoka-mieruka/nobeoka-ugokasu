@@ -1,0 +1,34 @@
+---
+import { profileBasics, profileHeroHeading } from "../data/profile";
+
+const items = [
+  profileBasics.name,
+  profileBasics.nameKana,
+  profileBasics.birthDate,
+  profileBasics.hometown,
+  profileBasics.family,
+  ...profileBasics.education,
+  ...profileBasics.career,
+];
+---
+
+<div class="grid gap-10 lg:grid-cols-2 lg:items-center">
+  <div>
+    <h2 class="text-3xl sm:text-4xl font-bold text-ink whitespace-pre-line leading-snug">
+      {profileHeroHeading}
+    </h2>
+    <a href="/profile" class="btn-secondary mt-8">
+      福富千恵についてもっと見る
+    </a>
+  </div>
+  <div class="card">
+    <ul class="space-y-3">
+      {items.map((item) => (
+        <li class="flex items-start gap-3 text-lg text-ink-soft">
+          <span class="mt-2.5 h-2 w-2 flex-shrink-0 rounded-full bg-brand-orange"></span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</div>

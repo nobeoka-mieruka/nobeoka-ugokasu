@@ -1,0 +1,69 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import HeroSection from "../../components/HeroSection.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import SectionTitle from "../../components/SectionTitle.astro";
+import VoiceMethodSection from "../../components/VoiceMethodSection.astro";
+import VoiceCollectionFlow from "../../components/VoiceCollectionFlow.astro";
+import { webPageSchema } from "../../utils/structuredData";
+import { buildBreadcrumbList } from "../../utils/seo";
+
+const title = "声の集め方・整理方法｜みんなの声｜福富千恵と延岡を動かす会";
+const description = "福富千恵と延岡を動かす会が市民の声をどのように集め、整理し、活用しているかをご説明します。";
+const breadcrumbItems = [
+  { name: "みんなの声", path: "/voices" },
+  { name: "声の集め方・整理方法", path: "/voices/method" },
+];
+
+const prohibitedItems = [
+  "個人情報をAIへ送信する",
+  "AIの結果を無確認で公開する",
+  "批判的な意見だけ削除する",
+  "少数意見を自動除外する",
+  "AIに提言の採否を決定させる",
+  "個人ごとの政治傾向を推測する",
+  "投稿者を支持者、非支持者に分類する",
+  "投稿を選挙勧誘の対象者リストに利用する",
+];
+
+const schemas = [
+  webPageSchema({ path: "/voices/method", name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/voices/method" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title="声の集め方・整理方法" eyebrow="みんなの声" description="ブロードリスニングとして、多様な声を幅広く集め、丁寧に整理しています。" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-3xl space-y-14">
+      <VoiceMethodSection />
+
+      <div>
+        <SectionTitle title="公開までの流れ" align="left" />
+        <VoiceCollectionFlow />
+      </div>
+
+      <div>
+        <h2 class="text-xl font-bold text-ink mb-4">AIの利用について</h2>
+        <p class="text-ink-soft leading-relaxed">
+          初期公開時は、AIへの自動送信は実装していません。回答は事務局が個人情報を削除したうえで内容を確認し、必要に応じてAIで分類・要約したものを事務局が元の文章と照合し、確認後の内容だけを公開します。
+        </p>
+        <div class="mt-4 card border-l-4 border-brand-orange">
+          <h3 class="font-bold text-ink mb-2">禁止事項</h3>
+          <ul class="space-y-1 text-sm text-ink-soft">
+            {prohibitedItems.map((item) => <li>・{item}</li>)}
+          </ul>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-xl font-bold text-ink mb-4">個人情報の取り扱い</h2>
+        <p class="text-ink-soft leading-relaxed">
+          寄せられた意見の原文や個人情報は、公開用リポジトリへ保存していません。公開する分析結果は、匿名化・要約したうえでこのサイトに掲載します。
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

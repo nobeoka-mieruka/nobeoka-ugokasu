@@ -1,0 +1,87 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import HeroSection from "../../components/HeroSection.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import RelatedContent from "../../components/RelatedContent.astro";
+import Icon from "../../components/Icon.astro";
+import { getVisionProposal } from "../../data/vision";
+import { webPageSchema } from "../../utils/structuredData";
+import { buildBreadcrumbList } from "../../utils/seo";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("issues");
+  return entries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const proposal = getVisionProposal(entry.slug);
+
+const title = `${entry.data.title}｜福富千恵と延岡を動かす会`;
+const description = entry.data.description;
+const breadcrumbItems = [
+  { name: "私たちの提言", path: "/vision" },
+  { name: entry.data.title, path: `/issues/${entry.slug}` },
+];
+
+const accentClassMap = {
+  welfare: { border: "border-accent-welfare", icon: "text-accent-welfare" },
+  childcare: { border: "border-accent-childcare", icon: "text-accent-childcare" },
+  disaster: { border: "border-accent-disaster", icon: "text-accent-disaster" },
+};
+const accentClass = accentClassMap[entry.data.accentColor];
+
+const schemas = [
+  webPageSchema({ path: `/issues/${entry.slug}`, name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path={`/issues/${entry.slug}`} noindex={entry.data.draft} schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title={entry.data.title} description={description} eyebrow="私たちの提言" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-3xl">
+      {entry.data.draft && (
+        <div class="mb-8 rounded-xl bg-brand-orange-light px-5 py-4 flex items-start gap-3 text-sm text-ink">
+          <Icon name="document" class="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <p>このページは内容を充実させている段階です。最新情報は<a href="/vision" class="underline font-bold">私たちの提言</a>ページをご覧ください。</p>
+        </div>
+      )}
+
+      {proposal && (
+        <div class:list={["border-l-4 pl-6 mb-10", accentClass.border]}>
+          <h2 class="font-bold text-ink">提言の内容</h2>
+          <ul class="mt-2 space-y-2">
+            {proposal.proposals.map((item) => (
+              <li class="flex items-start gap-2 font-bold text-ink">
+                <Icon name="check" class:list={["w-5 h-5 flex-shrink-0 mt-0.5", accentClass.icon]} />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="mt-4 text-ink-soft leading-relaxed">{proposal.reviewStatus}</p>
+        </div>
+      )}
+
+      <div class="prose-content text-ink-soft leading-loose space-y-4">
+        <Content />
+      </div>
+    </div>
+  </section>
+
+  <div class="section-wrap">
+    <RelatedContent
+      items={[
+        { title: "私たちの提言", href: "/vision", description: "3つの提言の全体像をご覧いただけます。" },
+        { title: "福富千恵について", href: "/profile", description: "提言の背景となる福富千恵の歩みをご紹介します。" },
+        { title: "みんなの声", href: "/voices", description: "この分野に関するご意見をお寄せください。" },
+      ]}
+    />
+  </div>
+</BaseLayout>

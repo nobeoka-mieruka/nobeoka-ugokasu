@@ -1,0 +1,46 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  basePath: string;
+}
+
+const { currentPage, totalPages, basePath } = Astro.props;
+
+function pageUrl(page: number) {
+  if (page <= 1) return basePath;
+  return `${basePath}page/${page}/`;
+}
+---
+
+{totalPages > 1 && (
+  <nav aria-label="ページネーション" class="mt-10 flex items-center justify-center gap-2">
+    {currentPage > 1 ? (
+      <a href={pageUrl(currentPage - 1)} class="inline-flex items-center gap-1 rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-ink hover:bg-brand-orange-light">
+        <Icon name="chevron-left" class="w-4 h-4" />
+        前へ
+      </a>
+    ) : (
+      <span class="inline-flex items-center gap-1 rounded-full border border-black/5 px-4 py-2 text-sm font-bold text-ink-soft/50" aria-disabled="true">
+        <Icon name="chevron-left" class="w-4 h-4" />
+        前へ
+      </span>
+    )}
+
+    <span class="text-sm text-ink-soft px-2">{currentPage} / {totalPages}</span>
+
+    {currentPage < totalPages ? (
+      <a href={pageUrl(currentPage + 1)} class="inline-flex items-center gap-1 rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-ink hover:bg-brand-orange-light">
+        次へ
+        <Icon name="chevron-right" class="w-4 h-4" />
+      </a>
+    ) : (
+      <span class="inline-flex items-center gap-1 rounded-full border border-black/5 px-4 py-2 text-sm font-bold text-ink-soft/50" aria-disabled="true">
+        次へ
+        <Icon name="chevron-right" class="w-4 h-4" />
+      </span>
+    )}
+  </nav>
+)}

@@ -1,0 +1,134 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HeroSection from "../components/HeroSection.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import LastUpdated from "../components/LastUpdated.astro";
+import RelatedContent from "../components/RelatedContent.astro";
+import Icon from "../components/Icon.astro";
+import { visionHeading, visionSubtitle, visionProposals } from "../data/vision";
+import { webPageSchema } from "../utils/structuredData";
+import { buildBreadcrumbList } from "../utils/seo";
+
+const title = "福富千恵の提言｜福祉・子育て・防災から考える延岡";
+const description =
+  "福富千恵と延岡を動かす会の提言をご紹介します。福祉・介護、子育て、防災・避難の3つの分野で、支え合いと希望あふれる延岡を目指します。";
+
+const breadcrumbItems = [{ name: "私たちの提言", path: "/vision" }];
+
+const activities = await getCollection("activities", ({ data }) => data.published);
+
+const accentClassMap = {
+  welfare: { text: "text-accent-welfare", border: "border-accent-welfare" },
+  childcare: { text: "text-accent-childcare", border: "border-accent-childcare" },
+  disaster: { text: "text-accent-disaster", border: "border-accent-disaster" },
+};
+
+const schemas = [
+  webPageSchema({ path: "/vision", name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/vision" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title={visionHeading} description={visionSubtitle} eyebrow="私たちの提言" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-4xl space-y-16">
+      {visionProposals.map((proposal) => {
+        const accent = accentClassMap[proposal.accentColor];
+        const relatedActivities = activities.filter((a) =>
+          a.data.relatedIssues.includes(proposal.slug),
+        );
+        return (
+          <article id={proposal.slug} class:list={["border-l-4 pl-6 scroll-mt-24", accent.border]}>
+            <h2 class="text-2xl sm:text-3xl font-bold text-ink whitespace-pre-line">{proposal.title}</h2>
+
+            <div class="mt-6">
+              <h3 class="font-bold text-ink">背景</h3>
+              <div class="mt-2 space-y-2 text-ink-soft leading-relaxed">
+                {proposal.background.map((p) => <p>{p}</p>)}
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <h3 class="font-bold text-ink">現在感じている課題</h3>
+              <ul class="mt-2 space-y-1">
+                {proposal.currentIssues.map((issue) => (
+                  <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                    <span class="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-ink-soft"></span>
+                    <span>{issue}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div class="mt-6">
+              <h3 class="font-bold text-ink">提言の内容</h3>
+              <ul class="mt-2 space-y-2">
+                {proposal.proposals.map((item) => (
+                  <li class="flex items-start gap-2 font-bold text-ink">
+                    <Icon name="check" class:list={["w-5 h-5 flex-shrink-0 mt-0.5", accent.text]} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div class="mt-6">
+              <h3 class="font-bold text-ink">目指す変化</h3>
+              <p class="mt-2 text-ink-soft leading-relaxed">{proposal.targetChange}</p>
+            </div>
+
+            <div class="mt-6">
+              <h3 class="font-bold text-ink">市民の声</h3>
+              <p class="mt-2 text-ink-soft leading-relaxed">{proposal.citizenVoices}</p>
+            </div>
+
+            <div class="mt-6">
+              <h3 class="font-bold text-ink">現在の検討状況</h3>
+              <p class="mt-2 text-ink-soft leading-relaxed">{proposal.reviewStatus}</p>
+            </div>
+
+            <div class="mt-6">
+              <h3 class="font-bold text-ink">関連する活動報告</h3>
+              {relatedActivities.length > 0 ? (
+                <ul class="mt-2 space-y-1">
+                  {relatedActivities.map((a) => (
+                    <li>
+                      <a href={`/activities/${a.slug}`} class="text-ink font-bold hover:underline">{a.data.title}</a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="mt-2 text-ink-soft">関連する活動報告は準備中です。</p>
+              )}
+            </div>
+
+            <div class="mt-6">
+              <LastUpdated date={proposal.lastUpdated || undefined} />
+            </div>
+
+            <div class="mt-4">
+              <a href={`/issues/${proposal.slug}`} class="inline-flex items-center gap-1 font-bold text-ink hover:underline">
+                {proposal.shortTitle}の詳細ページへ
+                <Icon name="arrow-right" class:list={["w-4 h-4", accent.text]} />
+              </a>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  </section>
+
+  <div class="section-wrap">
+    <RelatedContent
+      items={[
+        { title: "福富千恵について", href: "/profile", description: "提言の背景となる福富千恵自身の歩みをご紹介します。" },
+        { title: "みんなの声", href: "/voices", description: "提言に関するご意見をお寄せください。" },
+        { title: "分析結果一覧", href: "/voices/reports", description: "寄せられた声の分析結果を公開しています。" },
+      ]}
+    />
+  </div>
+</BaseLayout>

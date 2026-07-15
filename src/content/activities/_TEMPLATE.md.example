@@ -1,0 +1,36 @@
+---
+title: "（活動報告のタイトルをここに記入）"
+date: 2026-01-01
+updatedDate: 2026-01-01
+category: "活動報告"
+summary: "（一覧に表示される1〜2文の要約をここに記入）"
+mainImage:
+  src: "/images/activities/example-main.jpg"
+  alt: "（写真の内容を説明するalt文をここに記入）"
+images: []
+location: "（実施場所。分からない場合は記入しない）"
+author: "福富千恵と延岡を動かす会 事務局"
+published: false
+relatedIssues: []
+relatedVoiceTheme: ""
+---
+
+## 活動の目的
+
+（なぜこの活動を行ったかを記入）
+
+## 実施内容
+
+（いつ・どこで・何を行ったかを記入）
+
+## 参加者から寄せられた声
+
+（実際に寄せられた声のみ記入。創作しない）
+
+## 分かった課題
+
+（活動を通じて分かった課題を記入）
+
+## 今後の対応
+
+（今後どうするかを記入）

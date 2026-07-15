@@ -1,0 +1,20 @@
+---
+import Icon from "./Icon.astro";
+---
+
+<div class="section-wrap py-20 text-center">
+  <p class="text-brand-orange-dark font-bold text-2xl">404</p>
+  <h1 class="mt-2 text-2xl sm:text-3xl font-bold text-ink">ページが見つかりませんでした</h1>
+  <p class="mt-4 text-ink-soft leading-relaxed max-w-xl mx-auto">
+    お探しのページは、削除されたか、URLが変更された可能性があります。
+    <br />
+    お手数ですが、下記のリンクから目的のページをお探しください。
+  </p>
+  <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+    <a href="/" class="btn-primary">
+      <Icon name="arrow-right" class="w-5 h-5 rotate-180" />
+      ホームへ戻る
+    </a>
+    <a href="/contact" class="btn-secondary">お問い合わせ</a>
+  </div>
+</div>

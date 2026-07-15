@@ -1,0 +1,21 @@
+---
+interface Props {
+  slug: string;
+  title: string;
+  date: Date;
+  category: string;
+  summary: string;
+}
+
+const { slug, title, date, category, summary } = Astro.props;
+const dateLabel = date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+---
+
+<a href={`/news/${slug}`} class="card flex flex-col gap-3 hover:shadow-md transition-shadow">
+  <div class="flex items-center gap-2 text-sm text-ink-soft">
+    <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{category}</span>
+    <time datetime={date.toISOString()}>{dateLabel}</time>
+  </div>
+  <h3 class="text-xl font-bold text-ink leading-snug">{title}</h3>
+  <p class="text-base text-ink-soft line-clamp-2">{summary}</p>
+</a>

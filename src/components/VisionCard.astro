@@ -1,0 +1,38 @@
+---
+import Icon from "./Icon.astro";
+import type { VisionProposal } from "../data/vision";
+
+interface Props {
+  proposal: VisionProposal;
+  headingLevel?: "h2" | "h3";
+}
+
+const { proposal, headingLevel = "h3" } = Astro.props;
+
+const accentMap = {
+  welfare: { text: "text-accent-welfare", bg: "bg-accent-welfare/10", icon: "welfare" as const },
+  childcare: { text: "text-accent-childcare", bg: "bg-accent-childcare/10", icon: "childcare" as const },
+  disaster: { text: "text-accent-disaster", bg: "bg-accent-disaster/10", icon: "disaster" as const },
+};
+const accent = accentMap[proposal.accentColor];
+const Heading = headingLevel;
+---
+
+<div class="card h-full flex flex-col">
+  <span class:list={["inline-flex items-center justify-center w-16 h-16 rounded-full mb-5", accent.bg, accent.text]}>
+    <Icon name={accent.icon} class="w-8 h-8" />
+  </span>
+  <Heading class="text-2xl font-bold text-ink whitespace-pre-line leading-snug">{proposal.title}</Heading>
+  <ul class="mt-5 space-y-3 flex-1">
+    {proposal.proposals.map((item) => (
+      <li class="flex items-start gap-2 text-ink-soft text-base">
+        <Icon name="check" class:list={["w-5 h-5 flex-shrink-0 mt-0.5", accent.text]} />
+        <span>{item}</span>
+      </li>
+    ))}
+  </ul>
+  <a href={`/issues/${proposal.slug}`} class="mt-6 inline-flex items-center gap-1 text-base font-bold text-ink hover:underline">
+    {proposal.shortTitle}を詳しく見る
+    <Icon name="arrow-right" class:list={["w-5 h-5", accent.text]} />
+  </a>
+</div>

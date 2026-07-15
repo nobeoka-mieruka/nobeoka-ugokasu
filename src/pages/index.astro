@@ -1,0 +1,233 @@
+---
+import { getCollection } from "astro:content";
+import { Picture } from "astro:assets";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+import MessageCard from "../components/MessageCard.astro";
+import ProfileSummary from "../components/ProfileSummary.astro";
+import VisionCard from "../components/VisionCard.astro";
+import ActivityCard from "../components/ActivityCard.astro";
+import NewsCard from "../components/NewsCard.astro";
+import ContactBanner from "../components/ContactBanner.astro";
+import Icon from "../components/Icon.astro";
+import { siteConfig } from "../config/siteConfig";
+import { visionProposals } from "../data/vision";
+import { organizationSchema, personSchema, websiteSchema, webPageSchema } from "../utils/structuredData";
+import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
+
+const title = "福富千恵と延岡を動かす会｜あなたと、延岡を動かす";
+const description =
+  "福富千恵と延岡を動かす会の公式ホームページ。福富千恵のプロフィール、延岡への提言、活動報告、みんなの声（ブロードリスニング）を発信しています。";
+
+// OGP（SNSシェア時）専用のタイトル・説明文
+const ogTitle = "福富千恵と延岡を動かす会｜あなたと、延岡を動かす！";
+const ogDescription =
+  "福富千恵のプロフィール、活動報告、提言、市民の声（ブロードリスニング）を掲載する公式ホームページです。";
+
+const activities = (await getCollection("activities", ({ data }) => data.published))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 3);
+
+const news = (await getCollection("news", ({ data }) => data.published))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 3);
+
+const schemas = [
+  websiteSchema(),
+  organizationSchema(),
+  personSchema({ image: "/images/profile/image0.jpeg" }),
+  webPageSchema({ path: "/", name: title, description, image: siteConfig.defaultOgpImage }),
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/"
+  ogType="website"
+  ogTitle={ogTitle}
+  ogDescription={ogDescription}
+  ogImage={siteConfig.defaultOgpImage}
+  schemas={schemas}
+>
+  <!-- 8-1 メインビジュアル -->
+  <section class="bg-gradient-to-b from-brand-orange-light to-white">
+    <div class="section-wrap py-12 sm:py-20">
+      <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
+        <div class="order-2 lg:order-1">
+          <p class="text-4xl sm:text-5xl lg:text-6xl font-bold text-ink leading-snug">
+            私も、<br />
+            <span class="text-brand-orange-dark">悩みながら</span><br />
+            歩いてきました。
+          </p>
+          <p class="mt-5 text-xl sm:text-2xl text-ink-soft leading-relaxed">
+            だからこそ、<br />
+            わかる思いがあります。
+          </p>
+          <p class="mt-8 text-[40px] sm:text-[52px] lg:text-[64px] leading-[1.15] font-bold text-brand-orange-dark">
+            あなたと、延岡を動かす！
+          </p>
+          <div class="mt-8">
+            <p class="text-2xl font-bold text-ink">福富 千恵</p>
+            <p class="text-base text-ink-soft">ふくとみ ちえ</p>
+          </div>
+          <div class="mt-10 flex flex-wrap gap-4">
+            <a href="/profile" class="btn-primary">福富千恵について</a>
+            <a href="/vision" class="btn-secondary">私たちの提言</a>
+            <a href="/voices" class="btn-secondary">みんなの声</a>
+            <a href="/activities" class="btn-secondary">活動報告を見る</a>
+          </div>
+        </div>
+        <div class="order-1 lg:order-2">
+          <Picture
+            src={fukutomiChiePortrait}
+            formats={["avif", "webp"]}
+            widths={[400, 560, 700, 900, 1134]}
+            sizes="(min-width: 1024px) 620px, 100vw"
+            alt="福富千恵（福富千恵と延岡を動かす会）"
+            class="w-full h-[420px] sm:h-[500px] lg:h-[700px] xl:h-[750px] rounded-3xl mx-auto object-cover"
+            style="object-position: center 30%;"
+            loading="eager"
+            fetchpriority="high"
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8-2 3つのメッセージ -->
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap">
+      <div class="grid gap-8 sm:grid-cols-3">
+        <MessageCard icon="heart" iconColorClass="text-accent-childcare" text={"苦しいときに、\n苦しいと言える。"} />
+        <MessageCard icon="handshake" iconColorClass="text-accent-welfare" text={"助けてほしいときに、\n助けてと言える。"} />
+        <MessageCard icon="smile" iconColorClass="text-brand-orange" text={"嬉しいときに、\n一緒に笑える。"} />
+      </div>
+    </div>
+  </section>
+
+  <!-- 8-3 基本メッセージ -->
+  <section class="py-14 sm:py-20 bg-brand-ivory">
+    <div class="section-wrap max-w-3xl text-center">
+      <p class="text-xl sm:text-2xl text-ink leading-loose">
+        生きている限り、サポートを必要とするのはお互い様です。
+        <br /><br />
+        支え合い、助け合い、協力することが、特別なことではなく、当たり前になる延岡を目指します。
+      </p>
+    </div>
+  </section>
+
+  <!-- 8-4 プロフィール概要 -->
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap">
+      <ProfileSummary />
+    </div>
+  </section>
+
+  <!-- 8-5 3つの提言 -->
+  <section class="py-14 sm:py-20 bg-brand-ivory">
+    <div class="section-wrap">
+      <SectionTitle title="私の提言" subtitle={"つながり、支え合い、\n希望あふれる延岡へ。"} />
+      <div class="grid gap-8 sm:grid-cols-3">
+        {visionProposals.map((proposal) => (
+          <VisionCard proposal={proposal} />
+        ))}
+      </div>
+      <div class="mt-8 text-center">
+        <a href="/vision" class="btn-secondary">私たちの提言をもっと見る</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8-6 みんなの声 -->
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap">
+      <SectionTitle title={"あなたの声から、\n延岡のこれからを考えます。"} />
+      <div class="max-w-2xl mx-auto text-center text-lg text-ink-soft leading-relaxed">
+        <p>
+          福富千恵と延岡を動かす会では、地域の皆さまの声を幅広く集め、共通する課題や異なる考え方を整理し、今後の活動や提言に生かします。
+        </p>
+        <p class="mt-4">
+          小さな困りごと、制度について感じていること、地域を良くするためのアイデアをお寄せください。
+        </p>
+      </div>
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <a href="/voices/submit" class="btn-primary">声を届ける</a>
+        <a href="/voices/themes" class="btn-secondary">現在募集中のテーマ</a>
+        <a href="/voices" class="btn-secondary">みんなの声を見る</a>
+        <a href="/voices/method" class="btn-secondary">整理方法を見る</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8-7 最新の活動報告 -->
+  <section class="py-14 sm:py-20 bg-brand-ivory">
+    <div class="section-wrap">
+      <SectionTitle title="最新の活動報告" align="left" />
+      {activities.length > 0 ? (
+        <div class="grid gap-8 sm:grid-cols-3">
+          {activities.map((entry) => (
+            <ActivityCard
+              slug={entry.slug}
+              title={entry.data.title}
+              date={entry.data.date}
+              category={entry.data.category}
+              summary={entry.data.summary}
+              mainImage={entry.data.mainImage}
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="card text-center py-10 text-ink-soft flex flex-col items-center gap-3">
+          <Icon name="document" class="w-8 h-8 text-brand-orange" />
+          <p>活動報告は準備中です。</p>
+        </div>
+      )}
+      <div class="mt-8 text-center">
+        <a href="/activities" class="btn-secondary">活動報告一覧を見る</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8-8 最新のお知らせ -->
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap">
+      <SectionTitle title="最新のお知らせ" align="left" />
+      {news.length > 0 ? (
+        <div class="grid gap-4 sm:grid-cols-3">
+          {news.map((entry) => (
+            <NewsCard
+              slug={entry.slug}
+              title={entry.data.title}
+              date={entry.data.date}
+              category={entry.data.category}
+              summary={entry.data.summary}
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="card text-center py-10 text-ink-soft flex flex-col items-center gap-3">
+          <Icon name="document" class="w-8 h-8 text-brand-orange" />
+          <p>お知らせは準備中です。</p>
+        </div>
+      )}
+      <div class="mt-8 text-center">
+        <a href="/news" class="btn-secondary">お知らせ一覧を見る</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8-9 後援会案内 -->
+  <section class="py-14 sm:py-20 bg-brand-ivory">
+    <div class="section-wrap">
+      <ContactBanner
+        heading={siteConfig.organizationName}
+        description={"福富千恵の活動を支え、延岡のこれからを市民の皆さまと一緒に考える政治団体です。\n地域の声を聞き、対話を重ね、支え合いと希望のある延岡を目指して活動します。"}
+        primaryLabel="後援会について"
+        primaryHref="/supporters"
+        secondaryLabel="お問い合わせ"
+        secondaryHref="/contact"
+      />
+    </div>
+  </section>
+</BaseLayout>

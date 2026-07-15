@@ -1,0 +1,84 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HeroSection from "../components/HeroSection.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import Icon from "../components/Icon.astro";
+import { siteConfig } from "../config/siteConfig";
+import { webPageSchema, faqPageSchema } from "../utils/structuredData";
+import { buildBreadcrumbList } from "../utils/seo";
+
+const title = "よくある質問｜福富千恵と延岡を動かす会";
+const description = "福富千恵と延岡を動かす会に寄せられるよくある質問をまとめました。プロフィール、提言、活動報告、みんなの声についてご案内します。";
+const breadcrumbItems = [{ name: "よくある質問", path: "/faq" }];
+
+const faqItems = [
+  {
+    question: "福富千恵はどのような人ですか",
+    answer:
+      "延岡市川島町で生まれ育ち、保育の現場や子育て、障がい福祉の現場で歩んできました。3人の子どもを育てたシングルマザーであり、特定非営利活動法人 とまりぎ荘 理事長、保護司を務めています。詳しくはプロフィールページをご覧ください。",
+  },
+  {
+    question: "福富千恵の経歴を教えてください",
+    answer:
+      "宮崎県立延岡商業高等学校、聖心ウルスラ学園短期大学 幼児教育学科を卒業後、市内保育園・企業内託児所での勤務を経て、障がい福祉事業所の運営に携わっています。詳しい経歴はプロフィールページで確認できます。",
+  },
+  {
+    question: "どのような提言をしていますか",
+    answer:
+      "「支える人も支えられる人も安心できる街」「安心して子育てできる街」「災害時に命を守れる街」の3つの柱で提言を行っています。詳しくは私たちの提言ページをご覧ください。",
+  },
+  {
+    question: "活動報告はどこで確認できますか",
+    answer: "活動報告ページで、実施した活動を新しい順にご紹介しています。活動がまだない期間は「準備中」と表示されます。",
+  },
+  {
+    question: "意見はどのように届けられますか",
+    answer:
+      "みんなの声ページの「声を届ける」から、Googleフォームなどを通じてご意見をお寄せいただけます。意見交換会や紙のアンケート、地域での聞き取りなど、デジタルを利用しない方法もご用意しています。",
+  },
+  {
+    question: "寄せた意見は公開されますか",
+    answer:
+      "いただいた意見の原文をそのまま公開することはありません。個人情報を削除したうえで事務局が内容を確認し、匿名化・要約した分析結果のみを「みんなの声」の分析結果ページで公開します。",
+  },
+  {
+    question: "後援会の活動について教えてください",
+    answer: `${siteConfig.organizationName}は、福富千恵の活動を支え、延岡のこれからを市民の皆さまと一緒に考える政治団体です。詳しくは後援会についてページをご覧ください。`,
+  },
+  {
+    question: "問い合わせ先を教えてください",
+    answer: `メールアドレス（${siteConfig.email}）よりお問い合わせください。詳しくはお問い合わせページをご覧ください。`,
+  },
+];
+
+const schemas = [
+  webPageSchema({ path: "/faq", name: title, description }),
+  faqPageSchema(faqItems),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/faq" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title="よくある質問" description="福富千恵と延岡を動かす会について、よくいただく質問にお答えします。" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-3xl space-y-4">
+      {faqItems.map((item) => (
+        <details class="card group">
+          <summary class="flex items-center justify-between gap-4 cursor-pointer list-none font-bold text-ink">
+            <span class="flex items-start gap-2">
+              <span class="text-ink font-bold">Q.</span>
+              {item.question}
+            </span>
+            <Icon name="chevron-down" class="w-5 h-5 flex-shrink-0 text-ink-soft transition-transform group-open:rotate-180" />
+          </summary>
+          <p class="mt-4 pl-6 text-ink-soft leading-relaxed">
+            <span class="text-ink font-bold mr-1">A.</span>
+            {item.answer}
+          </p>
+        </details>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

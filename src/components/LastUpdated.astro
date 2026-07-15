@@ -1,0 +1,20 @@
+---
+interface Props {
+  date?: Date | string;
+}
+
+const { date } = Astro.props;
+const dateObj = date instanceof Date ? date : date ? new Date(date) : undefined;
+const label = dateObj
+  ? dateObj.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })
+  : undefined;
+---
+
+<p class="text-sm text-ink-soft">
+  最終更新日：
+  {label ? (
+    <time datetime={dateObj?.toISOString()}>{label}</time>
+  ) : (
+    <span>TODO（未設定）</span>
+  )}
+</p>

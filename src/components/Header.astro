@@ -1,0 +1,49 @@
+---
+import { siteConfig } from "../config/siteConfig";
+import { headerNav } from "../data/navigation";
+import MobileMenu from "./MobileMenu.astro";
+
+const currentPath = Astro.url.pathname;
+
+function isCurrent(href: string, path: string) {
+  if (href === "/") return path === "/";
+  return path === href || path.startsWith(`${href}/`);
+}
+---
+
+<header class="sticky top-0 z-40 bg-brand-ivory/95 backdrop-blur border-b border-black/5">
+  <div class="header-wrap flex items-center justify-between gap-4 py-2.5">
+    <a href="/" class="flex-shrink-0 min-w-0">
+      <img
+        src="/images/logo/logo-horizontal.png"
+        alt={siteConfig.organizationName}
+        width="800"
+        height="200"
+        class="w-[220px] sm:w-[260px] xl:w-[300px] 2xl:w-[360px] h-auto"
+      />
+    </a>
+
+    <nav aria-label="メインメニュー" class="hidden xl:block">
+      <ul class="flex items-center gap-6 2xl:gap-9">
+        {headerNav.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              class:list={[
+                "inline-block whitespace-nowrap rounded-lg px-2 py-2 text-[15px] 2xl:text-[17px] font-bold transition-colors border-b-2",
+                isCurrent(item.href, currentPath)
+                  ? "text-ink bg-brand-orange-light border-brand-orange-dark"
+                  : "text-ink border-transparent hover:bg-brand-orange-light hover:border-brand-orange-dark",
+              ]}
+              aria-current={isCurrent(item.href, currentPath) ? "page" : undefined}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <MobileMenu items={headerNav} currentPath={currentPath} />
+  </div>
+</header>

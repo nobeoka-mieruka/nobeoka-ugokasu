@@ -1,0 +1,51 @@
+---
+import { siteConfig } from "../config/siteConfig";
+import { footerNav } from "../data/navigation";
+import SocialLinks from "./SocialLinks.astro";
+import Icon from "./Icon.astro";
+---
+
+<footer class="bg-ink text-white">
+  <div class="section-wrap py-12">
+    <div class="grid gap-10 md:grid-cols-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <img src="/images/logo/mark.svg" alt="" width="28" height="28" class="w-7 h-7 flex-shrink-0" />
+          <p class="text-lg font-bold">{siteConfig.organizationName}</p>
+        </div>
+        <p class="mt-2 text-brand-orange font-bold">あなたと、延岡を動かす！</p>
+        <p class="mt-4 text-sm text-white/70 flex items-start gap-2">
+          <Icon name="location" class="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <span>{siteConfig.postalCode}<br />{siteConfig.address}</span>
+        </p>
+        <p class="mt-2 text-sm text-white/70 flex items-center gap-2">
+          <Icon name="mail" class="w-5 h-5 flex-shrink-0" />
+          <a href={`mailto:${siteConfig.email}`} class="underline hover:text-brand-orange">
+            {siteConfig.email}
+          </a>
+        </p>
+        <div class="mt-4">
+          <SocialLinks />
+        </div>
+      </div>
+
+      <nav aria-label="フッターメニュー" class="md:col-span-2">
+        <ul class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          {footerNav.map((item) => (
+            <li>
+              <a href={item.href} class="text-white/85 hover:text-brand-orange hover:underline">
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+
+    <p class="mt-10 text-xs text-white/60 leading-relaxed">
+      {siteConfig.organizationName}は、延岡市や国・県などの行政機関とは異なる政治団体です。行政機関の公式サイトではありません。
+    </p>
+
+    <p class="mt-4 text-xs text-white/50">© {siteConfig.organizationName}</p>
+  </div>
+</footer>

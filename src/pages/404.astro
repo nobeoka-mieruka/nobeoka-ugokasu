@@ -1,0 +1,11 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import NotFoundPage from "../components/NotFoundPage.astro";
+
+const title = "ページが見つかりません｜福富千恵と延岡を動かす会";
+const description = "お探しのページが見つかりませんでした。福富千恵と延岡を動かす会公式ホームページのトップページからお探しください。";
+---
+
+<BaseLayout title={title} description={description} path="/404" noindex>
+  <NotFoundPage />
+</BaseLayout>

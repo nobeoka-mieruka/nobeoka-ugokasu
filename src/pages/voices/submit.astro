@@ -1,0 +1,81 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import HeroSection from "../../components/HeroSection.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import VoicePrivacyNotice from "../../components/VoicePrivacyNotice.astro";
+import VoiceMethodSection from "../../components/VoiceMethodSection.astro";
+import Icon from "../../components/Icon.astro";
+import { voicesConfig } from "../../config/voicesConfig";
+import { webPageSchema } from "../../utils/structuredData";
+import { buildBreadcrumbList } from "../../utils/seo";
+
+const title = "声を届ける｜みんなの声｜福富千恵と延岡を動かす会";
+const description = "延岡での暮らしの中で感じていることをお寄せください。福富千恵と延岡を動かす会が声を集め、今後の活動や提言に生かします。";
+const breadcrumbItems = [
+  { name: "みんなの声", path: "/voices" },
+  { name: "声を届ける", path: "/voices/submit" },
+];
+
+const requiredItems = ["意見のテーマ", "感じていること", "どのようになってほしいか", "個人情報の取り扱いへの同意"];
+const optionalItems = [
+  "具体的な経験",
+  "改善のアイデア",
+  "年代",
+  "居住地域",
+  "延岡市との関わり",
+  "匿名での引用可否",
+  "個別回答の希望",
+  "連絡先",
+];
+
+const schemas = [
+  webPageSchema({ path: "/voices/submit", name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/voices/submit" noindex schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title="声を届ける" eyebrow="みんなの声" description="延岡での暮らしの中で感じていることをお寄せください。" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-2xl space-y-8">
+      {voicesConfig.googleFormUrl ? (
+        <div class="card text-center py-10">
+          <p class="text-ink-soft mb-4">下記のボタンからGoogleフォームへ進み、ご意見をお寄せください。</p>
+          <a href={voicesConfig.googleFormUrl} target="_blank" rel="noopener noreferrer" class="btn-primary">
+            意見受付フォームを開く
+            <Icon name="external-link" class="w-4 h-4" />
+          </a>
+        </div>
+      ) : (
+        <div class="card text-center py-10 flex flex-col items-center gap-3">
+          <Icon name="document" class="w-10 h-10 text-brand-orange" />
+          <p class="text-lg text-ink-soft">現在、意見受付フォームを準備しています。</p>
+        </div>
+      )}
+
+      <VoicePrivacyNotice />
+
+      <div>
+        <h2 class="font-bold text-ink text-lg mb-3">お伺いする項目（予定）</h2>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="card">
+            <h3 class="font-bold text-ink text-sm mb-2">必須項目</h3>
+            <ul class="space-y-1 text-sm text-ink-soft">
+              {requiredItems.map((item) => <li>・{item}</li>)}
+            </ul>
+          </div>
+          <div class="card">
+            <h3 class="font-bold text-ink text-sm mb-2">任意項目</h3>
+            <ul class="space-y-1 text-sm text-ink-soft">
+              {optionalItems.map((item) => <li>・{item}</li>)}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <VoiceMethodSection />
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,48 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import HeroSection from "../../../components/HeroSection.astro";
+import Breadcrumb from "../../../components/Breadcrumb.astro";
+import VoiceReportCard from "../../../components/VoiceReportCard.astro";
+import Icon from "../../../components/Icon.astro";
+import { webPageSchema } from "../../../utils/structuredData";
+import { buildBreadcrumbList } from "../../../utils/seo";
+
+const title = "分析結果一覧｜みんなの声｜福富千恵と延岡を動かす会";
+const description = "福富千恵と延岡を動かす会が市民から集めた声の分析結果一覧です。共通する課題や異なる意見を整理して公開しています。";
+const breadcrumbItems = [
+  { name: "みんなの声", path: "/voices" },
+  { name: "分析結果一覧", path: "/voices/reports" },
+];
+
+const reports = (await getCollection("voice-reports", ({ data }) => data.published)).sort(
+  (a, b) => b.data.lastUpdated.getTime() - a.data.lastUpdated.getTime(),
+);
+
+const schemas = [
+  webPageSchema({ path: "/voices/reports", name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/voices/reports" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title="分析結果一覧" eyebrow="みんなの声" description="寄せられた声を整理した分析結果を公開しています。" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap">
+      {reports.length > 0 ? (
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {reports.map((r) => (
+            <VoiceReportCard slug={r.slug} title={r.data.title} theme={r.data.theme} lastUpdated={r.data.lastUpdated} responseCount={r.data.responseCount} />
+          ))}
+        </div>
+      ) : (
+        <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-3">
+          <Icon name="document" class="w-10 h-10 text-brand-orange" />
+          <p class="text-lg">分析結果は準備中です。</p>
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>

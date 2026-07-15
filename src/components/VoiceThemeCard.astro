@@ -1,0 +1,19 @@
+---
+import VoiceStatusBadge from "./VoiceStatusBadge.astro";
+import type { VoiceTheme } from "../data/voiceThemes";
+
+interface Props {
+  theme: VoiceTheme;
+}
+
+const { theme } = Astro.props;
+---
+
+<a href={`/voices/themes/${theme.slug}`} class="card flex flex-col gap-3 hover:shadow-md transition-shadow">
+  <div class="flex items-center justify-between">
+    <span class="font-bold text-ink">{theme.title}</span>
+    <VoiceStatusBadge status={theme.status} />
+  </div>
+  <p class="text-sm text-ink-soft">{theme.description}</p>
+  {theme.period && <p class="text-xs text-ink-soft">募集期間：{theme.period}</p>}
+</a>

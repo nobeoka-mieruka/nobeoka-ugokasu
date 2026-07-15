@@ -1,0 +1,76 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HeroSection from "../components/HeroSection.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import SocialLinks from "../components/SocialLinks.astro";
+import Icon from "../components/Icon.astro";
+import { siteConfig } from "../config/siteConfig";
+import { voicesConfig } from "../config/voicesConfig";
+import { webPageSchema, organizationSchema } from "../utils/structuredData";
+import { buildBreadcrumbList } from "../utils/seo";
+
+const title = "お問い合わせ｜福富千恵と延岡を動かす会";
+const description = "福富千恵と延岡を動かす会へのお問い合わせ方法をご案内します。メールにてご連絡ください。";
+const breadcrumbItems = [{ name: "お問い合わせ", path: "/contact" }];
+
+const schemas = [
+  webPageSchema({ path: "/contact", name: title, description }),
+  organizationSchema(),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/contact" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title="お問い合わせ" description="ご意見・お問い合わせは、メールにて承っております。" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-2xl space-y-8">
+      <div class="card">
+        <h2 class="font-bold text-ink text-lg mb-4">{siteConfig.organizationName}</h2>
+        <dl class="space-y-3 text-sm">
+          <div class="flex items-start gap-2">
+            <Icon name="location" class="w-5 h-5 flex-shrink-0 text-brand-orange" />
+            <dd class="text-ink-soft">{siteConfig.postalCode}<br />{siteConfig.address}</dd>
+          </div>
+          <div class="flex items-center gap-2">
+            <Icon name="mail" class="w-5 h-5 flex-shrink-0 text-brand-orange" />
+            <dd>
+              <a href={`mailto:${siteConfig.email}`} class="text-ink underline font-bold">
+                {siteConfig.email}
+              </a>
+            </dd>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 flex-shrink-0"></span>
+            <dd class="text-ink-soft">電話番号：未設定</dd>
+          </div>
+        </dl>
+        <div class="mt-4">
+          <SocialLinks />
+        </div>
+      </div>
+
+      {voicesConfig.googleFormUrl && (
+        <div class="card text-center">
+          <p class="text-ink-soft mb-4">ご意見の投稿はこちらのフォームからも受け付けています。</p>
+          <a href={voicesConfig.googleFormUrl} target="_blank" rel="noopener noreferrer" class="btn-primary">
+            意見受付フォームを開く
+            <Icon name="external-link" class="w-4 h-4" />
+          </a>
+        </div>
+      )}
+
+      <div class="card border-l-4 border-brand-orange">
+        <h3 class="font-bold text-ink mb-3">お問い合わせにあたってのお願い</h3>
+        <ul class="space-y-2 text-sm text-ink-soft leading-relaxed">
+          <li>・緊急の対応が必要な内容の窓口ではありません。緊急の場合は警察・消防など専門機関へご連絡ください。</li>
+          <li>・ご本人以外の個人や第三者を特定できる情報は書かないようお願いします。</li>
+          <li>・内容によってはお返事できない場合があります。</li>
+          <li>・いただいた情報は、お問い合わせへの対応や、今後の活動の参考として利用します。</li>
+          <li>・個人情報の取り扱いについては<a href="/privacy" class="underline text-ink font-bold">プライバシーポリシー</a>をご覧ください。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,35 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+  slug: string;
+  title: string;
+  date: Date;
+  category: string;
+  summary: string;
+  mainImage?: { src: string; alt: string };
+}
+
+const { slug, title, date, category, summary, mainImage } = Astro.props;
+const dateLabel = date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+---
+
+<a href={`/activities/${slug}`} class="card flex flex-col overflow-hidden p-0 hover:shadow-md transition-shadow">
+  <div class="aspect-[16/9] bg-brand-orange-light overflow-hidden">
+    {mainImage ? (
+      <img src={mainImage.src} alt={mainImage.alt} class="w-full h-full object-cover" loading="lazy" width="640" height="360" />
+    ) : (
+      <div class="w-full h-full flex items-center justify-center text-brand-orange-dark">
+        <Icon name="document" class="w-10 h-10" />
+      </div>
+    )}
+  </div>
+  <div class="p-6 flex flex-col gap-3">
+    <div class="flex items-center gap-2 text-sm text-ink-soft">
+      <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{category}</span>
+      <time datetime={date.toISOString()}>{dateLabel}</time>
+    </div>
+    <h3 class="text-xl font-bold text-ink leading-snug">{title}</h3>
+    <p class="text-base text-ink-soft line-clamp-2">{summary}</p>
+  </div>
+</a>

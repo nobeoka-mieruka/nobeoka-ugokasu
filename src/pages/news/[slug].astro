@@ -1,0 +1,71 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import LastUpdated from "../../components/LastUpdated.astro";
+import RelatedContent from "../../components/RelatedContent.astro";
+import { articleSchema } from "../../utils/structuredData";
+import { buildBreadcrumbList } from "../../utils/seo";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("news", ({ data }) => data.published);
+  return entries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+const title = `${entry.data.title}｜福富千恵と延岡を動かす会`;
+const description = entry.data.summary;
+const path = `/news/${entry.slug}`;
+const breadcrumbItems = [
+  { name: "お知らせ", path: "/news" },
+  { name: entry.data.title, path },
+];
+
+const dateLabel = entry.data.date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+
+const schemas = [
+  articleSchema({
+    type: "NewsArticle",
+    path,
+    title: entry.data.title,
+    description,
+    datePublished: entry.data.date,
+    dateModified: entry.data.updatedDate,
+  }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path={path} ogType="article" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+
+  <article class="section-wrap py-10 sm:py-16 max-w-3xl">
+    <div class="flex items-center gap-3 text-xs text-ink-soft mb-3">
+      <span class="rounded-full bg-brand-orange-light px-2 py-0.5 font-bold text-ink">{entry.data.category}</span>
+      <time datetime={entry.data.date.toISOString()}>{dateLabel}</time>
+    </div>
+    <h1 class="text-2xl sm:text-3xl font-bold text-ink leading-snug">{entry.data.title}</h1>
+
+    <div class="mt-8 prose-content text-ink-soft leading-loose space-y-4">
+      <Content />
+    </div>
+
+    <div class="mt-10">
+      <LastUpdated date={entry.data.updatedDate ?? entry.data.date} />
+    </div>
+  </article>
+
+  <div class="section-wrap">
+    <RelatedContent
+      items={[
+        { title: "お知らせ一覧へ戻る", href: "/news", description: "他のお知らせもご覧いただけます。" },
+        { title: "活動報告", href: "/activities", description: "延岡での地域活動の様子をご覧いただけます。" },
+      ]}
+    />
+  </div>
+</BaseLayout>

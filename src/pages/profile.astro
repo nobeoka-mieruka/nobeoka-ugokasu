@@ -1,0 +1,83 @@
+---
+import { Picture } from "astro:assets";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HeroSection from "../components/HeroSection.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import RelatedContent from "../components/RelatedContent.astro";
+import {
+  profilePageHeroHeading,
+  profileChapters,
+  profileClosingMessage,
+} from "../data/profile";
+import { personSchema, webPageSchema } from "../utils/structuredData";
+import { buildBreadcrumbList } from "../utils/seo";
+import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
+
+const title = "福富千恵のプロフィール・経歴｜福富千恵と延岡を動かす会";
+const description =
+  "延岡で生まれ育ち、保育の現場や子育て、障がい福祉の現場で歩んできた福富千恵のプロフィールと経歴をご紹介します。";
+
+const breadcrumbItems = [{ name: "福富千恵について", path: "/profile" }];
+
+const schemas = [
+  personSchema({ image: "/images/profile/image0.jpeg" }),
+  webPageSchema({ type: "ProfilePage", path: "/profile", name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/profile" ogType="profile" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title={profilePageHeroHeading} eyebrow="福富千恵について" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-3xl">
+      <div class="mb-12 flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
+        <Picture
+          src={fukutomiChiePortrait}
+          formats={["avif", "webp"]}
+          widths={[300, 380, 420, 700]}
+          sizes="(min-width: 768px) 420px, (min-width: 640px) 380px, 300px"
+          alt="福富千恵（福富千恵と延岡を動かす会）"
+          class="w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] md:w-[420px] md:h-[420px] rounded-3xl object-cover flex-shrink-0"
+          style="object-position: center 25%;"
+          loading="eager"
+          fetchpriority="high"
+        />
+        <div class="text-center sm:text-left">
+          <p class="text-2xl font-bold text-ink">福富 千恵</p>
+          <p class="text-base text-ink-soft">ふくとみ ちえ</p>
+          <p class="text-sm text-ink-soft mt-1">1973年12月27日生まれ</p>
+        </div>
+      </div>
+
+      {profileChapters.map((chapter) => (
+        <div id={chapter.id} class="mb-10 scroll-mt-24">
+          <h2 class="text-xl sm:text-2xl font-bold text-ink border-l-4 border-brand-orange pl-4">
+            {chapter.title}
+          </h2>
+          <div class="mt-4 space-y-3 text-ink-soft leading-loose">
+            {chapter.paragraphs.map((paragraph) => (
+              <p>{paragraph}</p>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <div class="mt-14 card bg-ink text-white text-center py-10">
+        <p class="text-xl sm:text-2xl font-bold whitespace-pre-line">{profileClosingMessage.heading}</p>
+        <p class="mt-4 text-white/85 whitespace-pre-line leading-relaxed">{profileClosingMessage.body}</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-wrap">
+    <RelatedContent
+      items={[
+        { title: "私たちの提言", href: "/vision", description: "福富千恵の経験から生まれた3つの提言をご紹介します。" },
+        { title: "活動報告", href: "/activities", description: "延岡での地域活動の様子をお伝えします。" },
+        { title: "みんなの声", href: "/voices", description: "市民の皆さまから寄せられた声を見える化しています。" },
+      ]}
+    />
+  </div>
+</BaseLayout>

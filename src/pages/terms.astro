@@ -1,0 +1,73 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HeroSection from "../components/HeroSection.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import { siteConfig } from "../config/siteConfig";
+import { webPageSchema } from "../utils/structuredData";
+import { buildBreadcrumbList } from "../utils/seo";
+
+const title = "サイト利用について｜福富千恵と延岡を動かす会";
+const description = "福富千恵と延岡を動かす会公式ホームページのご利用にあたっての注意事項です。著作権、免責事項、リンクについて説明します。";
+const breadcrumbItems = [{ name: "サイト利用について", path: "/terms" }];
+
+const schemas = [
+  webPageSchema({ path: "/terms", name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/terms" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title="サイト利用について" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-3xl space-y-10 text-ink-soft leading-relaxed">
+      <div>
+        <h2 class="text-lg font-bold text-ink mb-3">運営者について</h2>
+        <p>
+          本サイトは、{siteConfig.organizationName}が運営する公式ホームページです。延岡市や国・県などの行政機関が運営する公式サイトではありません。
+        </p>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold text-ink mb-3">著作権</h2>
+        <p>
+          本サイトに掲載する文章・写真・イラスト等の著作権は、特に明記がない限り{siteConfig.organizationName}に帰属します。無断での転載・複製・改変はご遠慮ください。
+        </p>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold text-ink mb-3">リンクについて</h2>
+        <p>本サイトへのリンクは原則自由です。事前のご連絡は必要ありません。ただし、本サイトの内容を誤解させるような形でのリンクはご遠慮ください。</p>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold text-ink mb-3">外部リンクについて</h2>
+        <p>本サイトから他のウェブサイトへリンクしている場合、リンク先のサイトの内容について当団体は責任を負いません。</p>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold text-ink mb-3">免責事項</h2>
+        <p>
+          本サイトの情報は正確性の確保に努めていますが、内容の正確性・完全性・最新性を保証するものではありません。本サイトの情報を利用したことにより生じた損害について、当団体は責任を負いかねます。
+        </p>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold text-ink mb-3">内容の変更</h2>
+        <p>本サイトの内容は、予告なく変更・削除される場合があります。</p>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold text-ink mb-3">お問い合わせ</h2>
+        <p>
+          本ページに関するお問い合わせは、
+          <a href={`mailto:${siteConfig.email}`} class="underline text-ink font-bold">{siteConfig.email}</a>
+          までご連絡ください。
+        </p>
+      </div>
+
+      <p class="text-sm text-ink-soft/70">制定日：TODO（公開前に確定してください）</p>
+    </div>
+  </section>
+</BaseLayout>

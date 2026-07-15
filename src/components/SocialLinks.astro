@@ -1,0 +1,29 @@
+---
+import { socialLinks } from "../data/socialLinks";
+import Icon from "./Icon.astro";
+
+const links = [
+  { key: "line", label: "LINE公式アカウント", icon: "line" as const },
+  { key: "instagram", label: "Instagram", icon: "instagram" as const },
+] satisfies { key: keyof typeof socialLinks; label: string; icon: "line" | "instagram" }[];
+
+const active = links.filter((l) => socialLinks[l.key]);
+---
+
+{active.length > 0 && (
+  <ul class="flex items-center gap-3">
+    {active.map((link) => (
+      <li>
+        <a
+          href={socialLinks[link.key]}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center justify-center rounded-full bg-brand-orange-light p-2 text-brand-orange-dark hover:bg-brand-orange hover:text-white transition-colors"
+        >
+          <span class="sr-only">{link.label}（新しいタブで開く）</span>
+          <Icon name={link.icon} class="w-5 h-5" />
+        </a>
+      </li>
+    ))}
+  </ul>
+)}

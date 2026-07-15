@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /*
+     * ルートの文字サイズを112.5%（16px→18px相当）に引き上げ、
+     * Tailwindのtext-*ユーティリティ（rem基準）をサイト全体で比例拡大する。
+     * 例：text-base(1rem)=18px、text-lg=20.25px、text-4xl=40.5px、text-5xl=54px
+     */
+    font-size: 112.5%;
+  }
+
+  body {
+    @apply bg-white text-ink text-base antialiased;
+    line-height: 1.8;
+    /* 25章：横スクロール防止 */
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4 {
+    @apply leading-snug;
+  }
+
+  p {
+    line-height: 1.8;
+  }
+
+  /* 25章：フォーカス表示を消さない */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  summary:focus-visible {
+    outline: 3px solid #D9530B;
+    outline-offset: 2px;
+  }
+
+  /* 25章：動きを減らす設定に対応 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * ボタンの文字サイズはtext-xl（20px）にしています。
+   * WCAGの文字コントラスト基準は、太字18.66px以上の「大きな文字」であれば3:1、
+   * それ未満は4.5:1が必要です。濃いオレンジ(#D9530B)と白の組み合わせは
+   * 4.04:1のため、20px太字にすることで基準を満たしています（Lighthouse検証済み）。
+   */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-orange-dark px-6 py-3 text-white text-xl font-bold shadow-sm transition-all hover:brightness-110;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-orange-dark px-6 py-3 text-brand-orange-dark text-xl font-bold transition-colors hover:bg-brand-orange-light;
+  }
+
+  .card {
+    @apply rounded-2xl bg-white shadow-sm ring-1 ring-black/5 p-7 sm:p-8;
+  }
+
+  .section-wrap {
+    @apply mx-auto w-full max-w-content px-4 sm:px-6 lg:px-8;
+  }
+
+  /* ヘッダー専用：メインコンテンツより広い最大幅でナビの折り返しを防ぐ（Tailwind標準のmax-w-7xlを使用） */
+  .header-wrap {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+}

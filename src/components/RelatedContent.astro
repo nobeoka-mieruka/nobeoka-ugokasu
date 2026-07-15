@@ -1,0 +1,35 @@
+---
+import Icon from "./Icon.astro";
+
+interface RelatedItem {
+  title: string;
+  href: string;
+  description: string;
+}
+
+interface Props {
+  heading?: string;
+  items: RelatedItem[];
+}
+
+const { heading = "関連するページ", items } = Astro.props;
+---
+
+{items.length > 0 && (
+  <div class="mt-14 border-t border-black/10 pt-10">
+    <h2 class="text-2xl font-bold text-ink mb-5">{heading}</h2>
+    <ul class="grid gap-4 sm:grid-cols-2">
+      {items.map((item) => (
+        <li>
+          <a href={item.href} class="card flex items-start gap-3 hover:shadow-md transition-shadow h-full">
+            <Icon name="arrow-right" class="w-5 h-5 flex-shrink-0 mt-1 text-brand-orange" />
+            <span>
+              <span class="block text-lg font-bold text-ink">{item.title}</span>
+              <span class="block text-base text-ink-soft mt-1">{item.description}</span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}

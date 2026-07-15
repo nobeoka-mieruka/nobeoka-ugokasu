@@ -1,0 +1,81 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import VoiceHero from "../../components/VoiceHero.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import SectionTitle from "../../components/SectionTitle.astro";
+import RelatedContent from "../../components/RelatedContent.astro";
+import Icon from "../../components/Icon.astro";
+import { voicesConfig } from "../../config/voicesConfig";
+import { webPageSchema } from "../../utils/structuredData";
+import { buildBreadcrumbList } from "../../utils/seo";
+
+const title = "みんなの声｜延岡の課題と市民の意見を見える化";
+const description = "福富千恵と延岡を動かす会の「みんなの声（ブロードリスニング）」のご紹介です。市民の皆さまの声を集め、整理し、対応状況を公開しています。";
+const breadcrumbItems = [{ name: "みんなの声", path: "/voices" }];
+
+const schemas = [
+  webPageSchema({ path: "/voices", name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/voices" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <VoiceHero
+    title={"あなたの声から、\n延岡のこれからを考えます。"}
+    description="多様な声を幅広く集め、共通する課題、異なる立場からの意見、少数でも重要な意見を整理し、今後の活動や提言に生かす取り組みです。単なる多数決や人気投票ではありません。"
+  />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-4xl">
+      <div class="grid gap-6 sm:grid-cols-2">
+        <a href="/voices/submit" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
+          <Icon name="megaphone" class="w-8 h-8 text-brand-orange" />
+          <h2 class="font-bold text-ink text-lg">声を届ける</h2>
+          <p class="text-sm text-ink-soft">ご意見やお困りごとをお寄せください。</p>
+        </a>
+        <a href="/voices/themes" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
+          <Icon name="document" class="w-8 h-8 text-brand-orange" />
+          <h2 class="font-bold text-ink text-lg">意見募集中のテーマ</h2>
+          <p class="text-sm text-ink-soft">現在募集しているテーマの一覧です。</p>
+        </a>
+        <a href="/voices/reports" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
+          <Icon name="users" class="w-8 h-8 text-brand-orange" />
+          <h2 class="font-bold text-ink text-lg">分析結果一覧</h2>
+          <p class="text-sm text-ink-soft">集まった声の分析結果を公開しています。</p>
+        </a>
+        <a href="/voices/method" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
+          <Icon name="handshake" class="w-8 h-8 text-brand-orange" />
+          <h2 class="font-bold text-ink text-lg">声の集め方・整理方法</h2>
+          <p class="text-sm text-ink-soft">どのように集め、整理しているかをご説明します。</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-14 sm:py-20 bg-brand-ivory">
+    <div class="section-wrap max-w-4xl">
+      <SectionTitle title="対応状況について" align="left" />
+      <p class="text-ink-soft leading-relaxed mb-4">
+        寄せられたご意見への対応状況は、以下のいずれかの状態で管理・公開しています。
+      </p>
+      <ul class="grid gap-2 sm:grid-cols-3">
+        {voicesConfig.responseStatusLabels.map((label) => (
+          <li class="card py-3 text-center text-sm font-bold text-ink">{label}</li>
+        ))}
+      </ul>
+      <p class="mt-4 text-sm text-ink-soft">
+        「現時点では対応が困難です」とする場合は、可能な範囲で理由もあわせて公開します。
+      </p>
+    </div>
+  </section>
+
+  <div class="section-wrap">
+    <RelatedContent
+      items={[
+        { title: "私たちの提言", href: "/vision", description: "寄せられた声は今後の提言の参考にします。" },
+        { title: "福富千恵について", href: "/profile", description: "福富千恵の経験と提言の背景をご紹介します。" },
+      ]}
+    />
+  </div>
+</BaseLayout>

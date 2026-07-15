@@ -1,0 +1,34 @@
+---
+import type { ThemeStatusLabel, ResponseStatusLabel } from "../config/voicesConfig";
+
+interface Props {
+  status: ThemeStatusLabel | ResponseStatusLabel;
+}
+
+const { status } = Astro.props;
+
+// バッジの文字色は、いずれも十分なコントラストを確保するためtext-ink（濃い文字色）に統一し、
+// 背景色（薄いオレンジ・薄い緑・薄い青・薄いグレー）で状態の違いを表現しています（文字と色を併用）。
+const colorMap: Record<string, string> = {
+  "準備中": "bg-black/5 text-ink-soft",
+  "受付中": "bg-accent-welfare/10 text-ink",
+  "集計中": "bg-brand-orange-light text-ink",
+  "結果公開中": "bg-accent-disaster/10 text-ink",
+  "受付終了": "bg-black/5 text-ink-soft",
+  "受け付けました": "bg-brand-orange-light text-ink",
+  "内容を整理しています": "bg-brand-orange-light text-ink",
+  "詳しく調査しています": "bg-brand-orange-light text-ink",
+  "意見交換を予定しています": "bg-accent-welfare/10 text-ink",
+  "提言への反映を検討しています": "bg-accent-welfare/10 text-ink",
+  "提言に反映しました": "bg-accent-welfare/10 text-ink",
+  "情報提供を行いました": "bg-accent-disaster/10 text-ink",
+  "現時点では対応が困難です": "bg-black/5 text-ink-soft",
+  "対応を終了しました": "bg-black/5 text-ink-soft",
+};
+
+const colorClass = colorMap[status] ?? "bg-black/5 text-ink-soft";
+---
+
+<span class:list={["inline-flex items-center rounded-full px-3 py-1 text-xs font-bold", colorClass]}>
+  {status}
+</span>

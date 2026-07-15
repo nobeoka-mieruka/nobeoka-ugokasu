@@ -1,0 +1,26 @@
+---
+import Icon from "./Icon.astro";
+import type { BreadcrumbItem } from "../utils/seo";
+
+interface Props {
+  items: BreadcrumbItem[];
+}
+
+const { items } = Astro.props;
+const allItems: BreadcrumbItem[] = [{ name: "ホーム", path: "/" }, ...items];
+---
+
+<nav aria-label="パンくずリスト" class="section-wrap py-3">
+  <ol class="flex flex-wrap items-center gap-1 text-sm text-ink-soft">
+    {allItems.map((item, index) => (
+      <li class="flex items-center gap-1">
+        {index > 0 && <Icon name="chevron-right" class="w-4 h-4 text-ink-soft/60" />}
+        {index === allItems.length - 1 ? (
+          <span aria-current="page" class="text-ink font-bold">{item.name}</span>
+        ) : (
+          <a href={item.path} class="hover:text-ink hover:underline">{item.name}</a>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>

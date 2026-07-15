@@ -1,0 +1,148 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../../components/Breadcrumb.astro";
+import LastUpdated from "../../../components/LastUpdated.astro";
+import MinorityVoiceCard from "../../../components/MinorityVoiceCard.astro";
+import DifferentViewsCard from "../../../components/DifferentViewsCard.astro";
+import OfficialResponseCard from "../../../components/OfficialResponseCard.astro";
+import RelatedContent from "../../../components/RelatedContent.astro";
+import { webPageSchema } from "../../../utils/structuredData";
+import { buildBreadcrumbList } from "../../../utils/seo";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("voice-reports", ({ data }) => data.published);
+  return entries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const { data } = entry;
+
+const title = `${data.title}｜分析結果｜みんなの声`;
+const description = `${data.theme}に関する意見の分析結果です。募集方法や主な論点、寄せられた声の傾向をまとめています。`;
+const path = `/voices/reports/${entry.slug}`;
+const breadcrumbItems = [
+  { name: "みんなの声", path: "/voices" },
+  { name: "分析結果一覧", path: "/voices/reports" },
+  { name: data.title, path },
+];
+
+const schemas = [
+  webPageSchema({ path, name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path={path} schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+
+  <article class="section-wrap py-10 sm:py-16 max-w-3xl space-y-8">
+    <div>
+      <span class="text-xs font-bold text-ink">{data.theme}</span>
+      <h1 class="mt-1 text-2xl sm:text-3xl font-bold text-ink leading-snug">{data.title}</h1>
+      <div class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-soft">
+        {data.period && <span>募集期間：{data.period}</span>}
+        {typeof data.responseCount === "number" && <span>回答数：{data.responseCount}件</span>}
+        {data.collectionMethods.length > 0 && <span>収集方法：{data.collectionMethods.join("、")}</span>}
+      </div>
+      <div class="mt-2">
+        <LastUpdated date={data.lastUpdated} />
+      </div>
+    </div>
+
+    <div class="rounded-xl bg-brand-orange-light px-5 py-4 text-sm text-ink leading-relaxed">
+      この結果は、延岡市民全体の意見を統計的に代表するものではありません。
+      <br />
+      寄せられた意見の傾向や背景を理解し、今後の活動や提言を考えるための参考資料として公開しています。
+    </div>
+
+    {data.mainPoints.length > 0 && (
+      <div>
+        <h2 class="font-bold text-ink text-lg mb-3">主な論点</h2>
+        <ul class="space-y-2">
+          {data.mainPoints.map((p) => <li class="text-ink-soft leading-relaxed">・{p}</li>)}
+        </ul>
+      </div>
+    )}
+
+    {data.commonIssues.length > 0 && (
+      <div>
+        <h2 class="font-bold text-ink text-lg mb-3">共通して寄せられた課題</h2>
+        <ul class="space-y-2">
+          {data.commonIssues.map((p) => <li class="text-ink-soft leading-relaxed">・{p}</li>)}
+        </ul>
+      </div>
+    )}
+
+    <DifferentViewsCard items={data.differingViews} />
+    <MinorityVoiceCard items={data.minorityViews} />
+
+    {data.experiences.length > 0 && (
+      <div>
+        <h2 class="font-bold text-ink text-lg mb-3">当事者の具体的な経験</h2>
+        <ul class="space-y-2">
+          {data.experiences.map((p) => <li class="text-ink-soft leading-relaxed">・{p}</li>)}
+        </ul>
+      </div>
+    )}
+
+    {data.ideas.length > 0 && (
+      <div>
+        <h2 class="font-bold text-ink text-lg mb-3">寄せられたアイデア</h2>
+        <ul class="space-y-2">
+          {data.ideas.map((p) => <li class="text-ink-soft leading-relaxed">・{p}</li>)}
+        </ul>
+      </div>
+    )}
+
+    {data.futureInvestigation.length > 0 && (
+      <div>
+        <h2 class="font-bold text-ink text-lg mb-3">今後調査すること</h2>
+        <ul class="space-y-2">
+          {data.futureInvestigation.map((p) => <li class="text-ink-soft leading-relaxed">・{p}</li>)}
+        </ul>
+      </div>
+    )}
+
+    <div>
+      <h2 class="font-bold text-ink text-lg mb-3">活動または提言への反映</h2>
+      <p class="text-ink-soft leading-relaxed">{data.reflectionInActivities}</p>
+    </div>
+
+    <OfficialResponseCard response={data.officialResponse} />
+
+    {(data.analysisMethod || data.analysisLimitations) && (
+      <div class="border-t border-black/10 pt-6 space-y-4">
+        {data.analysisMethod && (
+          <div>
+            <h2 class="font-bold text-ink text-sm mb-2">分析方法</h2>
+            <p class="text-sm text-ink-soft leading-relaxed">{data.analysisMethod}</p>
+          </div>
+        )}
+        {data.analysisLimitations && (
+          <div>
+            <h2 class="font-bold text-ink text-sm mb-2">分析の限界</h2>
+            <p class="text-sm text-ink-soft leading-relaxed">{data.analysisLimitations}</p>
+          </div>
+        )}
+      </div>
+    )}
+
+    <div class="prose-content text-ink-soft leading-loose space-y-4">
+      <Content />
+    </div>
+  </article>
+
+  <div class="section-wrap">
+    <RelatedContent
+      items={[
+        { title: "分析結果一覧へ戻る", href: "/voices/reports", description: "他の分析結果もご覧いただけます。" },
+        { title: "私たちの提言", href: "/vision", description: "分析結果は今後の提言の参考にします。" },
+      ]}
+    />
+  </div>
+</BaseLayout>

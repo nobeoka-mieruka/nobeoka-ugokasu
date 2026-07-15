@@ -1,0 +1,63 @@
+---
+import Icon from "./Icon.astro";
+import { absoluteUrl } from "../utils/seo";
+
+interface Props {
+  path: string;
+  title: string;
+}
+
+const { path, title } = Astro.props;
+const url = absoluteUrl(path);
+const xShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
+const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`;
+---
+
+<div class="flex flex-wrap items-center gap-2">
+  <span class="text-sm font-bold text-ink-soft">この記事をシェア</span>
+  <a
+    href={xShareUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="inline-flex items-center justify-center rounded-full bg-ink p-2 text-white hover:opacity-80"
+  >
+    <span class="sr-only">Xでシェア（新しいタブで開く）</span>
+    <Icon name="external-link" class="w-4 h-4" />
+  </a>
+  <a
+    href={lineShareUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="inline-flex items-center justify-center rounded-full bg-[#06C755] p-2 text-white hover:opacity-80"
+  >
+    <span class="sr-only">LINEでシェア（新しいタブで開く）</span>
+    <Icon name="line" class="w-4 h-4" />
+  </a>
+  <button
+    type="button"
+    class="share-copy-button inline-flex items-center justify-center gap-1 rounded-full border border-black/10 px-3 py-2 text-xs font-bold text-ink hover:bg-brand-orange-light"
+    data-url={url}
+  >
+    <Icon name="check" class="w-4 h-4" />
+    リンクをコピー
+  </button>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>(".share-copy-button").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const url = button.dataset.url;
+      if (!url) return;
+      try {
+        await navigator.clipboard.writeText(url);
+        const original = button.textContent;
+        button.textContent = "コピーしました";
+        setTimeout(() => {
+          if (original) button.textContent = original;
+        }, 2000);
+      } catch {
+        // クリップボードAPIが使用できない環境では何もしない
+      }
+    });
+  });
+</script>

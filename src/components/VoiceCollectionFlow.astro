@@ -1,0 +1,21 @@
+---
+const steps = [
+  "回答を収集する",
+  "個人情報を削除する",
+  "事務局が内容を確認する",
+  "必要に応じてAIで分類・要約する",
+  "事務局が元の文章と照合する",
+  "確認後の内容だけを公開する",
+];
+---
+
+<ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {steps.map((step, index) => (
+    <li class="card flex items-start gap-3">
+      <span class="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-orange text-white font-bold text-sm">
+        {index + 1}
+      </span>
+      <span class="text-ink-soft leading-relaxed">{step}</span>
+    </li>
+  ))}
+</ol>

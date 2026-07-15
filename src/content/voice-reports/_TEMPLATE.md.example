@@ -1,0 +1,22 @@
+---
+title: "（分析結果のタイトルをここに記入。例：福祉・介護に関する意見の分析結果）"
+theme: "（対応するテーマ名。例：福祉、介護）"
+period: "（募集期間。例：2026年1月〜2026年2月。未確定なら空欄のまま）"
+responseCount: 0
+collectionMethods: ["Googleフォーム", "意見交換会"]
+lastUpdated: 2026-01-01
+mainPoints: ["（主な論点1）", "（主な論点2）"]
+commonIssues: ["（共通して寄せられた課題1）"]
+differingViews: ["（立場によって異なる意見1）"]
+minorityViews: ["（少数でも重要な意見1）"]
+experiences: ["（当事者の具体的な経験1）"]
+ideas: ["（寄せられたアイデア1）"]
+futureInvestigation: ["（今後調査すること1）"]
+reflectionInActivities: "（活動または提言への反映内容。未定なら「現在検討中です。」のままにする）"
+officialResponse: "（事務局からの回答）"
+analysisMethod: "（分析方法の説明）"
+analysisLimitations: "（分析の限界の説明）"
+published: false
+---
+
+（補足の説明文があればここに記入）

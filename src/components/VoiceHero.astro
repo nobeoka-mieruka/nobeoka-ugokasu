@@ -1,0 +1,21 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<div class="bg-brand-orange-light">
+  <div class="section-wrap py-10 sm:py-14">
+    <span class="inline-flex items-center gap-2 text-sm font-bold text-ink">
+      <Icon name="megaphone" class="w-5 h-5 text-brand-orange-dark" />
+      ブロードリスニング
+    </span>
+    <h1 class="mt-2 text-2xl sm:text-3xl lg:text-4xl font-bold text-ink whitespace-pre-line">{title}</h1>
+    <p class="mt-4 text-base sm:text-lg text-ink-soft leading-relaxed max-w-2xl">{description}</p>
+  </div>
+</div>

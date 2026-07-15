@@ -1,0 +1,52 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import HeroSection from "../../components/HeroSection.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import ActivityCard from "../../components/ActivityCard.astro";
+import Icon from "../../components/Icon.astro";
+import { webPageSchema } from "../../utils/structuredData";
+import { buildBreadcrumbList } from "../../utils/seo";
+
+const title = "福富千恵の活動報告｜延岡市での地域活動";
+const description = "福富千恵と延岡を動かす会が延岡市内で行った活動の報告一覧です。実施の目的や参加者の声、今後の対応をお伝えします。";
+const breadcrumbItems = [{ name: "活動報告", path: "/activities" }];
+
+const activities = (await getCollection("activities", ({ data }) => data.published)).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+);
+
+const schemas = [
+  webPageSchema({ path: "/activities", name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/activities" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title="活動報告" description="福富千恵と延岡を動かす会の地域活動をお伝えします。" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap">
+      {activities.length > 0 ? (
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {activities.map((entry) => (
+            <ActivityCard
+              slug={entry.slug}
+              title={entry.data.title}
+              date={entry.data.date}
+              category={entry.data.category}
+              summary={entry.data.summary}
+              mainImage={entry.data.mainImage}
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-3">
+          <Icon name="document" class="w-10 h-10 text-brand-orange" />
+          <p class="text-lg">活動報告は準備中です。</p>
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>

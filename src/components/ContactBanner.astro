@@ -1,0 +1,25 @@
+---
+interface Props {
+  heading: string;
+  description: string;
+  primaryLabel: string;
+  primaryHref: string;
+  secondaryLabel?: string;
+  secondaryHref?: string;
+}
+
+const { heading, description, primaryLabel, primaryHref, secondaryLabel, secondaryHref } = Astro.props;
+---
+
+<div class="rounded-3xl bg-ink text-white px-8 py-12 sm:px-12 sm:py-16 text-center">
+  <h2 class="text-3xl sm:text-4xl font-bold whitespace-pre-line">{heading}</h2>
+  <p class="mt-5 text-lg sm:text-xl text-white/80 leading-relaxed max-w-2xl mx-auto whitespace-pre-line">{description}</p>
+  <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+    <a href={primaryHref} class="btn-primary">{primaryLabel}</a>
+    {secondaryLabel && secondaryHref && (
+      <a href={secondaryHref} class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white px-6 py-3 text-xl font-bold text-white hover:bg-white hover:text-ink transition-colors">
+        {secondaryLabel}
+      </a>
+    )}
+  </div>
+</div>
