@@ -60,18 +60,17 @@ export const siteConfig = {
   phone: "",
 
   /**
-   * ロゴ画像パス（アイコンマーク＋団体名の横組みロゴ）。
+   * ロゴ画像パス（団体名入りの正式横組みロゴ）。
    * 構造化データ（Organization.logo）に使用されます。
-   * 専門デザイナーによる正式ロゴができ次第、このパスを差し替えてください。
    */
-  logo: "/images/logo/logo-horizontal.png",
+  logo: "/images/logo/kouenkainamaeirilogo.png",
 
   /**
    * 検索エンジンへのインデックスを許可するかどうか。
-   * 公開内容を最終確認するまでは必ず false のままにしてください。
-   * 本公開時にのみ true へ変更してください。
+   * 正式公開に伴い true に変更済みです。
+   * 内容を再確認したい場合のみ false へ戻してください。
    */
-  allowIndexing: false,
+  allowIndexing: true,
 
   /**
    * 選挙運動・キャンペーン向け表示の有効化フラグ。
