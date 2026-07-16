@@ -40,11 +40,17 @@ const schemas = [
 
   <section class="py-14 sm:py-20">
     <div class="section-wrap max-w-2xl space-y-8">
+      <div class="text-center">
+        <h2 class="text-2xl sm:text-3xl font-bold text-ink mb-3">あなたの声をお聞かせください</h2>
+        <p class="text-ink-soft leading-relaxed">
+          延岡の暮らしや地域の課題、福祉、子育て、医療、交通などについて、皆さまのご意見をお寄せください。
+        </p>
+      </div>
+
       {voicesConfig.googleFormUrl ? (
-        <div class="card text-center py-10">
-          <p class="text-ink-soft mb-4">下記のボタンからGoogleフォームへ進み、ご意見をお寄せください。</p>
+        <div class="text-center">
           <a href={voicesConfig.googleFormUrl} target="_blank" rel="noopener noreferrer" class="btn-primary">
-            意見受付フォームを開く
+            Googleフォームで意見を送る
             <Icon name="external-link" class="w-4 h-4" />
           </a>
         </div>
@@ -74,7 +80,37 @@ const schemas = [
           </div>
         </div>
       </div>
+    </div>
+  </section>
 
+  {voicesConfig.googleFormUrl && (
+    <section class="pb-14 sm:pb-20">
+      <div class="section-wrap max-w-3xl">
+        <h2 class="text-xl font-bold text-ink mb-4 text-center">フォームからも直接ご記入いただけます</h2>
+        <div class="rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white w-full">
+          <iframe
+            src={`${voicesConfig.googleFormUrl}?embedded=true`}
+            title="福富千恵と延岡を動かす会 みんなの声 意見受付フォーム"
+            class="w-full block"
+            style="border: 0; min-height: 1200px;"
+            loading="lazy"
+          >
+            フォームを読み込んでいます…
+          </iframe>
+        </div>
+        <p class="mt-3 text-center text-sm text-ink-soft">
+          フォームが表示されない場合は、
+          <a href={voicesConfig.googleFormUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
+            外部サイトでGoogleフォームを開いてください
+            <span class="sr-only">（新しいタブで開く）</span>
+          </a>
+        </p>
+      </div>
+    </section>
+  )}
+
+  <section class="pb-14 sm:pb-20">
+    <div class="section-wrap">
       <VoiceMethodSection />
     </div>
   </section>

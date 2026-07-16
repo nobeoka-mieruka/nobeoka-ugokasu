@@ -65,30 +65,30 @@ const methodMeta: Record<
   <p class="text-ink-soft leading-relaxed mb-6">
     デジタルを利用しない方のご意見も大切にしたいと考えており、以下の方法で声を集めています。
   </p>
-  <ul class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+  <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
     {voicesConfig.collectionMethods.map((method) => {
       const meta = methodMeta[method];
       return (
         <li
-          class="voice-method-card group grid items-start gap-3 min-w-0 min-h-[110px] rounded-2xl bg-white ring-1 ring-black/5 p-4 sm:p-5 transition-all hover:ring-brand-orange-dark hover:shadow-md hover:-translate-y-0.5"
-          style="grid-template-columns: auto minmax(0, 1fr) auto;"
+          class="voice-method-card group min-w-0 rounded-2xl bg-white ring-1 ring-black/5 p-5 transition-all hover:ring-brand-orange-dark hover:shadow-md hover:-translate-y-0.5"
+          style="writing-mode: horizontal-tb;"
         >
-          <span class:list={["flex-shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl", meta.badgeClass]}>
-            <Icon name={meta.icon} class="w-6 h-6" ariaHidden={true} />
-          </span>
-          <span class="min-w-0 w-full">
-            <span class="block text-base font-bold text-ink whitespace-nowrap">
-              {method}
+          <div class="flex items-start justify-between gap-2">
+            <span class:list={["inline-flex items-center justify-center w-11 h-11 rounded-xl", meta.badgeClass]}>
+              <Icon name={meta.icon} class="w-6 h-6" ariaHidden={true} />
             </span>
-            <span class="block mt-1 text-sm text-ink-soft whitespace-pre-line leading-snug">
-              {meta.description}
-            </span>
-          </span>
-          <Icon
-            name="chevron-right"
-            class="flex-shrink-0 w-5 h-5 mt-1 text-ink-soft/50 transition-transform group-hover:translate-x-1"
-            ariaHidden={true}
-          />
+            <Icon
+              name="chevron-right"
+              class="flex-shrink-0 w-5 h-5 mt-1 text-ink-soft/50 transition-transform group-hover:translate-x-1"
+              ariaHidden={true}
+            />
+          </div>
+          <p class="mt-3 min-w-0 w-full text-base font-bold text-ink [white-space:normal] [word-break:normal] [overflow-wrap:break-word] leading-snug">
+            {method}
+          </p>
+          <p class="mt-1 min-w-0 w-full text-sm text-ink-soft [white-space:pre-line] [word-break:normal] [overflow-wrap:break-word] leading-relaxed">
+            {meta.description}
+          </p>
         </li>
       );
     })}

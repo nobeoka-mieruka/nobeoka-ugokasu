@@ -4,11 +4,10 @@
 
 export const voicesConfig = {
   /**
-   * 意見受付用Googleフォームの URL（未設定）。
-   * URLが決まったらこの値を設定してください。空欄の間は
-   * 「現在、意見受付フォームを準備しています。」と表示されます。
+   * 意見受付用Googleフォームの URL。
+   * 空欄にすると「現在、意見受付フォームを準備しています。」という表示に自動的に戻ります。
    */
-  googleFormUrl: "",
+  googleFormUrl: "https://docs.google.com/forms/d/e/1FAIpQLSezz5jWvNZUNtpEJaVVHjrLcoEPPYPfGgb4DpbZjZCfr4BY1Q/viewform",
 
   /**
    * AIによる自動分析・自動送信の有効化フラグ。
