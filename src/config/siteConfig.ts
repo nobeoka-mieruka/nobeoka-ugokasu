@@ -49,8 +49,12 @@ export const siteConfig = {
   postalCode: "〒882-0842",
   address: "宮崎県延岡市三ツ瀬町2丁目3番地7",
 
-  /** 連絡先メールアドレス */
-  email: "fukutomichie1227@gmail.com",
+  /**
+   * 事務局への連絡先メールアドレス。
+   * ホームページ・Googleフォーム・掲載内容・後援会事務局へのお問い合わせなど、
+   * 一般のお問い合わせ全般に使用します（福富千恵個人専用の連絡先ではありません）。
+   */
+  email: "nobeoka.ugokasu.contact@gmail.com",
 
   /**
    * 電話番号（未設定）
