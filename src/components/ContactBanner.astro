@@ -9,11 +9,23 @@ interface Props {
 }
 
 const { heading, description, primaryLabel, primaryHref, secondaryLabel, secondaryHref } = Astro.props;
+
+// 狭い画面幅で「動かす」のような複合語の途中に改行が入らないよう、
+// 該当箇所だけ折り返し禁止（white-space: nowrap）で保護する
+function protectWords(text: string): string {
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escaped
+    .replace(/動かす/g, '<span style="white-space:nowrap">動かす</span>')
+    .replace(/政治団体/g, '<span style="white-space:nowrap">政治団体</span>');
+}
 ---
 
 <div class="rounded-3xl bg-ink text-white px-8 py-12 sm:px-12 sm:py-16 text-center">
-  <h2 class="text-3xl sm:text-4xl font-bold whitespace-pre-line">{heading}</h2>
-  <p class="mt-5 text-lg sm:text-xl text-white/80 leading-relaxed max-w-2xl mx-auto whitespace-pre-line">{description}</p>
+  <h2 class="text-3xl sm:text-4xl font-bold whitespace-pre-line" set:html={protectWords(heading)} />
+  <p class="mt-5 text-lg sm:text-xl text-white/80 leading-relaxed max-w-2xl mx-auto whitespace-pre-line" set:html={protectWords(description)} />
   <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
     <a href={primaryHref} class="btn-primary">{primaryLabel}</a>
     {secondaryLabel && secondaryHref && (

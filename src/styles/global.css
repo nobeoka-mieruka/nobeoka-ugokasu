@@ -18,10 +18,14 @@
     line-height: 1.8;
     /* 25章：横スクロール防止 */
     overflow-x: hidden;
+    /* 日本語の単語・意味のまとまり途中での不自然な改行を防ぐ（長い連続文字列は折り返す） */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   h1, h2, h3, h4 {
     @apply leading-snug;
+    text-wrap: balance;
   }
 
   p {

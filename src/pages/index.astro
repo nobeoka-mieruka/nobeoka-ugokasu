@@ -64,8 +64,8 @@ const schemas = [
             だからこそ、<br />
             わかる思いがあります。
           </p>
-          <p class="mt-8 text-[40px] sm:text-[52px] lg:text-[64px] leading-[1.15] font-bold text-brand-orange-dark">
-            あなたと、延岡を動かす！
+          <p class="mt-8 text-[40px] sm:text-[52px] lg:text-[56px] leading-[1.15] font-bold text-brand-orange-dark">
+            <span class="whitespace-nowrap">あなたと、</span><span class="whitespace-nowrap">延岡を動かす！</span>
           </p>
           <div class="mt-8">
             <p class="text-2xl font-bold text-ink">福富 千恵</p>
@@ -118,14 +118,14 @@ const schemas = [
   </section>
 
   <!-- 8-4 プロフィール概要 -->
-  <section class="py-14 sm:py-20">
+  <section class="py-14 sm:py-16">
     <div class="section-wrap">
       <ProfileSummary />
     </div>
   </section>
 
   <!-- 8-5 3つの提言 -->
-  <section class="py-14 sm:py-20 bg-brand-ivory">
+  <section class="py-14 sm:py-16 bg-brand-ivory">
     <div class="section-wrap">
       <SectionTitle title="私の提言" subtitle={"つながり、支え合い、\n希望あふれる延岡へ。"} />
       <div class="grid gap-8 sm:grid-cols-3">
@@ -140,7 +140,7 @@ const schemas = [
   </section>
 
   <!-- 8-6 みんなの声 -->
-  <section class="py-14 sm:py-20">
+  <section class="py-14 sm:py-16">
     <div class="section-wrap">
       <SectionTitle title={"あなたの声から、\n延岡のこれからを考えます。"} />
       <div class="max-w-2xl mx-auto text-center text-lg text-ink-soft leading-relaxed">
@@ -161,7 +161,7 @@ const schemas = [
   </section>
 
   <!-- 8-7 最新の活動報告 -->
-  <section class="py-14 sm:py-20 bg-brand-ivory">
+  <section class="py-14 sm:py-16 bg-brand-ivory">
     <div class="section-wrap">
       <SectionTitle title="最新の活動報告" align="left" />
       {activities.length > 0 ? (
@@ -178,19 +178,25 @@ const schemas = [
           ))}
         </div>
       ) : (
-        <div class="card text-center py-10 text-ink-soft flex flex-col items-center gap-3">
-          <Icon name="document" class="w-8 h-8 text-brand-orange" />
+        <div class="rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft">
+          <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
           <p>活動報告は準備中です。</p>
         </div>
       )}
       <div class="mt-8 text-center">
-        <a href="/activities" class="btn-secondary">活動報告一覧を見る</a>
+        {activities.length > 0 ? (
+          <a href="/activities" class="btn-secondary">活動報告一覧を見る</a>
+        ) : (
+          <span class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed" aria-disabled="true">
+            活動報告一覧を見る（準備中）
+          </span>
+        )}
       </div>
     </div>
   </section>
 
   <!-- 8-8 最新のお知らせ -->
-  <section class="py-14 sm:py-20">
+  <section class="py-14 sm:py-16">
     <div class="section-wrap">
       <SectionTitle title="最新のお知らせ" align="left" />
       {news.length > 0 ? (
@@ -206,19 +212,25 @@ const schemas = [
           ))}
         </div>
       ) : (
-        <div class="card text-center py-10 text-ink-soft flex flex-col items-center gap-3">
-          <Icon name="document" class="w-8 h-8 text-brand-orange" />
+        <div class="rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft">
+          <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
           <p>お知らせは準備中です。</p>
         </div>
       )}
       <div class="mt-8 text-center">
-        <a href="/news" class="btn-secondary">お知らせ一覧を見る</a>
+        {news.length > 0 ? (
+          <a href="/news" class="btn-secondary">お知らせ一覧を見る</a>
+        ) : (
+          <span class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed" aria-disabled="true">
+            お知らせ一覧を見る（準備中）
+          </span>
+        )}
       </div>
     </div>
   </section>
 
   <!-- 8-9 後援会案内 -->
-  <section class="py-14 sm:py-20 bg-brand-ivory">
+  <section class="py-14 sm:py-16 bg-brand-ivory">
     <div class="section-wrap">
       <ContactBanner
         heading={siteConfig.organizationName}

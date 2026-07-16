@@ -13,7 +13,7 @@ export default {
         },
         ink: {
           DEFAULT: "#262626",
-          soft: "#555555",
+          soft: "#454545",
         },
         accent: {
           welfare: "#39A935",
