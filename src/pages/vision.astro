@@ -46,14 +46,14 @@ const schemas = [
             <h2 class="text-2xl sm:text-3xl font-bold text-ink whitespace-pre-line">{proposal.title}</h2>
 
             <div class="mt-6">
-              <h3 class="font-bold text-ink">背景</h3>
+              <h3 class="text-lg font-bold text-ink">背景</h3>
               <div class="mt-2 space-y-2 text-ink-soft leading-relaxed">
                 {proposal.background.map((p) => <p>{p}</p>)}
               </div>
             </div>
 
             <div class="mt-6">
-              <h3 class="font-bold text-ink">現在感じている課題</h3>
+              <h3 class="text-lg font-bold text-ink">現在感じている課題</h3>
               <ul class="mt-2 space-y-1">
                 {proposal.currentIssues.map((issue) => (
                   <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
@@ -65,7 +65,7 @@ const schemas = [
             </div>
 
             <div class="mt-6">
-              <h3 class="font-bold text-ink">提言の内容</h3>
+              <h3 class="text-lg font-bold text-ink">提言の内容</h3>
               <ul class="mt-2 space-y-2">
                 {proposal.proposals.map((item) => (
                   <li class="flex items-start gap-2 font-bold text-ink">
@@ -77,22 +77,22 @@ const schemas = [
             </div>
 
             <div class="mt-6">
-              <h3 class="font-bold text-ink">目指す変化</h3>
+              <h3 class="text-lg font-bold text-ink">目指す変化</h3>
               <p class="mt-2 text-ink-soft leading-relaxed">{proposal.targetChange}</p>
             </div>
 
             <div class="mt-6">
-              <h3 class="font-bold text-ink">市民の声</h3>
+              <h3 class="text-lg font-bold text-ink">市民の声</h3>
               <p class="mt-2 text-ink-soft leading-relaxed">{proposal.citizenVoices}</p>
             </div>
 
             <div class="mt-6">
-              <h3 class="font-bold text-ink">現在の検討状況</h3>
+              <h3 class="text-lg font-bold text-ink">現在の検討状況</h3>
               <p class="mt-2 text-ink-soft leading-relaxed">{proposal.reviewStatus}</p>
             </div>
 
             <div class="mt-6">
-              <h3 class="font-bold text-ink">関連する活動報告</h3>
+              <h3 class="text-lg font-bold text-ink">関連する活動報告</h3>
               {relatedActivities.length > 0 ? (
                 <ul class="mt-2 space-y-1">
                   {relatedActivities.map((a) => (

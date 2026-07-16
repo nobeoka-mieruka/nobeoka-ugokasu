@@ -7,19 +7,90 @@ interface Props {
 }
 
 const { heading = "声の集め方" } = Astro.props;
+
+type IconName = "form" | "users" | "document-edit" | "house" | "mail" | "line" | "building" | "ellipsis";
+
+const methodMeta: Record<
+  (typeof voicesConfig.collectionMethods)[number],
+  { description: string; icon: IconName; badgeClass: string }
+> = {
+  Googleフォーム: {
+    description: "オンラインで手軽に\nご意見を送れます",
+    icon: "form",
+    badgeClass: "bg-rose-50 text-rose-500",
+  },
+  意見交換会: {
+    description: "直接お会いして\nご意見を伺います",
+    icon: "users",
+    badgeClass: "bg-brand-orange-light text-brand-orange-dark",
+  },
+  紙のアンケート: {
+    description: "紙面でのご意見を\n受け付けています",
+    icon: "document-edit",
+    badgeClass: "bg-green-50 text-green-600",
+  },
+  地域での聞き取り: {
+    description: "地域を訪問して\n声をお聞きします",
+    icon: "house",
+    badgeClass: "bg-purple-50 text-purple-500",
+  },
+  メール: {
+    description: "メールでのご意見を\n受け付けています",
+    icon: "mail",
+    badgeClass: "bg-blue-50 text-blue-500",
+  },
+  LINE: {
+    description: "LINEでお気軽に\nご連絡ください",
+    icon: "line",
+    badgeClass: "bg-emerald-50 text-emerald-600",
+  },
+  活動会場: {
+    description: "活動会場でも\nご意見を伺います",
+    icon: "building",
+    badgeClass: "bg-sky-50 text-sky-500",
+  },
+  その他: {
+    description: "その他の方法でも\n受け付けています",
+    icon: "ellipsis",
+    badgeClass: "bg-brand-orange-light text-brand-orange-dark",
+  },
+};
 ---
 
 <div>
-  <h2 class="text-xl font-bold text-ink mb-4">{heading}</h2>
-  <p class="text-ink-soft leading-relaxed mb-4">
+  <div class="flex items-center gap-3 mb-4">
+    <span class="w-1 h-6 rounded-full bg-brand-orange-dark flex-shrink-0" aria-hidden="true"></span>
+    <h2 class="text-xl font-bold text-ink">{heading}</h2>
+  </div>
+  <p class="text-ink-soft leading-relaxed mb-6">
     デジタルを利用しない方のご意見も大切にしたいと考えており、以下の方法で声を集めています。
   </p>
-  <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-    {voicesConfig.collectionMethods.map((method) => (
-      <li class="card flex items-center gap-3 py-4">
-        <Icon name="users" class="w-5 h-5 flex-shrink-0 text-brand-orange" />
-        <span class="text-ink font-bold text-sm">{method}</span>
-      </li>
-    ))}
+  <ul class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    {voicesConfig.collectionMethods.map((method) => {
+      const meta = methodMeta[method];
+      return (
+        <li
+          class="voice-method-card group grid items-start gap-3 min-w-0 min-h-[110px] rounded-2xl bg-white ring-1 ring-black/5 p-4 sm:p-5 transition-all hover:ring-brand-orange-dark hover:shadow-md hover:-translate-y-0.5"
+          style="grid-template-columns: auto minmax(0, 1fr) auto;"
+        >
+          <span class:list={["flex-shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl", meta.badgeClass]}>
+            <Icon name={meta.icon} class="w-6 h-6" ariaHidden={true} />
+          </span>
+          <span class="min-w-0 w-full">
+            <span class="block text-base font-bold text-ink whitespace-nowrap">
+              {method}
+            </span>
+            <span class="block mt-1 text-sm text-ink-soft whitespace-pre-line leading-snug">
+              {meta.description}
+            </span>
+          </span>
+          <Icon
+            name="chevron-right"
+            class="flex-shrink-0 w-5 h-5 mt-1 text-ink-soft/50 transition-transform group-hover:translate-x-1"
+            ariaHidden={true}
+          />
+        </li>
+      );
+    })}
   </ul>
 </div>

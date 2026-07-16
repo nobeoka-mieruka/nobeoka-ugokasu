@@ -4,8 +4,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/generate-build-info.mjs",
     "dev": "astro dev",
     "start": "astro dev",
+    "prebuild": "node scripts/generate-build-info.mjs",
     "build": "astro check && astro build",
     "preview": "astro preview",
     "astro": "astro",

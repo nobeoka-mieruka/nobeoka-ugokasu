@@ -4,17 +4,15 @@ interface Props {
 }
 
 const { date } = Astro.props;
-const dateObj = date instanceof Date ? date : date ? new Date(date) : undefined;
+const parsedDate = date instanceof Date ? date : date ? new Date(date) : undefined;
+const dateObj = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : undefined;
 const label = dateObj
   ? dateObj.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })
   : undefined;
 ---
 
-<p class="text-sm text-ink-soft">
-  最終更新日：
-  {label ? (
-    <time datetime={dateObj?.toISOString()}>{label}</time>
-  ) : (
-    <span>TODO（未設定）</span>
-  )}
-</p>
+{label && dateObj && (
+  <p class="text-sm text-ink-soft">
+    最終更新日：<time datetime={dateObj.toISOString()}>{label}</time>
+  </p>
+)}

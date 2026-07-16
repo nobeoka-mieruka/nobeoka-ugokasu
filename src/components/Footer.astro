@@ -3,6 +3,7 @@ import { siteConfig } from "../config/siteConfig";
 import { footerNav } from "../data/navigation";
 import SocialLinks from "./SocialLinks.astro";
 import Icon from "./Icon.astro";
+import SiteLastUpdated from "./SiteLastUpdated.astro";
 ---
 
 <footer class="bg-ink text-white">
@@ -47,5 +48,8 @@ import Icon from "./Icon.astro";
     </p>
 
     <p class="mt-4 text-xs text-white/50">© {siteConfig.organizationName}</p>
+    <div class="mt-1">
+      <SiteLastUpdated />
+    </div>
   </div>
 </footer>

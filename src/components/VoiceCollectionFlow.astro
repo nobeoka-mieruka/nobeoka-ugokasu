@@ -11,11 +11,11 @@ const steps = [
 
 <ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   {steps.map((step, index) => (
-    <li class="card flex items-start gap-3">
+    <li class="card flex items-start gap-3 min-w-0">
       <span class="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-orange text-white font-bold text-sm">
         {index + 1}
       </span>
-      <span class="text-ink-soft leading-relaxed">{step}</span>
+      <span class="min-w-0 flex-1 text-ink-soft leading-relaxed whitespace-normal [word-break:normal]">{step}</span>
     </li>
   ))}
 </ol>

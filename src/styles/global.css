@@ -15,11 +15,16 @@
 
   body {
     @apply bg-white text-ink text-base antialiased;
-    line-height: 1.8;
+    line-height: 1.7;
     /* 25章：横スクロール防止 */
     overflow-x: hidden;
-    /* 日本語の単語・意味のまとまり途中での不自然な改行を防ぐ（長い連続文字列は折り返す） */
-    word-break: keep-all;
+    /*
+     * word-break: keep-all は、特定の条件（flexアイテム内での際どい折り返し等）で
+     * かえって折り返しが行われず文字が見切れる不具合を引き起こすことが判明したため、
+     * ブラウザ標準の折り返し（normal）を採用しています。
+     * 特定の複合語を分割したくない箇所は、個別にwhitespace-nowrapのspanで保護します。
+     */
+    word-break: normal;
     overflow-wrap: break-word;
   }
 
@@ -29,7 +34,12 @@
   }
 
   p {
-    line-height: 1.8;
+    line-height: 1.7;
+    margin-bottom: 1em;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
   }
 
   /* 25章：フォーカス表示を消さない */
@@ -80,5 +90,38 @@
   /* ヘッダー専用：メインコンテンツより広い最大幅でナビの折り返しを防ぐ（Tailwind標準のmax-w-7xlを使用） */
   .header-wrap {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /*
+   * Markdown本文（活動報告・提言の課題別詳細・お知らせ・みんなの声の分析結果）共通の
+   * 見出し・段落・箇条書きの余白ルール。ページごとにばらつかないよう、ここで一元管理する。
+   */
+  .prose-content > * + * {
+    margin-top: 1.25em;
+  }
+
+  .prose-content h2 {
+    @apply text-2xl font-bold text-ink;
+    margin-top: 2em;
+    margin-bottom: 0.5em;
+  }
+
+  .prose-content h3 {
+    @apply text-xl font-bold text-ink;
+    margin-top: 1.75em;
+    margin-bottom: 0.5em;
+  }
+
+  .prose-content ul,
+  .prose-content ol {
+    @apply pl-5 space-y-2;
+  }
+
+  .prose-content ul {
+    list-style: disc;
+  }
+
+  .prose-content ol {
+    list-style: decimal;
   }
 }
