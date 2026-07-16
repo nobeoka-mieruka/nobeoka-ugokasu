@@ -1,0 +1,37 @@
+// Facebookページ・InstagramのSNS投稿を扱うための共通型定義です。
+// フロントエンド（src/services, activities一覧ページ）と、サーバー側の同期処理
+//（server/, functions/, worker/）の両方から読み込まれます。
+// この型自体には秘密情報（アクセストークン等）は一切含まれません。
+
+export type SocialPlatform = "facebook" | "instagram";
+
+export type SocialMediaType = "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM" | "REELS" | "LINK" | "STATUS" | "UNKNOWN";
+
+/** フロントエンド表示用に整形済みのSNS投稿1件分のデータ */
+export interface SocialPost {
+  /** 他の投稿と重複しない識別子（Facebook/Instagramの投稿IDそのもの） */
+  id: string;
+  platform: SocialPlatform;
+  /** 投稿日時（ISO 8601形式の文字列） */
+  publishedAt: string;
+  /** 投稿本文・captionの先頭部分から生成した見出し */
+  title: string;
+  /** 投稿本文・caption（表示用に切り詰め前の全文。フロント側で180文字程度に省略表示） */
+  description: string;
+  /** 投稿の公開URL */
+  permalink: string;
+  imageUrl: string | null;
+  thumbnailUrl: string | null;
+  mediaType: SocialMediaType;
+  /** 画面表示用の掲載元名称（"Facebook" | "Instagram"） */
+  sourceName: string;
+}
+
+/** GET /api/social-posts が返すレスポンスの形 */
+export interface SocialPostsResponse {
+  posts: SocialPost[];
+  /** 最後に同期が成功した日時（ISO 8601）。一度も成功していない場合はnull */
+  updatedAt: string | null;
+  /** trueの場合、直近の同期に失敗し、以前のキャッシュを表示していることを示す */
+  stale: boolean;
+}

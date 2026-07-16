@@ -1,0 +1,72 @@
+---
+const filters = [
+  { key: "all", label: "すべて" },
+  { key: "website", label: "公式サイト" },
+  { key: "facebook", label: "Facebook" },
+  { key: "instagram", label: "Instagram" },
+] as const;
+---
+
+<div role="group" aria-label="活動報告の絞り込み" class="mb-8 flex flex-wrap gap-2" data-activity-filter-bar>
+  {filters.map((f, i) => (
+    <button
+      type="button"
+      data-activity-filter={f.key}
+      aria-pressed={i === 0 ? "true" : "false"}
+      class:list={[
+        "rounded-full border-2 px-5 py-2.5 text-sm font-bold text-ink transition-colors",
+        i === 0
+          ? "border-brand-orange-dark bg-brand-orange-light"
+          : "border-black/10 bg-white hover:bg-brand-orange-light",
+      ]}
+    >
+      {f.label}
+    </button>
+  ))}
+</div>
+
+<script>
+  // SNS自動取得カードはページ読み込み後に非同期で追加されるため、カード一覧は
+  // 都度 document から取得し直す（ページ読み込み時点のスナップショットにしない）。
+  const filterBar = document.querySelector<HTMLElement>("[data-activity-filter-bar]");
+  const buttons = document.querySelectorAll<HTMLButtonElement>("[data-activity-filter]");
+  let currentFilter = "all";
+
+  function applyFilter(filter: string) {
+    currentFilter = filter;
+    let visibleCount = 0;
+
+    document.querySelectorAll<HTMLElement>("[data-activity-card]").forEach((card) => {
+      const platforms = (card.dataset.platforms ?? "website").split(" ");
+      const matches = filter === "all" || platforms.includes(filter);
+      card.classList.toggle("hidden", !matches);
+      if (matches) visibleCount += 1;
+    });
+
+    document.querySelectorAll<HTMLElement>("[data-empty-for]").forEach((el) => {
+      const isCurrent = el.dataset.emptyFor === filter;
+      el.classList.toggle("hidden", !(isCurrent && visibleCount === 0));
+    });
+  }
+
+  filterBar?.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-activity-filter]");
+    if (!button) return;
+
+    buttons.forEach((b) => {
+      const isActive = b === button;
+      b.setAttribute("aria-pressed", String(isActive));
+      b.classList.toggle("border-brand-orange-dark", isActive);
+      b.classList.toggle("bg-brand-orange-light", isActive);
+      b.classList.toggle("border-black/10", !isActive);
+      b.classList.toggle("bg-white", !isActive);
+    });
+
+    applyFilter(button.dataset.activityFilter ?? "all");
+  });
+
+  // SNS自動取得カードの挿入後、現在の絞り込み状態を再適用してもらうためのイベント
+  document.addEventListener("social-posts:updated", () => {
+    applyFilter(currentFilter);
+  });
+</script>

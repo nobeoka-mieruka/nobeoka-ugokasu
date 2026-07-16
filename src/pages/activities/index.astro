@@ -4,17 +4,44 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import ActivityCard from "../../components/ActivityCard.astro";
+import SnsActivityCard from "../../components/SnsActivityCard.astro";
+import ActivityFilterBar from "../../components/ActivityFilterBar.astro";
 import Icon from "../../components/Icon.astro";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
+import { getSortedSnsActivities, hasSnsActivityFor } from "../../data/snsActivities";
+import { socialLinks } from "../../data/socialLinks";
 
 const title = "福富千恵の活動報告｜延岡市での地域活動";
 const description = "福富千恵と延岡を動かす会が延岡市内で行った活動の報告一覧です。実施の目的や参加者の声、今後の対応をお伝えします。";
 const breadcrumbItems = [{ name: "活動報告", path: "/activities" }];
 
-const activities = (await getCollection("activities", ({ data }) => data.published)).sort(
+const websiteActivities = (await getCollection("activities", ({ data }) => data.published)).sort(
   (a, b) => b.data.date.getTime() - a.data.date.getTime(),
 );
+const snsActivities = getSortedSnsActivities();
+
+type UnifiedActivity =
+  | { kind: "website"; date: Date; entry: (typeof websiteActivities)[number] }
+  | { kind: "sns"; date: Date; entry: (typeof snsActivities)[number] };
+
+const unifiedActivities: UnifiedActivity[] = [
+  ...websiteActivities.map((entry): UnifiedActivity => ({ kind: "website", date: entry.data.date, entry })),
+  ...snsActivities.map((entry): UnifiedActivity => ({ kind: "sns", date: new Date(entry.date), entry })),
+].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+// これらは「ビルド時点」で分かっている件数。Facebook/Instagramの実際の投稿は
+// ページ読み込み後にAPIから取得されるため、0件表示になっていても
+// クライアント側スクリプトが投稿を見つけ次第、自動的に一覧・絞り込みへ反映される。
+const hasWebsite = websiteActivities.length > 0;
+const hasFacebook = hasSnsActivityFor("facebook");
+const hasInstagram = hasSnsActivityFor("instagram");
+const hasAnyActivity = unifiedActivities.length > 0;
+
+const officialSnsLinks = [
+  { key: "facebook" as const, label: "公式Facebook" },
+  { key: "instagram" as const, label: "公式Instagram" },
+].filter((link) => socialLinks[link.key]);
 
 const schemas = [
   webPageSchema({ path: "/activities", name: title, description }),
@@ -24,29 +51,137 @@ const schemas = [
 
 <BaseLayout title={title} description={description} path="/activities" schemas={schemas}>
   <Breadcrumb items={breadcrumbItems} />
-  <HeroSection title="活動報告" description="福富千恵と延岡を動かす会の地域活動をお伝えします。" />
+  <HeroSection title="活動報告" description="福富千恵と延岡を動かす会の地域活動をお伝えします。Facebook・Instagramの投稿もあわせてご覧いただけます。" />
 
-  <section class="py-14 sm:py-20">
+  <section class="py-14 sm:py-16">
     <div class="section-wrap">
-      {activities.length > 0 ? (
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {activities.map((entry) => (
-            <ActivityCard
-              slug={entry.slug}
-              title={entry.data.title}
-              date={entry.data.date}
-              category={entry.data.category}
-              summary={entry.data.summary}
-              mainImage={entry.data.mainImage}
-            />
-          ))}
+      <h2 class="sr-only">活動報告一覧</h2>
+      <ActivityFilterBar />
+
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-activity-grid>
+        {unifiedActivities.map((item) =>
+          item.kind === "website" ? (
+            <div data-activity-card data-platforms="website" data-date={item.date.toISOString()}>
+              <ActivityCard
+                slug={item.entry.slug}
+                title={item.entry.data.title}
+                date={item.entry.data.date}
+                category={item.entry.data.category}
+                summary={item.entry.data.summary}
+                mainImage={item.entry.data.mainImage}
+              />
+            </div>
+          ) : (
+            <SnsActivityCard entry={item.entry} />
+          ),
+        )}
+      </div>
+
+      <div data-empty-for="all" class:list={["mt-6 card text-center py-16 text-ink-soft flex flex-col items-center gap-6", hasAnyActivity && "hidden"]}>
+        <Icon name="document" class="w-10 h-10 text-brand-orange" />
+        <p class="text-lg">活動報告は準備中です。</p>
+        <p>活動の様子は、Facebook・Instagramでも随時発信しています。</p>
+        {officialSnsLinks.length > 0 && (
+          <div class="flex flex-wrap justify-center gap-3">
+            {officialSnsLinks.map((link) => (
+              <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+                {link.label}
+                <span class="sr-only">（新しいタブで開く）</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div data-empty-for="website" class:list={["mt-6 card text-center py-10 text-ink-soft flex flex-col items-center gap-3", !hasWebsite ? "" : "hidden"]}>
+        <Icon name="document" class="w-8 h-8 text-brand-orange" />
+        <p>公式サイトでの活動報告は準備中です。</p>
+      </div>
+
+      <div data-empty-for="facebook" class:list={["mt-6", !hasFacebook ? "" : "hidden"]}>
+        <div class="card text-center py-10 flex flex-col items-center gap-4">
+          <Icon name="facebook" class="w-8 h-8 text-sns-facebook" />
+          <p class="text-ink-soft">活動の様子は、Facebook・Instagramでも随時発信しています。</p>
+          {officialSnsLinks.length > 0 && (
+            <div class="flex flex-wrap justify-center gap-3">
+              {officialSnsLinks.map((link) => (
+                <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+                  {link.label}
+                  <span class="sr-only">（新しいタブで開く）</span>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
-      ) : (
-        <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-3">
-          <Icon name="document" class="w-10 h-10 text-brand-orange" />
-          <p class="text-lg">活動報告は準備中です。</p>
+      </div>
+
+      <div data-empty-for="instagram" class:list={["mt-6", !hasInstagram ? "" : "hidden"]}>
+        <div class="card text-center py-10 flex flex-col items-center gap-4">
+          <Icon name="instagram" class="w-8 h-8 text-brand-orange-dark" />
+          <p class="text-ink-soft">活動の様子は、Facebook・Instagramでも随時発信しています。</p>
+          {officialSnsLinks.length > 0 && (
+            <div class="flex flex-wrap justify-center gap-3">
+              {officialSnsLinks.map((link) => (
+                <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+                  {link.label}
+                  <span class="sr-only">（新しいタブで開く）</span>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   </section>
 </BaseLayout>
+
+<script>
+  import { fetchSocialPosts } from "../../services/socialPosts";
+  import { createSocialPostCardElement } from "../../scripts/socialPostCard";
+
+  const grid = document.querySelector<HTMLElement>("[data-activity-grid]");
+
+  function existingPermalinks(): Set<string> {
+    const set = new Set<string>();
+    document.querySelectorAll<HTMLAnchorElement>("[data-activity-card] a[href]").forEach((a) => {
+      set.add(a.href);
+    });
+    return set;
+  }
+
+  function insertSorted(card: HTMLElement, dateIso: string) {
+    if (!grid) return;
+    const time = new Date(dateIso).getTime();
+    const children = Array.from(grid.children) as HTMLElement[];
+    const before = children.find((child) => {
+      const childTime = child.dataset.date ? new Date(child.dataset.date).getTime() : 0;
+      return childTime < time;
+    });
+    if (before) {
+      grid.insertBefore(card, before);
+    } else {
+      grid.append(card);
+    }
+  }
+
+  (async () => {
+    // Facebook・InstagramをMeta Graph APIから直接呼び出すことはせず、
+    // 30分ごとの同期でCloudflare KVに保存された結果だけを読み込む。
+    const { posts } = await fetchSocialPosts();
+
+    if (grid && posts.length > 0) {
+      const known = existingPermalinks();
+      for (const post of posts) {
+        // 手動登録済みの投稿（src/data/snsActivities.ts）と同じURLの場合は重複させない
+        if (known.has(post.permalink)) continue;
+        const card = createSocialPostCardElement(post);
+        card.dataset.date = post.publishedAt;
+        insertSorted(card, post.publishedAt);
+        known.add(post.permalink);
+      }
+    }
+
+    // 投稿が0件・取得失敗の場合でも、既存の絞り込み状態を再評価してもらう
+    document.dispatchEvent(new CustomEvent("social-posts:updated"));
+  })();
+</script>

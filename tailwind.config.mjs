@@ -20,6 +20,12 @@ export default {
           childcare: "#F05A9D",
           disaster: "#1976A8",
         },
+        // 活動報告のSNS掲載元アイコン用。
+        // Facebookのブランドカラーをベースに、白文字とのコントラスト比4.5:1以上を確保できるよう
+        // 少し濃く調整しています（WCAG AA基準）。Instagramはグラデーションで表現します。
+        sns: {
+          facebook: "#0A5FBF",
+        },
       },
       fontFamily: {
         // 24章：不要な外部フォントを使用しないため、システムフォントスタックのみ使用

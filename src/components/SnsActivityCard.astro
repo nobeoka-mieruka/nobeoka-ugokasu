@@ -1,0 +1,160 @@
+---
+import Icon from "./Icon.astro";
+import type { SnsActivity, SnsPlatform } from "../data/snsActivities";
+
+interface Props {
+  entry: SnsActivity;
+}
+
+const { entry } = Astro.props;
+
+const platformMeta: Record<SnsPlatform, { label: string; icon: "facebook" | "instagram"; badgeClass: string; buttonClass: string }> = {
+  facebook: {
+    label: "Facebook",
+    icon: "facebook",
+    badgeClass: "bg-sns-facebook text-white",
+    buttonClass: "bg-sns-facebook text-white hover:brightness-110",
+  },
+  // Instagramらしい紫→ピンクのグラデーション。実際のロゴに使われる黄〜オレンジの帯は
+  // 白文字とのコントラスト比が4.5:1未満になるため、あえて含めていません（WCAG AA基準）。
+  instagram: {
+    label: "Instagram",
+    icon: "instagram",
+    badgeClass: "bg-gradient-to-r from-[#833AB4] to-[#C1266E] text-white",
+    buttonClass: "bg-gradient-to-r from-[#833AB4] to-[#C1266E] text-white hover:brightness-110",
+  },
+};
+
+const dateLabel = new Date(entry.date).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+const meta = platformMeta[entry.platform];
+
+const crossMeta = entry.crossPostPlatform ? platformMeta[entry.crossPostPlatform] : undefined;
+
+const dataPlatforms = [entry.platform, entry.crossPostPlatform].filter(Boolean).join(" ");
+---
+
+<div class="card p-0 overflow-hidden flex flex-col h-full" data-activity-card data-platforms={dataPlatforms} data-date={entry.date}>
+  <div class="aspect-[16/9] bg-brand-orange-light overflow-hidden">
+    {entry.image ? (
+      <img src={entry.image.src} alt={entry.image.alt} class="w-full h-full object-cover" loading="lazy" width="640" height="360" />
+    ) : (
+      <div class="w-full h-full flex items-center justify-center text-brand-orange-dark">
+        <Icon name="document" class="w-10 h-10" />
+      </div>
+    )}
+  </div>
+
+  <div class="p-6 flex flex-col gap-3 flex-1">
+    <div class="flex items-center gap-2 text-sm text-ink-soft">
+      <span class:list={["inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold", meta.badgeClass]}>
+        <Icon name={meta.icon} class="w-3.5 h-3.5" />
+        {meta.label}
+      </span>
+      <time datetime={entry.date}>{dateLabel}</time>
+    </div>
+
+    <h3 class="text-xl font-bold text-ink leading-snug">{entry.title}</h3>
+    <p class="text-base text-ink-soft line-clamp-2">{entry.description}</p>
+
+    <div class="mt-auto flex flex-col gap-3 pt-2">
+      <div class="flex flex-wrap gap-2">
+        <a
+          href={entry.postUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class:list={["inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all", meta.buttonClass]}
+        >
+          <Icon name={meta.icon} class="w-4 h-4" />
+          {meta.label}で見る
+          <span class="sr-only">（新しいタブで開く）</span>
+          <Icon name="external-link" class="w-3.5 h-3.5" ariaHidden={true} />
+        </a>
+        {crossMeta && entry.crossPostUrl && (
+          <a
+            href={entry.crossPostUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class:list={["inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all", crossMeta.buttonClass]}
+          >
+            <Icon name={crossMeta.icon} class="w-4 h-4" />
+            {crossMeta.label}で見る
+            <span class="sr-only">（新しいタブで開く）</span>
+            <Icon name="external-link" class="w-3.5 h-3.5" ariaHidden={true} />
+          </a>
+        )}
+      </div>
+
+      {entry.embedEnabled && (
+        <div
+          data-sns-embed-wrapper
+          data-post-url={entry.postUrl}
+          data-platform={entry.platform}
+          data-platform-label={meta.label}
+        >
+          <button
+            type="button"
+            data-sns-embed-toggle
+            data-show-label={`${meta.label}の投稿を表示`}
+            data-hide-label={`${meta.label}の投稿を閉じる`}
+            aria-expanded="false"
+            class="inline-flex items-center gap-1.5 rounded-full border-2 border-ink/15 px-4 py-2 text-sm font-bold text-ink hover:bg-brand-orange-light transition-colors"
+          >
+            {meta.label}の投稿を表示
+          </button>
+          <p class="mt-1.5 text-xs text-ink-soft">
+            投稿を表示すると、{meta.label}の外部コンテンツが読み込まれます。
+          </p>
+          <div data-sns-embed-container class="hidden mt-3 w-full max-w-[540px] mx-auto"></div>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
+<script>
+  // SNS投稿の埋め込みは、ボタンを押すまで読み込まない（表示速度・プライバシー配慮）。
+  // イベント委譲で実装しているため、カードが何枚あっても1つのスクリプトで動作する。
+  function buildEmbedSrc(platform: string, postUrl: string): string {
+    if (platform === "facebook") {
+      const width = Math.max(280, Math.min(window.innerWidth - 48, 500));
+      return `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(postUrl)}&width=${width}&show_text=true`;
+    }
+    return `${postUrl.replace(/\/+$/, "")}/embed`;
+  }
+
+  document.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-sns-embed-toggle]");
+    if (!button) return;
+
+    const wrapper = button.closest<HTMLElement>("[data-sns-embed-wrapper]");
+    const container = wrapper?.querySelector<HTMLElement>("[data-sns-embed-container]");
+    if (!wrapper || !container) return;
+
+    const isHidden = container.classList.contains("hidden");
+
+    if (isHidden) {
+      if (!container.dataset.loaded) {
+        const platform = wrapper.dataset.platform ?? "";
+        const postUrl = wrapper.dataset.postUrl ?? "";
+        const label = wrapper.dataset.platformLabel ?? "";
+        const iframe = document.createElement("iframe");
+        iframe.src = buildEmbedSrc(platform, postUrl);
+        iframe.loading = "lazy";
+        iframe.width = "100%";
+        iframe.height = platform === "instagram" ? "600" : "480";
+        iframe.style.border = "none";
+        iframe.style.maxWidth = "100%";
+        iframe.title = `${label}の投稿`;
+        container.appendChild(iframe);
+        container.dataset.loaded = "true";
+      }
+      container.classList.remove("hidden");
+      button.setAttribute("aria-expanded", "true");
+      button.textContent = button.dataset.hideLabel ?? button.textContent;
+    } else {
+      container.classList.add("hidden");
+      button.setAttribute("aria-expanded", "false");
+      button.textContent = button.dataset.showLabel ?? button.textContent;
+    }
+  });
+</script>
