@@ -7,6 +7,7 @@ import VoiceStatusBadge from "../../../components/VoiceStatusBadge.astro";
 import VoiceReportCard from "../../../components/VoiceReportCard.astro";
 import Icon from "../../../components/Icon.astro";
 import { voiceThemes, getVoiceTheme } from "../../../data/voiceThemes";
+import { voicesConfig } from "../../../config/voicesConfig";
 import { webPageSchema } from "../../../utils/structuredData";
 import { buildBreadcrumbList } from "../../../utils/seo";
 
@@ -51,8 +52,30 @@ const schemas = [
         )}
       </div>
 
+      <p class="text-ink leading-relaxed mb-2">
+        このテーマに関するお困りごと、ご意見、改善してほしいこと、延岡市への提案などをお寄せください。
+      </p>
+      {theme.examples && (
+        <p class="text-sm text-ink-soft mb-6">相談例：{theme.examples}</p>
+      )}
+
+      <p class="text-sm text-ink-soft leading-relaxed mb-8">
+        いただいたご意見は、今後の政策提言や地域課題の整理の参考にさせていただきます。
+      </p>
+
       <div class="mb-8">
-        <a href="/voices/submit" class="btn-primary">このテーマについて声を届ける</a>
+        {voicesConfig.googleFormUrl ? (
+          <a href={voicesConfig.googleFormUrl} target="_blank" rel="noopener noreferrer" class="btn-primary">
+            このテーマについて意見を送る
+            <Icon name="external-link" class="w-4 h-4" ariaHidden={true} />
+            <span class="sr-only">（新しいタブで開く）</span>
+          </a>
+        ) : (
+          <div class="card text-center py-10 flex flex-col items-center gap-3">
+            <Icon name="document" class="w-8 h-8 text-brand-orange" />
+            <p class="text-ink-soft">現在、意見受付フォームを準備しています。</p>
+          </div>
+        )}
       </div>
 
       <h2 class="font-bold text-ink text-lg mb-4">この分野の分析結果</h2>

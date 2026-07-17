@@ -55,7 +55,7 @@ export const voicesConfig = {
   ] as const,
 
   /** テーマの募集状態ラベル（12-2章） */
-  themeStatusLabels: ["準備中", "受付中", "集計中", "結果公開中", "受付終了"] as const,
+  themeStatusLabels: ["準備中", "募集中", "集計中", "結果公開中", "募集終了"] as const,
 } as const;
 
 export type VoicesConfig = typeof voicesConfig;

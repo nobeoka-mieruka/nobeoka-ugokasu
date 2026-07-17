@@ -14,8 +14,13 @@ export interface SocialSyncEnv {
   /** Facebookページの投稿を取得するためのページアクセストークン（秘密情報） */
   FACEBOOK_PAGE_ACCESS_TOKEN?: string;
 
-  /** InstagramプロアカウントのビジネスアカウントID */
-  INSTAGRAM_BUSINESS_ACCOUNT_ID?: string;
+  /**
+   * InstagramプロアカウントのユーザーID（Graph API用の数字のID）。
+   * Instagramのユーザーネーム（例: "chie_smily4"）とは別の値であり、
+   * ユーザーネームから推測することはできない。Meta側のGraph API Explorer等で
+   * 確認した正式な値を設定すること（docs/social-sync-setup.md 参照）。
+   */
+  INSTAGRAM_USER_ID?: string;
   /** Instagramの投稿を取得するためのアクセストークン（秘密情報） */
   INSTAGRAM_ACCESS_TOKEN?: string;
 

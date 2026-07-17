@@ -15,6 +15,16 @@ function isAuthorized(request: Request, secret: string | undefined): boolean {
   return header === expected;
 }
 
+export const onRequest: PagesFunction<SocialSyncEnv> = async (context) => {
+  if (context.request.method !== "POST") {
+    return new Response(JSON.stringify({ ok: false, error: "method_not_allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json; charset=utf-8", Allow: "POST" },
+    });
+  }
+  return onRequestPost(context);
+};
+
 export const onRequestPost: PagesFunction<SocialSyncEnv> = async (context) => {
   if (!isAuthorized(context.request, context.env.SOCIAL_SYNC_SECRET)) {
     return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {

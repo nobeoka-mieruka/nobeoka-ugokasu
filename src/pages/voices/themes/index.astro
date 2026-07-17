@@ -8,7 +8,8 @@ import { webPageSchema } from "../../../utils/structuredData";
 import { buildBreadcrumbList } from "../../../utils/seo";
 
 const title = "意見募集中のテーマ｜みんなの声｜福富千恵と延岡を動かす会";
-const description = "福富千恵と延岡を動かす会が意見を募集しているテーマの一覧です。福祉、子育て、防災など幅広い分野で市民の声を集めています。";
+const description =
+  "延岡市の暮らしや地域の課題について、皆さまのご意見を募集しています。身近なお困りごとや改善してほしいことをお寄せください。";
 const breadcrumbItems = [
   { name: "みんなの声", path: "/voices" },
   { name: "意見募集中のテーマ", path: "/voices/themes" },
@@ -22,7 +23,7 @@ const schemas = [
 
 <BaseLayout title={title} description={description} path="/voices/themes" schemas={schemas}>
   <Breadcrumb items={breadcrumbItems} />
-  <HeroSection title="意見募集中のテーマ" eyebrow="みんなの声" description="分野ごとに、皆さまのご意見を募集しています。" />
+  <HeroSection title="意見募集中のテーマ" eyebrow="みんなの声" description={description} />
 
   <section class="py-14 sm:py-20">
     <div class="section-wrap">

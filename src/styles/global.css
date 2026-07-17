@@ -87,9 +87,14 @@
     @apply mx-auto w-full max-w-content px-4 sm:px-6 lg:px-8;
   }
 
-  /* ヘッダー専用：メインコンテンツより広い最大幅でナビの折り返しを防ぐ（Tailwind標準のmax-w-7xlを使用） */
+  /*
+   * ヘッダー専用：メインコンテンツより広い最大幅でナビの折り返しを防ぐ。
+   * SNSアイコン追加により、旧来のmax-w-7xl(1280px)ではxl〜2xl境界付近(約1280〜1536px)で
+   * ナビゲーションと重なる幅があったため、Tailwind標準の2xlブレークポイントと同じ
+   * max-w-screen-2xl(1536px)まで広げ、その帯域でも十分な余白を確保している。
+   */
   .header-wrap {
-    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8;
   }
 
   /*

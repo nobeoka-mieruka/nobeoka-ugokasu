@@ -9,12 +9,14 @@ const { status } = Astro.props;
 
 // バッジの文字色は、いずれも十分なコントラストを確保するためtext-ink（濃い文字色）に統一し、
 // 背景色（薄いオレンジ・薄い緑・薄い青・薄いグレー）で状態の違いを表現しています（文字と色を併用）。
+// 「募集中」は受付中であることが一目で分かるよう、緑系の背景＋枠線で他より強調しています
+// （小さな文字サイズでは白文字とのコントラストがWCAG AA基準を満たせないため、白文字は使用していません）。
 const colorMap: Record<string, string> = {
   "準備中": "bg-black/5 text-ink-soft",
-  "受付中": "bg-accent-welfare/10 text-ink",
+  "募集中": "bg-accent-welfare/15 text-ink ring-1 ring-inset ring-accent-welfare/50",
   "集計中": "bg-brand-orange-light text-ink",
   "結果公開中": "bg-accent-disaster/10 text-ink",
-  "受付終了": "bg-black/5 text-ink-soft",
+  "募集終了": "bg-black/5 text-ink-soft",
   "受け付けました": "bg-brand-orange-light text-ink",
   "内容を整理しています": "bg-brand-orange-light text-ink",
   "詳しく調査しています": "bg-brand-orange-light text-ink",

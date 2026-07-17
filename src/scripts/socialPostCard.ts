@@ -36,12 +36,14 @@ function svgIcon(name: keyof typeof ICONS, className: string): SVGSVGElement {
 const PLATFORM_META = {
   facebook: {
     label: "Facebook",
+    badgeLabel: "公式Facebook",
     icon: "facebook" as const,
     badgeClass: ["bg-sns-facebook", "text-white"],
     buttonClass: ["bg-sns-facebook", "text-white", "hover:brightness-110"],
   },
   instagram: {
     label: "Instagram",
+    badgeLabel: "公式Instagram",
     icon: "instagram" as const,
     badgeClass: ["bg-gradient-to-r", "from-[#833AB4]", "to-[#C1266E]", "text-white"],
     buttonClass: ["bg-gradient-to-r", "from-[#833AB4]", "to-[#C1266E]", "text-white", "hover:brightness-110"],
@@ -68,7 +70,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 /** 取得できた投稿を、既存の活動報告カードと統一感のあるカード要素として組み立てる */
-export function createSocialPostCardElement(post: SocialPost): HTMLElement {
+export function createSocialPostCardElement(post: SocialPost, instagramUsername?: string): HTMLElement {
   const meta = PLATFORM_META[post.platform];
 
   const wrapper = el("div", "card p-0 overflow-hidden flex flex-col h-full");
@@ -117,9 +119,16 @@ export function createSocialPostCardElement(post: SocialPost): HTMLElement {
   const metaRow = el("div", "flex items-center gap-2 text-sm text-ink-soft");
   const badge = el("span", `inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold ${meta.badgeClass.join(" ")}`, [
     svgIcon(meta.icon, "w-3.5 h-3.5"),
-    document.createTextNode(meta.label),
+    document.createTextNode(meta.badgeLabel),
   ]);
   metaRow.append(badge);
+
+  if (post.platform === "instagram" && instagramUsername) {
+    const usernameEl = document.createElement("span");
+    usernameEl.className = "text-xs text-ink-soft";
+    usernameEl.textContent = `@${instagramUsername}`;
+    metaRow.append(usernameEl);
+  }
 
   const dateLabel = formatDateLabel(post.publishedAt);
   if (dateLabel) {

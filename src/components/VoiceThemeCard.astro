@@ -1,5 +1,6 @@
 ---
 import VoiceStatusBadge from "./VoiceStatusBadge.astro";
+import Icon from "./Icon.astro";
 import type { VoiceTheme } from "../data/voiceThemes";
 
 interface Props {
@@ -9,11 +10,18 @@ interface Props {
 const { theme } = Astro.props;
 ---
 
-<a href={`/voices/themes/${theme.slug}`} class="card flex flex-col gap-3 hover:shadow-md transition-shadow">
-  <div class="flex items-center justify-between">
+<a
+  href={`/voices/themes/${theme.slug}`}
+  class="card flex flex-col gap-3 hover:shadow-md hover:ring-brand-orange-dark/30 transition-all"
+>
+  <div class="flex items-center justify-between gap-2">
     <span class="font-bold text-ink">{theme.title}</span>
     <VoiceStatusBadge status={theme.status} />
   </div>
   <p class="text-sm text-ink-soft">{theme.description}</p>
   {theme.period && <p class="text-xs text-ink-soft">募集期間：{theme.period}</p>}
+  <span class="mt-auto pt-2 inline-flex items-center gap-1 text-sm font-bold text-brand-orange-dark">
+    意見を送る
+    <Icon name="arrow-right" class="w-4 h-4" ariaHidden={true} />
+  </span>
 </a>

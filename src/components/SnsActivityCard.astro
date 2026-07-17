@@ -1,6 +1,7 @@
 ---
 import Icon from "./Icon.astro";
 import type { SnsActivity, SnsPlatform } from "../data/snsActivities";
+import { socialConfig } from "../config/socialConfig";
 
 interface Props {
   entry: SnsActivity;
@@ -8,9 +9,13 @@ interface Props {
 
 const { entry } = Astro.props;
 
-const platformMeta: Record<SnsPlatform, { label: string; icon: "facebook" | "instagram"; badgeClass: string; buttonClass: string }> = {
+const platformMeta: Record<
+  SnsPlatform,
+  { label: string; badgeLabel: string; icon: "facebook" | "instagram"; badgeClass: string; buttonClass: string }
+> = {
   facebook: {
     label: "Facebook",
+    badgeLabel: "公式Facebook",
     icon: "facebook",
     badgeClass: "bg-sns-facebook text-white",
     buttonClass: "bg-sns-facebook text-white hover:brightness-110",
@@ -19,6 +24,7 @@ const platformMeta: Record<SnsPlatform, { label: string; icon: "facebook" | "ins
   // 白文字とのコントラスト比が4.5:1未満になるため、あえて含めていません（WCAG AA基準）。
   instagram: {
     label: "Instagram",
+    badgeLabel: "公式Instagram",
     icon: "instagram",
     badgeClass: "bg-gradient-to-r from-[#833AB4] to-[#C1266E] text-white",
     buttonClass: "bg-gradient-to-r from-[#833AB4] to-[#C1266E] text-white hover:brightness-110",
@@ -48,8 +54,11 @@ const dataPlatforms = [entry.platform, entry.crossPostPlatform].filter(Boolean).
     <div class="flex items-center gap-2 text-sm text-ink-soft">
       <span class:list={["inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold", meta.badgeClass]}>
         <Icon name={meta.icon} class="w-3.5 h-3.5" />
-        {meta.label}
+        {meta.badgeLabel}
       </span>
+      {entry.platform === "instagram" && (
+        <span class="text-xs text-ink-soft">@{socialConfig.instagramUsername}</span>
+      )}
       <time datetime={entry.date}>{dateLabel}</time>
     </div>
 

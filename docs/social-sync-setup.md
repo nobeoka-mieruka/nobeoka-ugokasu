@@ -1,5 +1,7 @@
 # Facebook・Instagram自動連携の設定方法
 
+> **最新の手順・変数名の一覧は、プロジェクト直下の [META_SOCIAL_SETUP.md](../META_SOCIAL_SETUP.md) にまとめています。** このページはMeta側の管理画面の操作を中心とした詳しい補足資料として残しています。
+
 このページでは、「福富千恵と延岡を動かす会」のFacebookページとInstagramの投稿を、公式ホームページの「活動報告」ページへ自動的に反映させるための設定方法を説明します。
 
 エンジニアでない方でも作業できるように、できるだけ分かりやすく書いています。ただし、Meta（Facebook・Instagramの運営会社）の管理画面やAPIの仕様は時々変更されます。この文書に書かれている「メニュー名」や「ボタンの位置」が実際の画面と違う場合は、Meta for Developersの公式ヘルプで最新の手順を確認してください。
@@ -27,7 +29,7 @@
 
 ```
 Facebookページ / Instagram（投稿）
-        ↓ Meta Graph API（30分ごとに取得）
+        ↓ Meta Graph API（10分ごとに取得）
 Cloudflare Worker（worker/social-sync.ts）
         ↓ 結果を保存
 Cloudflare KV（キャッシュ）
@@ -128,9 +130,9 @@ InstagramのIDは、Instagramアプリの「ユーザーネーム」（例：`ch
 1. Graph API Explorerで、接続したFacebookページのアクセストークンを選ぶ
 2. `me/accounts` を実行し、対象ページの `id` を確認する
 3. そのページIDを使って `{ページID}?fields=instagram_business_account` を実行する
-4. 結果に表示される `instagram_business_account.id` の数字が、InstagramアカウントIDです
+4. 結果に表示される `instagram_business_account.id` の数字が、InstagramユーザーIDです
 
-この値を `INSTAGRAM_BUSINESS_ACCOUNT_ID` として登録します。
+この値を `INSTAGRAM_USER_ID` として登録します。**Instagramのユーザーネーム（例：`chie_smily4`）とは全く別の値であり、ユーザーネームから推測することはできません。** 必ずこの手順で確認した数字のIDを使ってください。
 
 ---
 
@@ -166,11 +168,13 @@ FacebookページのアクセストークンURLは期限切れの概念がない
    |---|---|
    | `META_GRAPH_API_VERSION` | 通常の変数（例：`v21.0`） |
    | `FACEBOOK_PAGE_ID` | 通常の変数 |
-   | `FACEBOOK_PAGE_ACCESS_TOKEN` | **Encrypt（暗号化）にチェック** |
-   | `INSTAGRAM_BUSINESS_ACCOUNT_ID` | 通常の変数 |
-   | `INSTAGRAM_ACCESS_TOKEN` | **Encrypt（暗号化）にチェック** |
-   | `SOCIAL_SYNC_SECRET` | **Encrypt（暗号化）にチェック** |
-   | `SOCIAL_POST_LIMIT` | 通常の変数（初期値 `12`） |
+   | `FACEBOOK_PAGE_ACCESS_TOKEN` | **Secret（暗号化）** |
+   | `INSTAGRAM_USER_ID` | 通常の変数 |
+   | `INSTAGRAM_ACCESS_TOKEN` | **Secret（暗号化）** |
+   | `SOCIAL_SYNC_SECRET` | **Secret（暗号化）** |
+   | `SOCIAL_POST_LIMIT` | 通常の変数（初期値 `6`。1プラットフォームあたりの取得件数） |
+   | `FACEBOOK_PAGE_URL` | 通常の変数（公式FacebookページURL。秘密情報ではありません） |
+   | `INSTAGRAM_PROFILE_URL` | 通常の変数（公式InstagramプロフィールURL。秘密情報ではありません） |
 
 4. 同じ画面の「KV namespace bindings」（Functionsの設定内）で、`SOCIAL_POSTS_KV` という名前でKV名前空間をバインドする（事前にKV名前空間を作成しておく必要があります。Cloudflareダッシュボードの「Storage & Databases」→「KV」から作成できます）
 
@@ -190,7 +194,7 @@ wrangler kv namespace create SOCIAL_POSTS_KV
 ```
 wrangler secret put FACEBOOK_PAGE_ID
 wrangler secret put FACEBOOK_PAGE_ACCESS_TOKEN
-wrangler secret put INSTAGRAM_BUSINESS_ACCOUNT_ID
+wrangler secret put INSTAGRAM_USER_ID
 wrangler secret put INSTAGRAM_ACCESS_TOKEN
 wrangler secret put SOCIAL_SYNC_SECRET
 ```
@@ -205,16 +209,16 @@ wrangler deploy
 
 ## 10. Cron Triggerの設定方法
 
-`worker/wrangler.toml` に、すでに次の設定が入っています（30分ごとに自動実行）。
+`worker/wrangler.toml` に、すでに次の設定が入っています（10分ごとに自動実行。新しい投稿が遅くとも15分程度でホームページへ反映されることを目安にしています）。
 
 ```toml
 [triggers]
-crons = ["*/30 * * * *"]
+crons = ["*/10 * * * *"]
 ```
 
 `wrangler deploy` を実行すると、この設定も一緒にCloudflareへ反映されます。実行状況は、Cloudflareダッシュボードの対象Worker →「Triggers」タブ、または「Logs」タブから確認できます。
 
-同期の間隔を変えたい場合は、この`crons`の値を変更してから再度 `wrangler deploy` を実行してください（例：15分ごとにしたい場合は `"*/15 * * * *"`）。
+同期の間隔を変えたい場合は、この`crons`の値を変更してから再度 `wrangler deploy` を実行してください。
 
 ---
 

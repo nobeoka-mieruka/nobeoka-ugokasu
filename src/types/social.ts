@@ -7,6 +7,19 @@ export type SocialPlatform = "facebook" | "instagram";
 
 export type SocialMediaType = "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM" | "REELS" | "LINK" | "STATUS" | "UNKNOWN";
 
+/**
+ * プラットフォームごとの直近の同期結果。
+ * "ok"=正常に取得できた、"error"=認証情報はあるが取得に失敗した、
+ * "not_configured"=Meta APIの認証情報が未設定（正常な状態）。
+ * トークンやエラーメッセージそのものは含まない、安全に公開できる要約値。
+ */
+export type PlatformSyncStatus = "ok" | "error" | "not_configured";
+
+export interface SocialFeedStatus {
+  facebook: PlatformSyncStatus;
+  instagram: PlatformSyncStatus;
+}
+
 /** フロントエンド表示用に整形済みのSNS投稿1件分のデータ */
 export interface SocialPost {
   /** 他の投稿と重複しない識別子（Facebook/Instagramの投稿IDそのもの） */
@@ -34,4 +47,9 @@ export interface SocialPostsResponse {
   updatedAt: string | null;
   /** trueの場合、直近の同期に失敗し、以前のキャッシュを表示していることを示す */
   stale: boolean;
+  /** プラットフォームごとの直近の同期状態 */
+  status: SocialFeedStatus;
 }
+
+/** SocialPostsResponse の別名（Meta連携の設定手順内での呼称に合わせたエイリアス） */
+export type SocialFeedResponse = SocialPostsResponse;

@@ -80,6 +80,25 @@ export function normalizeInstagramMedia(raw: InstagramMediaRaw): SocialPost | nu
 
   const isVideoLike = mediaType === "VIDEO" || mediaType === "REELS";
 
+  // CAROUSEL_ALBUM自体にはmedia_urlが返らないため、先頭メディア（children[0]）を
+  // カード表示用の画像・サムネイルとして使う。
+  let imageUrl: string | null = null;
+  let thumbnailUrl: string | null = null;
+
+  if (mediaType === "CAROUSEL_ALBUM") {
+    const firstChild = raw.children?.data?.[0];
+    const childIsVideo = (firstChild?.media_type ?? "").toUpperCase() === "VIDEO";
+    if (childIsVideo) {
+      thumbnailUrl = firstChild?.media_url ?? null;
+    } else {
+      imageUrl = firstChild?.media_url ?? null;
+    }
+  } else if (isVideoLike) {
+    thumbnailUrl = raw.thumbnail_url ?? null;
+  } else {
+    imageUrl = raw.media_url ?? null;
+  }
+
   return {
     id: raw.id,
     platform: "instagram",
@@ -87,8 +106,8 @@ export function normalizeInstagramMedia(raw: InstagramMediaRaw): SocialPost | nu
     title: makeTitle(caption, "Instagram活動報告"),
     description: caption,
     permalink: raw.permalink,
-    imageUrl: isVideoLike ? null : (raw.media_url ?? null),
-    thumbnailUrl: isVideoLike ? (raw.thumbnail_url ?? null) : null,
+    imageUrl,
+    thumbnailUrl,
     mediaType,
     sourceName: "Instagram",
   };

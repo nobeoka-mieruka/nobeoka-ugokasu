@@ -11,6 +11,7 @@ import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
 import { getSortedSnsActivities, hasSnsActivityFor } from "../../data/snsActivities";
 import { socialLinks } from "../../data/socialLinks";
+import { socialConfig } from "../../config/socialConfig";
 
 const title = "福富千恵の活動報告｜延岡市での地域活動";
 const description = "福富千恵と延岡を動かす会が延岡市内で行った活動の報告一覧です。実施の目的や参加者の声、今後の対応をお伝えします。";
@@ -39,9 +40,13 @@ const hasInstagram = hasSnsActivityFor("instagram");
 const hasAnyActivity = unifiedActivities.length > 0;
 
 const officialSnsLinks = [
-  { key: "facebook" as const, label: "公式Facebook" },
-  { key: "instagram" as const, label: "公式Instagram" },
+  { key: "facebook" as const, label: "Facebookを見る" },
+  { key: "instagram" as const, label: "Instagramを見る" },
 ].filter((link) => socialLinks[link.key]);
+
+const snsInviteHeading = "SNSでも活動を発信しています";
+const snsInviteDescription =
+  "福富千恵と延岡を動かす会の活動や最新のお知らせを、FacebookとInstagramで発信しています。";
 
 const schemas = [
   webPageSchema({ path: "/activities", name: title, description }),
@@ -58,7 +63,15 @@ const schemas = [
       <h2 class="sr-only">活動報告一覧</h2>
       <ActivityFilterBar />
 
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-activity-grid>
+      <div
+        id="activity-grid"
+        role="tabpanel"
+        aria-labelledby="activity-tab-all"
+        aria-live="polite"
+        class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+        data-activity-grid
+        data-instagram-username={socialConfig.instagramUsername}
+      >
         {unifiedActivities.map((item) =>
           item.kind === "website" ? (
             <div data-activity-card data-platforms="website" data-date={item.date.toISOString()}>
@@ -80,7 +93,10 @@ const schemas = [
       <div data-empty-for="all" class:list={["mt-6 card text-center py-16 text-ink-soft flex flex-col items-center gap-6", hasAnyActivity && "hidden"]}>
         <Icon name="document" class="w-10 h-10 text-brand-orange" />
         <p class="text-lg">活動報告は準備中です。</p>
-        <p>活動の様子は、Facebook・Instagramでも随時発信しています。</p>
+        <div>
+          <p class="font-bold text-ink">{snsInviteHeading}</p>
+          <p class="mt-1">{snsInviteDescription}</p>
+        </div>
         {officialSnsLinks.length > 0 && (
           <div class="flex flex-wrap justify-center gap-3">
             {officialSnsLinks.map((link) => (
@@ -101,7 +117,10 @@ const schemas = [
       <div data-empty-for="facebook" class:list={["mt-6", !hasFacebook ? "" : "hidden"]}>
         <div class="card text-center py-10 flex flex-col items-center gap-4">
           <Icon name="facebook" class="w-8 h-8 text-sns-facebook" />
-          <p class="text-ink-soft">活動の様子は、Facebook・Instagramでも随時発信しています。</p>
+          <div>
+            <p class="font-bold text-ink">{snsInviteHeading}</p>
+            <p class="mt-1 text-ink-soft">{snsInviteDescription}</p>
+          </div>
           {officialSnsLinks.length > 0 && (
             <div class="flex flex-wrap justify-center gap-3">
               {officialSnsLinks.map((link) => (
@@ -118,7 +137,10 @@ const schemas = [
       <div data-empty-for="instagram" class:list={["mt-6", !hasInstagram ? "" : "hidden"]}>
         <div class="card text-center py-10 flex flex-col items-center gap-4">
           <Icon name="instagram" class="w-8 h-8 text-brand-orange-dark" />
-          <p class="text-ink-soft">活動の様子は、Facebook・Instagramでも随時発信しています。</p>
+          <div>
+            <p class="font-bold text-ink">{snsInviteHeading}</p>
+            <p class="mt-1 text-ink-soft">{snsInviteDescription}</p>
+          </div>
           {officialSnsLinks.length > 0 && (
             <div class="flex flex-wrap justify-center gap-3">
               {officialSnsLinks.map((link) => (
@@ -164,17 +186,51 @@ const schemas = [
     }
   }
 
+  /** 取得中であることを示す、既存カードと同じ配色のスケルトンカードを作る */
+  function createSkeletonCard(): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "card p-0 overflow-hidden flex flex-col h-full animate-pulse";
+    card.dataset.activityCard = "";
+    card.dataset.activitySkeleton = "";
+    card.dataset.platforms = "facebook instagram";
+
+    const media = document.createElement("div");
+    media.className = "aspect-[16/9] bg-brand-orange-light/60";
+    card.append(media);
+
+    const body = document.createElement("div");
+    body.className = "p-6 flex flex-col gap-3 flex-1";
+    const badge = document.createElement("div");
+    badge.className = "h-6 w-28 rounded-full bg-brand-orange-light/60";
+    const titleLine = document.createElement("div");
+    titleLine.className = "h-5 w-full rounded bg-brand-orange-light/60";
+    const textLine = document.createElement("div");
+    textLine.className = "h-4 w-2/3 rounded bg-brand-orange-light/60";
+    body.append(badge, titleLine, textLine);
+    card.append(body);
+
+    return card;
+  }
+
   (async () => {
     // Facebook・InstagramをMeta Graph APIから直接呼び出すことはせず、
-    // 30分ごとの同期でCloudflare KVに保存された結果だけを読み込む。
+    // Cloudflare KVに保存された同期済みの結果だけを読み込む。
+    const skeletons = grid ? [createSkeletonCard(), createSkeletonCard(), createSkeletonCard()] : [];
+    skeletons.forEach((s) => grid?.append(s));
+    if (skeletons.length > 0) document.dispatchEvent(new CustomEvent("social-posts:updated"));
+
     const { posts } = await fetchSocialPosts();
+
+    skeletons.forEach((s) => s.remove());
+
+    const instagramUsername = grid?.dataset.instagramUsername;
 
     if (grid && posts.length > 0) {
       const known = existingPermalinks();
       for (const post of posts) {
         // 手動登録済みの投稿（src/data/snsActivities.ts）と同じURLの場合は重複させない
         if (known.has(post.permalink)) continue;
-        const card = createSocialPostCardElement(post);
+        const card = createSocialPostCardElement(post, instagramUsername);
         card.dataset.date = post.publishedAt;
         insertSorted(card, post.publishedAt);
         known.add(post.permalink);

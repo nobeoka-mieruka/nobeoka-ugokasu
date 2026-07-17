@@ -1,10 +1,13 @@
-import type { SocialPost } from "../src/types/social";
+import type { PlatformSyncStatus, SocialFeedStatus, SocialPost } from "../src/types/social";
 import type { SocialSyncEnv } from "./env";
 import { fetchFacebookPosts, fetchInstagramMedia } from "./metaClient";
 import { normalizeFacebookPost, normalizeInstagramMedia } from "./normalize";
-import { writeCache } from "./kv";
+import { readCache, writeCache } from "./kv";
 
-const DEFAULT_POST_LIMIT = 12;
+// プラットフォームごとの取得件数（既定6件）。SOCIAL_POST_LIMITで上書き可能。
+// FacebookとInstagramそれぞれ最大この件数まで取得するため、合算後の最大件数は
+// この2倍（既定12件）になる。
+const DEFAULT_POST_LIMIT = 6;
 
 function parseLimit(value: string | undefined): number {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -46,6 +49,7 @@ export interface SocialSyncResult {
 export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResult> {
   const limit = parseLimit(env.SOCIAL_POST_LIMIT);
   const apiVersion = env.META_GRAPH_API_VERSION;
+  const previous = await readCache(env);
 
   let facebookPosts: SocialPost[] = [];
   let facebookError: string | null = null;
@@ -70,11 +74,11 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
   let instagramError: string | null = null;
   let instagramAttempted = false;
 
-  if (env.INSTAGRAM_BUSINESS_ACCOUNT_ID && env.INSTAGRAM_ACCESS_TOKEN) {
+  if (env.INSTAGRAM_USER_ID && env.INSTAGRAM_ACCESS_TOKEN) {
     instagramAttempted = true;
     try {
       const raw = await fetchInstagramMedia({
-        businessAccountId: env.INSTAGRAM_BUSINESS_ACCOUNT_ID,
+        userId: env.INSTAGRAM_USER_ID,
         accessToken: env.INSTAGRAM_ACCESS_TOKEN,
         apiVersion,
         limit,
@@ -87,6 +91,11 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
 
   const facebookSucceeded = facebookAttempted && facebookError === null;
   const instagramSucceeded = instagramAttempted && instagramError === null;
+
+  const status: SocialFeedStatus = {
+    facebook: statusFor(facebookAttempted, facebookSucceeded),
+    instagram: statusFor(instagramAttempted, instagramSucceeded),
+  };
 
   const baseResult = {
     facebookFetched: facebookPosts.length,
@@ -104,13 +113,24 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
     return { ok: false, ...baseResult, savedCount: 0, skippedReason: "all_platforms_failed" };
   }
 
-  const merged = dedupeByPermalink([...facebookPosts, ...instagramPosts])
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .slice(0, limit);
+  // 失敗・未設定のプラットフォームは、直前まで表示できていた投稿をキャッシュから引き継ぐ
+  // （一時的なAPI障害でも、そのSNSの投稿が突然消えないようにするため）。
+  const previousPosts = previous?.posts ?? [];
+  const carriedFacebook = facebookSucceeded ? [] : previousPosts.filter((p) => p.platform === "facebook");
+  const carriedInstagram = instagramSucceeded ? [] : previousPosts.filter((p) => p.platform === "instagram");
 
-  await writeCache(env, merged);
+  const merged = dedupeByPermalink([...facebookPosts, ...instagramPosts, ...carriedFacebook, ...carriedInstagram])
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, limit * 2);
+
+  await writeCache(env, merged, status);
 
   return { ok: true, ...baseResult, savedCount: merged.length };
+}
+
+function statusFor(attempted: boolean, succeeded: boolean): PlatformSyncStatus {
+  if (!attempted) return "not_configured";
+  return succeeded ? "ok" : "error";
 }
 
 /** アクセストークン等の秘密情報を含めない、ログ出力用の要約を作る */

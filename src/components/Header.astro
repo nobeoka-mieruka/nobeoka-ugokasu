@@ -2,6 +2,8 @@
 import { siteConfig } from "../config/siteConfig";
 import { headerNav } from "../data/navigation";
 import MobileMenu from "./MobileMenu.astro";
+import MobileMenuPanel from "./MobileMenuPanel.astro";
+import SocialLinks from "./SocialLinks.astro";
 
 const currentPath = Astro.url.pathname;
 
@@ -24,13 +26,13 @@ function isCurrent(href: string, path: string) {
     </a>
 
     <nav aria-label="メインメニュー" class="hidden xl:block min-w-0">
-      <ul class="flex items-center gap-2 xl:gap-3 2xl:gap-9">
+      <ul class="flex items-center gap-2 xl:gap-3">
         {headerNav.map((item) => (
           <li>
             <a
               href={item.href}
               class:list={[
-                "inline-block whitespace-nowrap rounded-lg px-1.5 py-2 text-[14px] xl:text-[14px] 2xl:text-[17px] font-bold transition-colors border-b-2",
+                "inline-block whitespace-nowrap rounded-lg px-1.5 py-2 text-[14px] font-bold transition-colors border-b-2",
                 isCurrent(item.href, currentPath)
                   ? "text-ink bg-brand-orange-light border-brand-orange-dark"
                   : "text-ink border-transparent hover:bg-brand-orange-light hover:border-brand-orange-dark",
@@ -44,6 +46,18 @@ function isCurrent(href: string, path: string) {
       </ul>
     </nav>
 
-    <MobileMenu items={headerNav} currentPath={currentPath} />
+    {/*
+      1280〜1535px（xl帯）は、ナビゲーション項目自体がこの幅で既に目一杯のため、
+      アイコンを追加すると重なってしまう。2xl（1536px）から表示することで、
+      どの画面幅でも文字とアイコンが重ならないようにしている。
+      1536px未満でもフッターから常にFacebook/Instagramへアクセスできる。
+    */}
+    <div class="hidden 2xl:flex flex-shrink-0 items-center">
+      <SocialLinks />
+    </div>
+
+    <MobileMenu />
   </div>
 </header>
+
+<MobileMenuPanel items={headerNav} currentPath={currentPath} />

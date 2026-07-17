@@ -45,8 +45,10 @@ export async function fetchFacebookPosts(params: {
 }): Promise<FacebookPostRaw[]> {
   const version = apiVersion(params.apiVersion);
   const fields = "id,message,created_time,permalink_url,full_picture,attachments{media_type,type,url,media}";
+  // published_posts エッジを使用し、Facebookページ自身が公開した投稿だけを取得する
+  // （訪問者がページへ投稿した内容は含まれない）。
   const url =
-    `https://graph.facebook.com/${version}/${encodeURIComponent(params.pageId)}/posts` +
+    `https://graph.facebook.com/${version}/${encodeURIComponent(params.pageId)}/published_posts` +
     `?fields=${encodeURIComponent(fields)}&limit=${params.limit}` +
     `&access_token=${encodeURIComponent(params.accessToken)}`;
 
@@ -62,6 +64,11 @@ export async function fetchFacebookPosts(params: {
 
 // ---- Instagramメディア ----
 
+interface InstagramChildMedia {
+  media_url?: string;
+  media_type?: string; // "IMAGE" | "VIDEO"
+}
+
 export interface InstagramMediaRaw {
   id: string;
   caption?: string;
@@ -72,6 +79,10 @@ export interface InstagramMediaRaw {
   permalink?: string;
   timestamp?: string;
   username?: string;
+  /** CAROUSEL_ALBUM の場合のみ返る、各メディアの一覧（先頭要素をカード表示に使う） */
+  children?: {
+    data?: InstagramChildMedia[];
+  };
 }
 
 interface InstagramMediaResponse {
@@ -80,15 +91,16 @@ interface InstagramMediaResponse {
 }
 
 export async function fetchInstagramMedia(params: {
-  businessAccountId: string;
+  userId: string;
   accessToken: string;
   apiVersion?: string;
   limit: number;
 }): Promise<InstagramMediaRaw[]> {
   const version = apiVersion(params.apiVersion);
-  const fields = "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,username";
+  const fields =
+    "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,username,children{media_url,media_type}";
   const url =
-    `https://graph.facebook.com/${version}/${encodeURIComponent(params.businessAccountId)}/media` +
+    `https://graph.facebook.com/${version}/${encodeURIComponent(params.userId)}/media` +
     `?fields=${encodeURIComponent(fields)}&limit=${params.limit}` +
     `&access_token=${encodeURIComponent(params.accessToken)}`;
 

@@ -1,0 +1,88 @@
+---
+// 全画面のモバイルメニューパネル本体。
+// ヘッダー（backdrop-blur指定あり）の外側の兄弟要素として配置する必要があるため、
+// Header.astro内の<header>要素の外に置いてください（MobileMenu.astro側のコメント参照）。
+import type { NavItem } from "../data/navigation";
+import Icon from "./Icon.astro";
+import SocialLinks from "./SocialLinks.astro";
+
+interface Props {
+  items: NavItem[];
+  currentPath: string;
+}
+
+const { items, currentPath } = Astro.props;
+
+function isCurrent(href: string, path: string) {
+  if (href === "/") return path === "/";
+  return path === href || path.startsWith(`${href}/`);
+}
+---
+
+<div id="mobile-menu-panel" class="fixed inset-0 z-50 bg-white xl:hidden" hidden>
+  <div class="flex items-center justify-between px-4 py-4 border-b border-black/10">
+    <span class="font-bold text-ink">メニュー</span>
+    <button
+      id="mobile-menu-close"
+      type="button"
+      class="inline-flex items-center justify-center rounded-lg p-2 text-ink hover:bg-brand-orange-light"
+    >
+      <span class="sr-only">メニューを閉じる</span>
+      <Icon name="close" class="w-7 h-7" />
+    </button>
+  </div>
+  <nav aria-label="モバイルメニュー" class="px-4 py-6">
+    <ul class="space-y-1">
+      {items.map((item) => (
+        <li>
+          <a
+            href={item.href}
+            class:list={[
+              "block rounded-lg px-4 py-3 text-lg font-bold border-l-4",
+              isCurrent(item.href, currentPath)
+                ? "bg-brand-orange-light text-ink border-brand-orange-dark"
+                : "text-ink border-transparent hover:bg-brand-orange-light",
+            ]}
+            aria-current={isCurrent(item.href, currentPath) ? "page" : undefined}
+          >
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+  <div class="px-4 pt-2 pb-6 border-t border-black/10 mt-2">
+    <SocialLinks />
+  </div>
+</div>
+
+<script>
+  const button = document.getElementById("mobile-menu-button");
+  const closeButton = document.getElementById("mobile-menu-close");
+  const panel = document.getElementById("mobile-menu-panel");
+
+  function openMenu() {
+    if (!panel || !button) return;
+    panel.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+    closeButton?.focus();
+  }
+
+  function closeMenu() {
+    if (!panel || !button) return;
+    panel.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+    button.focus();
+  }
+
+  button?.addEventListener("click", openMenu);
+  closeButton?.addEventListener("click", closeMenu);
+
+  panel?.addEventListener("keydown", (e) => {
+    if (e instanceof KeyboardEvent && e.key === "Escape") {
+      closeMenu();
+    }
+  });
+</script>
