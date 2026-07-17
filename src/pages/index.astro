@@ -1,6 +1,6 @@
 ---
 import { getCollection } from "astro:content";
-import { Picture } from "astro:assets";
+import { Picture, getImage } from "astro:assets";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SectionTitle from "../components/SectionTitle.astro";
 import MessageCard from "../components/MessageCard.astro";
@@ -42,6 +42,17 @@ const schemas = [
   personSchema({ image: "/images/profile/image0.jpeg" }),
   webPageSchema({ path: "/", name: title, description, image: siteConfig.defaultOgpImage }),
 ];
+
+// LCP対策：メインビジュアルの人物写真は、実際に表示される幅（コンテナのpaddingを
+// 差し引いた幅）にsizesを一致させ、同じ内容でpreloadすることで発見・取得を早める。
+// 620px（lg以上）はPicture側の値と一致させたもの。
+const heroImageWidths = [400, 560, 700, 900, 1134];
+const heroImageSizes =
+  "(min-width: 1024px) 620px, (min-width: 768px) calc(100vw - 112px), (min-width: 640px) calc(100vw - 96px), calc(100vw - 64px)";
+const heroImageAvifVariants = await Promise.all(
+  heroImageWidths.map((width) => getImage({ src: fukutomiChiePortrait, format: "avif", width })),
+);
+const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${heroImageWidths[i]}w`).join(", ");
 ---
 
 <BaseLayout
@@ -54,6 +65,20 @@ const schemas = [
   ogImage={siteConfig.defaultOgpImage}
   schemas={schemas}
 >
+  <Fragment slot="head">
+    <!--
+      LCP対策：メインビジュアルの人物写真（AVIF）を、実際に表示される候補と
+      同じsrcset/sizesでpreloadし、発見・取得を早める。
+    -->
+    <link
+      rel="preload"
+      as="image"
+      type="image/avif"
+      imagesrcset={heroImageSrcset}
+      imagesizes={heroImageSizes}
+      fetchpriority="high"
+    />
+  </Fragment>
   <!-- 8-1 メインビジュアル -->
   <section class="bg-gradient-to-b from-brand-orange-light to-white">
     <div class="section-wrap py-12 sm:py-20">
@@ -98,8 +123,8 @@ const schemas = [
           <Picture
             src={fukutomiChiePortrait}
             formats={["avif", "webp"]}
-            widths={[400, 560, 700, 900, 1134]}
-            sizes="(min-width: 1024px) 620px, 100vw"
+            widths={heroImageWidths}
+            sizes={heroImageSizes}
             alt="福富千恵（福富千恵と延岡を動かす会）"
             class="relative z-10 w-full h-[340px] sm:h-[420px] lg:h-[600px] xl:h-[640px] rounded-3xl mx-auto object-cover shadow-md"
             style="object-position: center 30%;"
