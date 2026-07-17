@@ -11,7 +11,7 @@ const { slug, title, date, category, summary } = Astro.props;
 const dateLabel = date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 ---
 
-<a href={`/news/${slug}`} class="card flex flex-col gap-3 hover:shadow-md transition-shadow">
+<a href={`/news/${slug}/`} class="card flex flex-col gap-3 hover:shadow-md transition-shadow">
   <div class="flex items-center gap-2 text-sm text-ink-soft">
     <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{category}</span>
     <time datetime={date.toISOString()}>{dateLabel}</time>

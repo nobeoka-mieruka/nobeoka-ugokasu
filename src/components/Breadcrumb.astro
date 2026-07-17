@@ -1,6 +1,7 @@
 ---
 import Icon from "./Icon.astro";
 import type { BreadcrumbItem } from "../utils/seo";
+import { withTrailingSlash } from "../utils/seo";
 
 interface Props {
   items: BreadcrumbItem[];
@@ -18,7 +19,7 @@ const allItems: BreadcrumbItem[] = [{ name: "ホーム", path: "/" }, ...items];
         {index === allItems.length - 1 ? (
           <span aria-current="page" class="text-ink font-bold">{item.name}</span>
         ) : (
-          <a href={item.path} class="hover:text-ink hover:underline">{item.name}</a>
+          <a href={withTrailingSlash(item.path)} class="hover:text-ink hover:underline">{item.name}</a>
         )}
       </li>
     ))}

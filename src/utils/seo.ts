@@ -1,9 +1,21 @@
 import { siteConfig } from "../config/siteConfig";
 
+/**
+ * 正規URLの方針（末尾スラッシュあり）に合わせてパスを正規化する。
+ * Cloudflare Pagesは末尾スラッシュなしのURLを末尾スラッシュありへ自動的に
+ * 308リダイレクトするため、canonical・内部リンクは常にリダイレクト後の
+ * 形（末尾スラッシュあり）を指すようにする。
+ * ファイル形式のパス（.xml, .png 等の拡張子を持つもの）はページではないため対象外。
+ */
+export function withTrailingSlash(path: string): string {
+  if (/\.[a-zA-Z0-9]+$/.test(path)) return path;
+  return path.endsWith("/") ? path : `${path}/`;
+}
+
 /** 相対パスから絶対URL（canonical等）を生成する */
 export function absoluteUrl(path: string): string {
   const base = siteConfig.siteUrl.replace(/\/$/, "");
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const cleanPath = withTrailingSlash(path.startsWith("/") ? path : `/${path}`);
   return `${base}${cleanPath}`;
 }
 

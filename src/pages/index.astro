@@ -59,11 +59,11 @@ const schemas = [
     <div class="section-wrap py-12 sm:py-20">
       <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
         <div class="order-2 lg:order-1">
-          <p class="text-4xl sm:text-5xl lg:text-6xl font-bold text-ink leading-snug">
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-ink leading-snug">
             私も悩み、<br />
             <span class="text-brand-orange-dark">支えられながら</span><br />
             歩いてきました。
-          </p>
+          </h1>
           <p class="mt-5 text-xl sm:text-2xl text-ink-soft leading-relaxed">
             だからこそ、<br />
             わかる思いがあります。
@@ -76,10 +76,10 @@ const schemas = [
             <p class="text-base text-ink-soft">ふくとみ ちえ</p>
           </div>
           <div class="mt-10 flex flex-wrap gap-4">
-            <a href="/profile" class="btn-primary">福富千恵について</a>
-            <a href="/vision" class="btn-secondary">私たちの提言</a>
-            <a href="/voices" class="btn-secondary">みんなの声</a>
-            <a href="/activities" class="btn-secondary">活動報告を見る</a>
+            <a href="/profile/" class="btn-primary">福富千恵について</a>
+            <a href="/vision/" class="btn-secondary">私たちの提言</a>
+            <a href="/voices/" class="btn-secondary">みんなの声</a>
+            <a href="/activities/" class="btn-secondary">活動報告を見る</a>
           </div>
         </div>
         <div class="order-1 lg:order-2 relative rounded-[2rem] overflow-hidden p-4 sm:p-6 md:p-8 lg:p-10">
@@ -148,7 +148,7 @@ const schemas = [
         ))}
       </div>
       <div class="mt-8 text-center">
-        <a href="/vision" class="btn-secondary">私たちの提言をもっと見る</a>
+        <a href="/vision/" class="btn-secondary">私たちの提言をもっと見る</a>
       </div>
     </div>
   </section>
@@ -166,10 +166,10 @@ const schemas = [
         </p>
       </div>
       <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <a href="/voices/submit" class="btn-primary">声を届ける</a>
-        <a href="/voices/themes" class="btn-secondary">現在募集中のテーマ</a>
-        <a href="/voices" class="btn-secondary">みんなの声を見る</a>
-        <a href="/voices/method" class="btn-secondary">整理方法を見る</a>
+        <a href="/voices/submit/" class="btn-primary">声を届ける</a>
+        <a href="/voices/themes/" class="btn-secondary">現在募集中のテーマ</a>
+        <a href="/voices/" class="btn-secondary">みんなの声を見る</a>
+        <a href="/voices/method/" class="btn-secondary">整理方法を見る</a>
       </div>
     </div>
   </section>
@@ -199,7 +199,7 @@ const schemas = [
       )}
       <div class="mt-8 text-center">
         {activities.length > 0 ? (
-          <a href="/activities" class="btn-secondary">活動報告一覧を見る</a>
+          <a href="/activities/" class="btn-secondary">活動報告一覧を見る</a>
         ) : (
           <span class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed" aria-disabled="true">
             活動報告一覧を見る（準備中）
@@ -233,7 +233,7 @@ const schemas = [
       )}
       <div class="mt-8 text-center">
         {news.length > 0 ? (
-          <a href="/news" class="btn-secondary">お知らせ一覧を見る</a>
+          <a href="/news/" class="btn-secondary">お知らせ一覧を見る</a>
         ) : (
           <span class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed" aria-disabled="true">
             お知らせ一覧を見る（準備中）
@@ -254,7 +254,7 @@ const schemas = [
           ))}
         </div>
         <div class="mt-8 text-center">
-          <a href="/videos" class="btn-secondary">動画をもっと見る</a>
+          <a href="/videos/" class="btn-secondary">動画をもっと見る</a>
         </div>
       </div>
     </section>
@@ -267,11 +267,11 @@ const schemas = [
         heading={siteConfig.organizationName}
         description={"福富千恵の活動を支え、延岡のこれからを市民の皆さまと一緒に考える政治団体です。\n地域の声を聞き、対話を重ね、支え合いと希望のある延岡を目指して活動します。"}
         primaryLabel="後援会について"
-        primaryHref="/supporters"
+        primaryHref="/supporters/"
         secondaryLabel="後援会に入会する"
-        secondaryHref="/supporters/join"
+        secondaryHref="/supporters/join/"
         tertiaryLabel="お問い合わせ"
-        tertiaryHref="/contact"
+        tertiaryHref="/contact/"
       />
     </div>
   </section>

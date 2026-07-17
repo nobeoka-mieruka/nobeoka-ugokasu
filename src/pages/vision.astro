@@ -97,7 +97,7 @@ const schemas = [
                 <ul class="mt-2 space-y-1">
                   {relatedActivities.map((a) => (
                     <li>
-                      <a href={`/activities/${a.slug}`} class="text-ink font-bold hover:underline">{a.data.title}</a>
+                      <a href={`/activities/${a.slug}/`} class="text-ink font-bold hover:underline">{a.data.title}</a>
                     </li>
                   ))}
                 </ul>
@@ -111,7 +111,7 @@ const schemas = [
             </div>
 
             <div class="mt-4">
-              <a href={`/issues/${proposal.slug}`} class="inline-flex items-center gap-1 font-bold text-ink hover:underline">
+              <a href={`/issues/${proposal.slug}/`} class="inline-flex items-center gap-1 font-bold text-ink hover:underline">
                 {proposal.shortTitle}の詳細ページへ
                 <Icon name="arrow-right" class:list={["w-4 h-4", accent.text]} />
               </a>

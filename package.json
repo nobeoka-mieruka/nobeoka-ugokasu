@@ -13,7 +13,8 @@
     "astro": "astro",
     "check": "astro check",
     "check:functions": "tsc --noEmit -p functions/tsconfig.json",
-    "dev:pages": "npm run build && wrangler pages dev dist --kv SOCIAL_POSTS_KV --compatibility-date=2026-07-01"
+    "dev:pages": "npm run build && wrangler pages dev dist --kv SOCIAL_POSTS_KV --compatibility-date=2026-07-01",
+    "seo:check": "node scripts/seo-check.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

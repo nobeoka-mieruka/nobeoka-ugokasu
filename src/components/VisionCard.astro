@@ -31,7 +31,7 @@ const Heading = headingLevel;
       </li>
     ))}
   </ul>
-  <a href={`/issues/${proposal.slug}`} class="mt-6 inline-flex items-center gap-1 text-base font-bold text-ink hover:underline">
+  <a href={`/issues/${proposal.slug}/`} class="mt-6 inline-flex items-center gap-1 text-base font-bold text-ink hover:underline">
     {proposal.shortTitle}を詳しく見る
     <Icon name="arrow-right" class:list={["w-5 h-5", accent.text]} />
   </a>

@@ -14,7 +14,7 @@ const { slug, title, date, category, summary, mainImage } = Astro.props;
 const dateLabel = date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 ---
 
-<a href={`/activities/${slug}`} class="card flex flex-col overflow-hidden p-0 hover:shadow-md transition-shadow">
+<a href={`/activities/${slug}/`} class="card flex flex-col overflow-hidden p-0 hover:shadow-md transition-shadow">
   <div class="aspect-[16/9] bg-brand-orange-light overflow-hidden">
     {mainImage ? (
       <img src={mainImage.src} alt={mainImage.alt} class="w-full h-full object-cover" loading="lazy" width="640" height="360" />

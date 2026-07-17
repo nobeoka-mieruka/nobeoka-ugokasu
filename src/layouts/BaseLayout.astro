@@ -16,6 +16,7 @@ interface Props {
   schemas?: Record<string, unknown>[];
   ogTitle?: string;
   ogDescription?: string;
+  ogImageAlt?: string;
 }
 
 const {
@@ -28,6 +29,7 @@ const {
   schemas = [],
   ogTitle,
   ogDescription,
+  ogImageAlt,
 } = Astro.props;
 ---
 
@@ -52,6 +54,7 @@ const {
       noindex={noindex}
       ogTitle={ogTitle}
       ogDescription={ogDescription}
+      ogImageAlt={ogImageAlt}
     />
     {schemas.length > 0 && <StructuredData schemas={schemas} />}
   </head>

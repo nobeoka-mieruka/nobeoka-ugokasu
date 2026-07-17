@@ -8,7 +8,9 @@ import { siteConfig } from "./src/config/siteConfig.ts";
 export default defineConfig({
   site: siteConfig.siteUrl,
   output: "static",
-  trailingSlash: "ignore",
+  // 正規URLの方針（末尾スラッシュあり）。Cloudflare Pagesが末尾スラッシュなしのURLを
+  // 自動的に308リダイレクトするため、開発サーバーの挙動も本番に合わせて統一する。
+  trailingSlash: "always",
   integrations: [
     tailwind({
       applyBaseStyles: false,

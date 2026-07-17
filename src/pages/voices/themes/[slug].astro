@@ -5,6 +5,7 @@ import HeroSection from "../../../components/HeroSection.astro";
 import Breadcrumb from "../../../components/Breadcrumb.astro";
 import VoiceStatusBadge from "../../../components/VoiceStatusBadge.astro";
 import VoiceReportCard from "../../../components/VoiceReportCard.astro";
+import RelatedContent from "../../../components/RelatedContent.astro";
 import Icon from "../../../components/Icon.astro";
 import { voiceThemes, getVoiceTheme } from "../../../data/voiceThemes";
 import { voicesConfig } from "../../../config/voicesConfig";
@@ -52,16 +53,54 @@ const schemas = [
         )}
       </div>
 
-      <p class="text-ink leading-relaxed mb-2">
-        このテーマに関するお困りごと、ご意見、改善してほしいこと、延岡市への提案などをお寄せください。
-      </p>
-      {theme.examples && (
-        <p class="text-sm text-ink-soft mb-6">相談例：{theme.examples}</p>
+      <div class="mb-10">
+        <h2 class="font-bold text-ink text-lg mb-3">このテーマで募集する内容</h2>
+        <p class="text-ink leading-relaxed">
+          福富千恵と延岡を動かす会は、「{theme.title}」に関するお困りごと、ご意見、改善してほしいこと、延岡市への提案などを募集しています。{theme.description}
+        </p>
+      </div>
+
+      {theme.troubleExamples && theme.troubleExamples.length > 0 && (
+        <div class="mb-8">
+          <h3 class="font-bold text-ink mb-3">具体的なお困りごとの例</h3>
+          <ul class="space-y-2">
+            {theme.troubleExamples.map((item) => (
+              <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                <Icon name="check" class="w-5 h-5 flex-shrink-0 mt-0.5 text-brand-orange" ariaHidden={true} />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
-      <p class="text-sm text-ink-soft leading-relaxed mb-8">
-        いただいたご意見は、今後の政策提言や地域課題の整理の参考にさせていただきます。
-      </p>
+      {theme.improvementExamples && theme.improvementExamples.length > 0 && (
+        <div class="mb-8">
+          <h3 class="font-bold text-ink mb-3">改善してほしいことの例</h3>
+          <ul class="space-y-2">
+            {theme.improvementExamples.map((item) => (
+              <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                <Icon name="check" class="w-5 h-5 flex-shrink-0 mt-0.5 text-brand-orange" ariaHidden={true} />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {theme.wantedInfo && (
+        <div class="mb-8">
+          <h3 class="font-bold text-ink mb-3">寄せていただきたい情報</h3>
+          <p class="text-ink-soft leading-relaxed">{theme.wantedInfo}</p>
+        </div>
+      )}
+
+      <div class="mb-8">
+        <h3 class="font-bold text-ink mb-3">いただいた意見の活用方法</h3>
+        <p class="text-sm text-ink-soft leading-relaxed">
+          「{theme.title}」についていただいたご意見は、今後の政策提言や地域課題の整理の参考にさせていただきます。
+        </p>
+      </div>
 
       <div class="mb-8">
         {voicesConfig.googleFormUrl ? (
@@ -93,4 +132,13 @@ const schemas = [
       )}
     </div>
   </section>
+
+  <div class="section-wrap">
+    <RelatedContent
+      items={[
+        { title: "私たちの政策提言を見る", href: "/vision/", description: "福富千恵と延岡を動かす会の3つの提言をご覧いただけます。" },
+        { title: "最新の活動報告を見る", href: "/activities/", description: "延岡での地域活動の様子をご紹介しています。" },
+      ]}
+    />
+  </div>
 </BaseLayout>

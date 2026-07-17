@@ -14,6 +14,8 @@ interface Props {
   ogTitle?: string;
   /** og:description / twitter:description をmeta descriptionと別の文言にしたい場合に指定 */
   ogDescription?: string;
+  /** og:image:alt / twitter:image:alt。省略時は既定のサイト説明文を使用 */
+  ogImageAlt?: string;
 }
 
 const {
@@ -25,6 +27,7 @@ const {
   noindex = false,
   ogTitle,
   ogDescription,
+  ogImageAlt = `${siteConfig.organizationName}の公式ホームページ`,
 } = Astro.props;
 
 const resolvedOgTitle = ogTitle ?? title;
@@ -38,7 +41,10 @@ const isNoindex = shouldNoindex(noindex);
 <title>{title}</title>
 <meta name="description" content={description} />
 <link rel="canonical" href={canonicalUrl} />
-<meta name="robots" content={isNoindex ? "noindex, nofollow" : "index, follow"} />
+<meta
+  name="robots"
+  content={isNoindex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"}
+/>
 
 <meta property="og:title" content={resolvedOgTitle} />
 <meta property="og:description" content={resolvedOgDescription} />
@@ -50,11 +56,13 @@ const isNoindex = shouldNoindex(noindex);
 <meta property="og:image:width" content={String(seoConfig.ogpImageWidth)} />
 <meta property="og:image:height" content={String(seoConfig.ogpImageHeight)} />
 <meta property="og:image:type" content="image/png" />
+<meta property="og:image:alt" content={ogImageAlt} />
 
 <meta name="twitter:card" content={seoConfig.twitterCard} />
 <meta name="twitter:title" content={resolvedOgTitle} />
 <meta name="twitter:description" content={resolvedOgDescription} />
 <meta name="twitter:image" content={ogImageUrl} />
+<meta name="twitter:image:alt" content={ogImageAlt} />
 
 {seoConfig.gscVerification && (
   <meta name="google-site-verification" content={seoConfig.gscVerification} />
