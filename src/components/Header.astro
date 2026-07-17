@@ -19,18 +19,18 @@ function isCurrent(href: string, path: string) {
         alt={siteConfig.organizationName}
         width="2172"
         height="724"
-        class="w-[220px] sm:w-[260px] xl:w-[300px] 2xl:w-[360px] h-auto"
+        class="w-[220px] sm:w-[260px] 2xl:w-[360px] h-auto"
       />
     </a>
 
-    <nav aria-label="メインメニュー" class="hidden xl:block">
-      <ul class="flex items-center gap-6 2xl:gap-9">
+    <nav aria-label="メインメニュー" class="hidden xl:block min-w-0">
+      <ul class="flex items-center gap-2 xl:gap-3 2xl:gap-9">
         {headerNav.map((item) => (
           <li>
             <a
               href={item.href}
               class:list={[
-                "inline-block whitespace-nowrap rounded-lg px-2 py-2 text-[15px] 2xl:text-[17px] font-bold transition-colors border-b-2",
+                "inline-block whitespace-nowrap rounded-lg px-1.5 py-2 text-[14px] xl:text-[14px] 2xl:text-[17px] font-bold transition-colors border-b-2",
                 isCurrent(item.href, currentPath)
                   ? "text-ink bg-brand-orange-light border-brand-orange-dark"
                   : "text-ink border-transparent hover:bg-brand-orange-light hover:border-brand-orange-dark",

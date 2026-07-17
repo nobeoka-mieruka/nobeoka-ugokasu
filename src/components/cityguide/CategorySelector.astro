@@ -1,0 +1,28 @@
+---
+import Icon from "../Icon.astro";
+import type { CityGuideCategory } from "../../data/cityGuideData";
+
+interface Props {
+  categories: CityGuideCategory[];
+}
+
+const { categories } = Astro.props;
+---
+
+<section data-cg-screen="categories">
+  <h2 class="text-xl font-bold text-ink mb-5">まず、内容に近いカテゴリを選んでください</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {categories.map((cat) => (
+      <button
+        type="button"
+        class="card flex items-center gap-4 text-left hover:shadow-md hover:ring-brand-orange-dark/40 transition-shadow"
+        data-cg-category={cat.id}
+      >
+        <span class="flex items-center justify-center w-12 h-12 rounded-full bg-brand-orange-light text-brand-orange-dark flex-shrink-0">
+          <Icon name={cat.icon} class="w-6 h-6" />
+        </span>
+        <span class="font-bold text-ink [overflow-wrap:break-word] min-w-0">{cat.label}</span>
+      </button>
+    ))}
+  </div>
+</section>

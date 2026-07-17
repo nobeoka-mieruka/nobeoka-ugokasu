@@ -1,0 +1,77 @@
+---
+// 再利用可能なYouTube動画プレイヤーです。
+// 初期状態はサムネイル＋再生ボタンのみを表示し、クリック（またはEnter/Space）で
+// はじめてiframeを読み込む軽量な構成にしています（自動再生はしません）。
+import Icon from "./Icon.astro";
+
+interface Props {
+  youtubeId: string;
+  title: string;
+  class?: string;
+}
+
+const { youtubeId, title, class: className = "rounded-2xl" } = Astro.props;
+const hasId = Boolean(youtubeId && youtubeId.trim());
+const thumbnailUrl = hasId ? `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` : "";
+---
+
+{hasId && (
+  <div
+    class:list={["relative w-full aspect-video overflow-hidden bg-ink/10", className]}
+    data-video-player
+    data-youtube-id={youtubeId}
+    data-video-title={title}
+  >
+    <button
+      type="button"
+      class="group absolute inset-0 flex h-full w-full items-center justify-center"
+      data-video-play
+      aria-label={`動画を再生：${title}`}
+    >
+      <img
+        src={thumbnailUrl}
+        alt=""
+        width="480"
+        height="360"
+        loading="lazy"
+        decoding="async"
+        class="absolute inset-0 h-full w-full object-cover"
+      />
+      <span class="absolute inset-0 bg-black/25 transition-colors group-hover:bg-black/35"></span>
+      <span class="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-brand-orange-dark shadow-md transition-transform group-hover:scale-105 group-focus-visible:scale-105">
+        <Icon name="play" class="h-8 w-8" />
+      </span>
+    </button>
+  </div>
+)}
+
+<script>
+  function initVideoPlayers() {
+    document.querySelectorAll<HTMLElement>("[data-video-player]").forEach((wrapper) => {
+      if (wrapper.dataset.videoBound === "true") return;
+      wrapper.dataset.videoBound = "true";
+
+      const button = wrapper.querySelector<HTMLButtonElement>("[data-video-play]");
+      button?.addEventListener("click", () => {
+        const youtubeId = wrapper.dataset.youtubeId;
+        const title = wrapper.dataset.videoTitle ?? "動画";
+        if (!youtubeId) return;
+
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeId)}`;
+        iframe.title = title;
+        iframe.loading = "lazy";
+        iframe.allow =
+          "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+        iframe.allowFullscreen = true;
+        iframe.referrerPolicy = "strict-origin-when-cross-origin";
+        iframe.className = "absolute inset-0 h-full w-full";
+        iframe.style.border = "0";
+
+        wrapper.replaceChildren(iframe);
+      });
+    });
+  }
+
+  initVideoPlayers();
+</script>

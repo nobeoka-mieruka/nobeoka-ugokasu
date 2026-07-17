@@ -1,0 +1,273 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import HeroSection from "../../components/HeroSection.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import Icon from "../../components/Icon.astro";
+import { siteConfig } from "../../config/siteConfig";
+import { supportersConfig } from "../../config/supporters";
+import { webPageSchema, organizationSchema } from "../../utils/structuredData";
+import { buildBreadcrumbList } from "../../utils/seo";
+
+const title = "後援会への入会｜福富千恵と延岡を動かす会";
+const description =
+  "福富千恵と延岡を動かす会の後援会入会申込みページです。規約をご確認のうえ、入会申込フォームからお申込みください。";
+const breadcrumbItems = [
+  { name: "後援会について", path: "/supporters" },
+  { name: "後援会への入会", path: "/supporters/join" },
+];
+
+const schemas = [
+  webPageSchema({ path: "/supporters/join", name: title, description }),
+  organizationSchema(),
+  buildBreadcrumbList(breadcrumbItems),
+];
+
+const ruleSummaries = [
+  {
+    icon: "users" as const,
+    title: "会員",
+    body: "本会の理念及び目的に賛同する方を会員とします。",
+  },
+  {
+    icon: "document-edit" as const,
+    title: "入会",
+    body: "入会を希望される方は、所定の入会手続（本ページの入会申込フォーム）を行うことで会員となります。",
+  },
+  {
+    icon: "form" as const,
+    title: "退会",
+    body: "会員は、本人の申し出により、いつでも退会することができます。",
+  },
+  {
+    icon: "building" as const,
+    title: "経費について",
+    body: "本会の経費は、寄附金及びその他の収入をもって充てるものとされています。規約に会費（年会費等）を定めた条文はありません。",
+  },
+  {
+    icon: "document" as const,
+    title: "個人情報の取扱い",
+    body: "本会は、会員の個人情報について関係法令を遵守し、適正に管理します。",
+  },
+];
+---
+
+<BaseLayout title={title} description={description} path="/supporters/join" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection
+    title="福富千恵と延岡を動かす会に入会する"
+    eyebrow="後援会について"
+    description="後援会規約をご確認いただき、内容にご同意いただいたうえで、入会申込フォームからお申込みください。"
+  />
+
+  <!-- 後援会への入会について -->
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-3xl space-y-5">
+      <h2 class="text-2xl font-bold text-ink">後援会への入会について</h2>
+      <p class="text-ink-soft leading-relaxed">
+        「福富千恵と延岡を動かす会」では、活動を応援してくださる方のご入会を受け付けています。後援会規約をご確認いただき、同意のうえで入会申込フォームに必要事項をご入力ください。
+      </p>
+      {supportersConfig.membershipFormUrl && (
+        <a
+          href={supportersConfig.membershipFormUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn-primary w-full sm:w-auto justify-center"
+        >
+          後援会入会申込フォームを開く
+          <Icon name="external-link" class="w-5 h-5" />
+        </a>
+      )}
+    </div>
+  </section>
+
+  <!-- 入会案内 -->
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-3xl space-y-4">
+      <h2 class="text-2xl font-bold text-ink">入会のご案内</h2>
+      <p class="text-ink-soft leading-relaxed">
+        福富千恵と延岡を動かす会は、市民一人ひとりの声を大切にし、支え合いと希望のある延岡の実現を目指す政治団体です。私たちの理念や目的にご賛同いただける方は、ぜひ後援会へご入会ください。
+      </p>
+      <p class="text-ink-soft leading-relaxed">
+        入会にあたっては、まず下記の後援会規約をご確認ください。規約の内容にご同意いただいた場合のみ、入会申込フォームが表示されます。
+      </p>
+      <ol class="mt-4 grid gap-3 sm:grid-cols-2">
+        <li class="rounded-xl bg-brand-orange-light/50 px-4 py-3 text-sm font-bold text-ink">1. 規約の要点を確認する</li>
+        <li class="rounded-xl bg-brand-orange-light/50 px-4 py-3 text-sm font-bold text-ink">2. 規約PDFを読む</li>
+        <li class="rounded-xl bg-brand-orange-light/50 px-4 py-3 text-sm font-bold text-ink">3. 規約への同意チェックを入れる</li>
+        <li class="rounded-xl bg-brand-orange-light/50 px-4 py-3 text-sm font-bold text-ink">4. 入会申込フォームから申し込む</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 規約の要点 -->
+  <section class="pb-14 sm:pb-20">
+    <div class="section-wrap max-w-5xl">
+      <h2 class="text-2xl font-bold text-ink mb-2">規約の要点</h2>
+      <p class="text-sm text-ink-soft mb-6">
+        以下は後援会規約の要点をまとめたものであり、規約全文ではありません。正式な内容は必ずPDF本文でご確認ください。
+      </p>
+      <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {ruleSummaries.map((item) => (
+          <li class="card min-w-0">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-brand-orange-light">
+              <Icon name={item.icon} class="w-6 h-6 text-brand-orange-dark" />
+            </div>
+            <p class="mt-4 font-bold text-ink [white-space:normal] [word-break:normal] [overflow-wrap:break-word]">
+              {item.title}
+            </p>
+            <p class="mt-2 text-sm text-ink-soft leading-relaxed [white-space:normal] [word-break:normal] [overflow-wrap:break-word]">
+              {item.body}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- 規約PDF -->
+  <section class="pb-14 sm:pb-20">
+    <div class="section-wrap max-w-4xl">
+      <h2 class="text-2xl font-bold text-ink mb-2">後援会規約</h2>
+      <p class="text-sm text-ink-soft mb-4">
+        規約の全文は、以下のPDFでご確認いただけます。内容をよくお読みください。
+      </p>
+      <div class="rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white w-full">
+        <object
+          data={supportersConfig.rulesPdfUrl}
+          type="application/pdf"
+          title="福富千恵と延岡を動かす会 後援会規約PDF"
+          class="w-full block"
+          style="height: 80vh; min-height: 480px; max-height: 900px;"
+        >
+          <div class="p-8 text-center text-ink-soft">
+            <p>お使いの環境ではPDFをページ内に表示できません。</p>
+            <a href={supportersConfig.rulesPdfUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
+              こちらから規約PDFを開いてください
+            </a>
+          </div>
+        </object>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <a href={supportersConfig.rulesPdfUrl} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          規約PDFを新しいタブで開く
+          <Icon name="external-link" class="w-4 h-4" />
+        </a>
+        <a href={supportersConfig.rulesPdfUrl} download class="btn-secondary">
+          規約PDFをダウンロードする
+          <Icon name="document" class="w-4 h-4" />
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 規約への同意チェック＋入会申込フォーム -->
+  <section class="pb-14 sm:pb-20">
+    <div class="section-wrap max-w-3xl">
+      <div class="card">
+        <h2 class="text-xl font-bold text-ink mb-4">規約への同意</h2>
+        <label for="rules-agree-checkbox" class="flex items-start gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            id="rules-agree-checkbox"
+            class="mt-1 w-6 h-6 flex-shrink-0 rounded border-2 border-black/30 text-brand-orange-dark focus:ring-2 focus:ring-brand-orange-dark accent-orange-600"
+            aria-controls="membership-form-area"
+            aria-describedby="rules-agree-help"
+          />
+          <span class="text-ink leading-relaxed">
+            後援会規約を読み、内容を確認したうえで、福富千恵と延岡を動かす会への入会申込みに進みます。
+          </span>
+        </label>
+        <p id="rules-agree-help" class="mt-3 text-xs text-ink-soft leading-relaxed">
+          ※このチェックは入会申込フォームを表示するための操作です。入会に関する正式な同意の記録は、入会申込フォーム内の設問への回答をもって行われます。
+        </p>
+
+        <noscript>
+          <p class="mt-4 text-sm text-ink-soft leading-relaxed border-t border-black/10 pt-4">
+            JavaScriptが無効なため、チェックボックスによる表示切り替えができません。後援会規約を読み、内容にご同意いただける場合は、下記の入会申込フォームからお申込みください。
+          </p>
+        </noscript>
+      </div>
+
+      <div class="card mt-6 border-l-4 border-brand-orange">
+        <h3 class="font-bold text-ink mb-3">入会申込フォームに関する注意事項</h3>
+        <ul class="space-y-2 text-sm text-ink-soft leading-relaxed list-disc list-inside">
+          <li>お申込みの前に、後援会規約を読み、内容にご同意いただいたことをご確認ください。</li>
+          <li>ご入力いただいた個人情報は、会員管理、活動のご案内、ご連絡、後援会活動の運営の目的にのみ使用します。</li>
+          <li>お申込み内容について、事務局より確認のご連絡を差し上げる場合があります。</li>
+        </ul>
+      </div>
+
+      <div id="membership-form-area" class="mt-8" hidden>
+        <h2 class="text-xl font-bold text-ink mb-4 text-center">入会申込フォーム</h2>
+        {supportersConfig.membershipFormUrl ? (
+          <>
+            <div class="text-center mb-6">
+              <a
+                href={supportersConfig.membershipFormUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-primary w-full sm:w-auto justify-center"
+              >
+                後援会入会申込フォームを開く
+                <Icon name="external-link" class="w-5 h-5" />
+              </a>
+            </div>
+            {supportersConfig.membershipFormEmbedUrl && (
+              <div class="rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white w-full max-w-3xl mx-auto">
+                <iframe
+                  src={supportersConfig.membershipFormEmbedUrl}
+                  title="福富千恵と延岡を動かす会 入会申込フォーム"
+                  class="w-full block"
+                  style="border: 0; min-height: 1400px;"
+                  loading="lazy"
+                >
+                  フォームを読み込んでいます…
+                </iframe>
+              </div>
+            )}
+            <p class="mt-3 text-center text-sm text-ink-soft">
+              フォームが正しく表示されない場合は、
+              <a href={supportersConfig.membershipFormUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
+                こちらから入会申込フォームを開いてください
+                <span class="sr-only">（新しいタブで開く）</span>
+              </a>
+              。
+            </p>
+          </>
+        ) : (
+          <div class="card text-center py-10 flex flex-col items-center gap-3">
+            <Icon name="document" class="w-10 h-10 text-brand-orange" />
+            <p class="text-lg text-ink-soft">入会申込フォームは現在準備中です。公開までしばらくお待ちください。</p>
+          </div>
+        )}
+      </div>
+
+      <div class="mt-8 card border-l-4 border-brand-orange">
+        <h3 class="font-bold text-ink mb-2">入会・規約に関するお問い合わせ</h3>
+        <p class="text-sm text-ink-soft leading-relaxed">
+          入会申込みや後援会規約に関するご質問は、下記の事務局メールアドレスまでご連絡ください。
+        </p>
+        <a
+          href={`mailto:${siteConfig.email}`}
+          class="mt-2 inline-flex items-center gap-2 font-bold text-ink underline"
+        >
+          <Icon name="mail" class="w-5 h-5 text-brand-orange" ariaHidden={true} />
+          {siteConfig.email}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const checkbox = document.getElementById("rules-agree-checkbox") as HTMLInputElement | null;
+    const formArea = document.getElementById("membership-form-area") as HTMLElement | null;
+
+    function syncFormVisibility() {
+      if (!checkbox || !formArea) return;
+      formArea.hidden = !checkbox.checked;
+    }
+
+    checkbox?.addEventListener("change", syncFormVisibility);
+    syncFormVisibility();
+  </script>
+</BaseLayout>

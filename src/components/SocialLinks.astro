@@ -5,7 +5,8 @@ import Icon from "./Icon.astro";
 const links = [
   { key: "line", label: "LINE公式アカウント", icon: "line" as const },
   { key: "instagram", label: "Instagram", icon: "instagram" as const },
-] satisfies { key: keyof typeof socialLinks; label: string; icon: "line" | "instagram" }[];
+  { key: "youtube", label: "YouTubeチャンネル", icon: "youtube" as const },
+] satisfies { key: keyof typeof socialLinks; label: string; icon: "line" | "instagram" | "youtube" }[];
 
 const active = links.filter((l) => socialLinks[l.key]);
 ---

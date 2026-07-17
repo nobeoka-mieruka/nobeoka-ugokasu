@@ -1,0 +1,30 @@
+---
+import VideoPlayer from "./VideoPlayer.astro";
+import { videoCategoryLabels, type VideoItem } from "../data/videos";
+
+interface Props {
+  video: VideoItem;
+}
+
+const { video } = Astro.props;
+
+const dateLabel = video.publishedAt
+  ? new Date(video.publishedAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })
+  : undefined;
+---
+
+<div class="card flex min-w-0 flex-col overflow-hidden p-0" data-video-card data-video-category={video.category}>
+  <VideoPlayer youtubeId={video.youtubeId} title={video.title} class="rounded-none" />
+  <div class="flex flex-col gap-3 p-6">
+    <div class="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
+      <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">
+        {videoCategoryLabels[video.category]}
+      </span>
+      {dateLabel && <time datetime={video.publishedAt}>{dateLabel}</time>}
+    </div>
+    <h3 class="text-xl font-bold text-ink leading-snug [overflow-wrap:break-word]">{video.title}</h3>
+    <p class="text-base text-ink-soft leading-relaxed line-clamp-3 [overflow-wrap:break-word]">
+      {video.description}
+    </p>
+  </div>
+</div>

@@ -1,0 +1,54 @@
+---
+import { videoCategoryLabels, type VideoCategory } from "../data/videos";
+
+const filters: { key: VideoCategory | "all"; label: string }[] = [
+  { key: "all", label: "すべて" },
+  ...(Object.entries(videoCategoryLabels) as [VideoCategory, string][]).map(([key, label]) => ({ key, label })),
+];
+---
+
+<div role="group" aria-label="動画の絞り込み" class="mb-8 flex flex-wrap gap-2" data-video-filter-bar>
+  {filters.map((f, i) => (
+    <button
+      type="button"
+      data-video-filter={f.key}
+      aria-pressed={i === 0 ? "true" : "false"}
+      class:list={[
+        "rounded-full border-2 px-5 py-2.5 text-sm font-bold text-ink transition-colors",
+        i === 0
+          ? "border-brand-orange-dark bg-brand-orange-light"
+          : "border-black/10 bg-white hover:bg-brand-orange-light",
+      ]}
+    >
+      {f.label}
+    </button>
+  ))}
+</div>
+
+<script>
+  const filterBar = document.querySelector<HTMLElement>("[data-video-filter-bar]");
+  const buttons = document.querySelectorAll<HTMLButtonElement>("[data-video-filter]");
+
+  function applyFilter(filter: string) {
+    document.querySelectorAll<HTMLElement>("[data-video-card]").forEach((card) => {
+      const matches = filter === "all" || card.dataset.videoCategory === filter;
+      card.classList.toggle("hidden", !matches);
+    });
+  }
+
+  filterBar?.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-video-filter]");
+    if (!button) return;
+
+    buttons.forEach((b) => {
+      const isActive = b === button;
+      b.setAttribute("aria-pressed", String(isActive));
+      b.classList.toggle("border-brand-orange-dark", isActive);
+      b.classList.toggle("bg-brand-orange-light", isActive);
+      b.classList.toggle("border-black/10", !isActive);
+      b.classList.toggle("bg-white", !isActive);
+    });
+
+    applyFilter(button.dataset.videoFilter ?? "all");
+  });
+</script>

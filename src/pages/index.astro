@@ -10,8 +10,10 @@ import ActivityCard from "../components/ActivityCard.astro";
 import NewsCard from "../components/NewsCard.astro";
 import ContactBanner from "../components/ContactBanner.astro";
 import Icon from "../components/Icon.astro";
+import VideoCard from "../components/VideoCard.astro";
 import { siteConfig } from "../config/siteConfig";
-import { visionProposals } from "../data/vision";
+import { visionHeading, visionSubtitle, visionProposals } from "../data/vision";
+import { videos } from "../data/videos";
 import { organizationSchema, personSchema, websiteSchema, webPageSchema } from "../utils/structuredData";
 import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
 
@@ -31,6 +33,8 @@ const activities = (await getCollection("activities", ({ data }) => data.publish
 const news = (await getCollection("news", ({ data }) => data.published))
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .slice(0, 3);
+
+const featuredVideos = videos.filter((v) => v.featured).slice(0, 3);
 
 const schemas = [
   websiteSchema(),
@@ -56,8 +60,8 @@ const schemas = [
       <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
         <div class="order-2 lg:order-1">
           <p class="text-4xl sm:text-5xl lg:text-6xl font-bold text-ink leading-snug">
-            私も、<br />
-            <span class="text-brand-orange-dark">悩みながら</span><br />
+            私も悩み、<br />
+            <span class="text-brand-orange-dark">支えられながら</span><br />
             歩いてきました。
           </p>
           <p class="mt-5 text-xl sm:text-2xl text-ink-soft leading-relaxed">
@@ -78,14 +82,26 @@ const schemas = [
             <a href="/activities" class="btn-secondary">活動報告を見る</a>
           </div>
         </div>
-        <div class="order-1 lg:order-2">
+        <div class="order-1 lg:order-2 relative rounded-[2rem] overflow-hidden p-4 sm:p-6 md:p-8 lg:p-10">
+          <div class="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+            <img
+              src="/images/hero/nobeoka-city-illustration.svg"
+              alt=""
+              width="800"
+              height="600"
+              class="w-full h-full object-cover opacity-45 [object-position:center_bottom]"
+              loading="eager"
+              decoding="async"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-white/55 via-white/0 to-brand-orange-light/10"></div>
+          </div>
           <Picture
             src={fukutomiChiePortrait}
             formats={["avif", "webp"]}
             widths={[400, 560, 700, 900, 1134]}
             sizes="(min-width: 1024px) 620px, 100vw"
             alt="福富千恵（福富千恵と延岡を動かす会）"
-            class="w-full h-[420px] sm:h-[500px] lg:h-[700px] xl:h-[750px] rounded-3xl mx-auto object-cover"
+            class="relative z-10 w-full h-[340px] sm:h-[420px] lg:h-[600px] xl:h-[640px] rounded-3xl mx-auto object-cover shadow-md"
             style="object-position: center 30%;"
             loading="eager"
             fetchpriority="high"
@@ -110,9 +126,7 @@ const schemas = [
   <section class="py-14 sm:py-20 bg-brand-ivory">
     <div class="section-wrap max-w-3xl text-center">
       <p class="text-xl sm:text-2xl text-ink leading-loose">
-        生きている限り、サポートを必要とするのはお互い様です。
-        <br /><br />
-        支え合い、助け合い、協力することが、特別なことではなく、当たり前になる延岡を目指します。
+        生きている限りサポートを必要とするのは、お互い様だから、支え合い、助け合い、協力するのが当たり前で当然なのです。
       </p>
     </div>
   </section>
@@ -127,7 +141,7 @@ const schemas = [
   <!-- 8-5 3つの提言 -->
   <section class="py-14 sm:py-16 bg-brand-ivory">
     <div class="section-wrap">
-      <SectionTitle title="私の提言" subtitle={"つながり、支え合い、\n希望あふれる延岡へ。"} />
+      <SectionTitle title={visionHeading} subtitle={visionSubtitle} />
       <div class="grid gap-8 sm:grid-cols-3">
         {visionProposals.map((proposal) => (
           <VisionCard proposal={proposal} />
@@ -229,6 +243,23 @@ const schemas = [
     </div>
   </section>
 
+  {featuredVideos.length > 0 && (
+    <!-- 8-8b 注目の動画 -->
+    <section class="py-14 sm:py-16">
+      <div class="section-wrap">
+        <SectionTitle title="注目の動画" align="left" />
+        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {featuredVideos.map((video) => (
+            <VideoCard video={video} />
+          ))}
+        </div>
+        <div class="mt-8 text-center">
+          <a href="/videos" class="btn-secondary">動画をもっと見る</a>
+        </div>
+      </div>
+    </section>
+  )}
+
   <!-- 8-9 後援会案内 -->
   <section class="py-14 sm:py-16 bg-brand-ivory">
     <div class="section-wrap">
@@ -237,8 +268,10 @@ const schemas = [
         description={"福富千恵の活動を支え、延岡のこれからを市民の皆さまと一緒に考える政治団体です。\n地域の声を聞き、対話を重ね、支え合いと希望のある延岡を目指して活動します。"}
         primaryLabel="後援会について"
         primaryHref="/supporters"
-        secondaryLabel="お問い合わせ"
-        secondaryHref="/contact"
+        secondaryLabel="後援会に入会する"
+        secondaryHref="/supporters/join"
+        tertiaryLabel="お問い合わせ"
+        tertiaryHref="/contact"
       />
     </div>
   </section>

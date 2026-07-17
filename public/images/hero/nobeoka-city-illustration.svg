@@ -1,0 +1,60 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF9EF" />
+      <stop offset="100%" stop-color="#FFE7CE" />
+    </linearGradient>
+    <linearGradient id="river" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#BFE0EC" />
+      <stop offset="100%" stop-color="#9FCEDF" />
+    </linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD9A8" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#FFD9A8" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="800" height="600" fill="url(#sky)" />
+
+  <circle cx="640" cy="120" r="150" fill="url(#sun)" />
+  <circle cx="640" cy="120" r="46" fill="#FFEDD6" />
+
+  <g fill="#F3C8B4" opacity="0.55">
+    <ellipse cx="150" cy="150" rx="70" ry="20" />
+    <ellipse cx="230" cy="130" rx="55" ry="16" />
+    <ellipse cx="560" cy="200" rx="60" ry="17" />
+  </g>
+
+  <path d="M0 330 L90 260 L170 320 L260 250 L360 320 L460 260 L560 320 L660 270 L740 320 L800 290 L800 420 L0 420 Z"
+        fill="#CFE7CE" opacity="0.65" />
+  <path d="M0 360 L120 300 L230 355 L340 295 L470 360 L600 300 L720 355 L800 330 L800 440 L0 440 Z"
+        fill="#AED7AE" opacity="0.55" />
+
+  <path d="M0 430 C 140 400, 220 460, 360 430 C 500 400, 600 460, 800 425 L800 470 C 600 500, 500 445, 360 470 C 220 495, 140 440, 0 470 Z"
+        fill="url(#river)" opacity="0.75" />
+
+  <g opacity="0.6" stroke="#D9530B" stroke-width="4" fill="none" stroke-linecap="round">
+    <path d="M330 432 Q 400 392 470 432" />
+    <line x1="330" y1="432" x2="330" y2="452" />
+    <line x1="400" y1="415" x2="400" y2="452" />
+    <line x1="470" y1="432" x2="470" y2="452" />
+  </g>
+
+  <g opacity="0.7">
+    <rect x="40" y="360" width="46" height="90" fill="#FBD8BE" />
+    <rect x="96" y="330" width="40" height="120" fill="#F6C6A3" />
+    <polygon points="96,330 116,305 136,330" fill="#E39A6E" />
+    <rect x="150" y="380" width="36" height="70" fill="#FBD8BE" />
+    <rect x="560" y="345" width="42" height="105" fill="#F6C6A3" />
+    <rect x="612" y="375" width="34" height="75" fill="#FBD8BE" />
+    <rect x="656" y="355" width="46" height="95" fill="#F0B98F" />
+    <polygon points="656,355 679,328 702,355" fill="#DE9367" />
+    <rect x="712" y="390" width="30" height="60" fill="#FBD8BE" />
+  </g>
+
+  <g fill="none" stroke="#D9530B" stroke-width="4" stroke-linecap="round" opacity="0.45">
+    <path d="M200 130 q10 -8 20 0" />
+    <path d="M230 145 q10 -8 20 0" />
+    <path d="M480 100 q10 -8 20 0" />
+  </g>
+</svg>

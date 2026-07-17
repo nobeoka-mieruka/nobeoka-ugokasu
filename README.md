@@ -34,6 +34,7 @@ Astro + TypeScript + Tailwind CSSで構築された静的サイトで、Cloudfla
 22. [個人情報を公開しないための確認](#22-個人情報を公開しないための確認)
 23. [公職選挙法上の確認が必要な項目](#23-公職選挙法上の確認が必要な項目)
 24. [公開前チェックリスト](#24-公開前チェックリスト)
+25. [動画（YouTube）を追加する方法](#25-動画youtubeを追加する方法)
 
 ---
 
@@ -452,6 +453,43 @@ Cloudflare Pagesと連携していれば、pushするだけで自動的に再デ
 - [x] [Lighthouse](https://developer.chrome.com/docs/lighthouse/overview/)を実行した（結果は下記「Lighthouse実行結果」参照。数値は環境により変動するため保証はしません）
 - [x] Cloudflare Pagesへ公開できる状態である（`dist/` 静的出力、`_headers` 設定済み）
 - [ ] [23. 公職選挙法上の確認が必要な項目](#23-公職選挙法上の確認が必要な項目)を専門家に確認した
+
+---
+
+## 25. 動画（YouTube）を追加する方法
+
+`src/data/videos.ts` を開き、`videos` 配列にオブジェクトを1件追加してください。
+
+```ts
+export const videos: VideoItem[] = [
+  {
+    id: "video-001",
+    youtubeId: "YouTube動画のID（URLの watch?v= の後ろの部分）",
+    title: "動画タイトル",
+    description: "動画の説明",
+    publishedAt: "2026-07-17",
+    category: "activity", // "message" | "activity" | "policy" | "shorts" | "other"
+    featured: true, // トップページの「注目の動画」に表示する場合はtrue
+  },
+];
+```
+
+- 動画は `/videos` ページに自動的に一覧表示されます。1件も登録されていない間は「動画を準備しています」という案内が表示されます。
+- `featured: true` を付けた動画（最大3件）は、トップページ下部の「注目の動画」セクションに自動的に表示されます。動画が0件、またはfeaturedがすべてfalseの間は、このセクション自体が表示されません。
+- ヘッダー・フッターの「動画」メニューは、`videos` 配列が1件以上になった時点で自動的に表示されます（`src/data/navigation.ts`）。それまでは既存メニューを圧迫しないよう非表示にしています。
+- YouTube動画は `youtube-nocookie.com` のプライバシー強化モードで埋め込まれ、サムネイル＋再生ボタンをクリックするまでiframeを読み込まない軽量な構成です（自動再生はしません）。
+
+**YouTubeチャンネルURLを設定する方法**：`src/data/socialLinks.ts` の `youtube` に入力してください（10・11章のGoogleフォーム・LINE/Instagramと同じ仕組みです）。空欄の間はヘッダー・フッターにYouTubeアイコンは表示されません。
+
+```ts
+youtube: "https://www.youtube.com/@xxxxx",
+```
+
+### 将来のYouTube Data API連携について（設計メモ）
+
+現時点ではYouTube Data APIは未実装で、動画情報は `src/data/videos.ts` への手動登録のみです。将来、チャンネルの最新動画を自動取得する場合に備えて、動画データの取得（今は手動データを返すだけ）と表示（`VideoCard.astro` / `VideoPlayer.astro` / `/videos` ページ）を分離してあるため、`videos` 配列を返す部分をAPI呼び出しに差し替えるだけで表示側はそのまま使えます。
+
+**重要**：YouTube Data APIキーは、フロントエンドのコードやGitHubリポジトリに直接書き込まないでください。実装する際は、Cloudflare Pages Functions（`functions/` ディレクトリ）にサーバー側の取得処理を置き、APIキーはCloudflare Pagesの環境変数（シークレット）として設定する構成を想定しています。
 
 ---
 

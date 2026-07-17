@@ -6,9 +6,20 @@ interface Props {
   primaryHref: string;
   secondaryLabel?: string;
   secondaryHref?: string;
+  tertiaryLabel?: string;
+  tertiaryHref?: string;
 }
 
-const { heading, description, primaryLabel, primaryHref, secondaryLabel, secondaryHref } = Astro.props;
+const {
+  heading,
+  description,
+  primaryLabel,
+  primaryHref,
+  secondaryLabel,
+  secondaryHref,
+  tertiaryLabel,
+  tertiaryHref,
+} = Astro.props;
 
 // 狭い画面幅で「動かす」のような複合語の途中に改行が入らないよう、
 // 該当箇所だけ折り返し禁止（white-space: nowrap）で保護する
@@ -31,6 +42,11 @@ function protectWords(text: string): string {
     {secondaryLabel && secondaryHref && (
       <a href={secondaryHref} class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white px-6 py-3 text-xl font-bold text-white hover:bg-white hover:text-ink transition-colors">
         {secondaryLabel}
+      </a>
+    )}
+    {tertiaryLabel && tertiaryHref && (
+      <a href={tertiaryHref} class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white px-6 py-3 text-xl font-bold text-white hover:bg-white hover:text-ink transition-colors">
+        {tertiaryLabel}
       </a>
     )}
   </div>

@@ -1,0 +1,28 @@
+---
+import Icon from "../Icon.astro";
+---
+
+<section data-cg-screen="result" hidden>
+  <div class="card text-center py-10 px-6 sm:px-10 border-l-4 border-brand-orange">
+    <div class="mx-auto flex items-center justify-center w-14 h-14 rounded-full bg-brand-orange-light text-brand-orange-dark mb-4">
+      <Icon name="check" class="w-7 h-7" />
+    </div>
+    <h2 class="text-lg font-bold text-ink-soft">あなたの相談先はこちら</h2>
+    <p class="mt-2 text-3xl sm:text-4xl font-bold text-ink" data-cg-result-name></p>
+    <p class="mt-4 text-ink-soft leading-relaxed" data-cg-result-summary></p>
+    <p class="mt-4 text-sm text-ink-soft">※ 相談内容によっては、別の課をご案内する場合があります。</p>
+
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+      <button type="button" class="btn-primary" data-cg-restart>
+        最初からやり直す
+      </button>
+      <button type="button" class="btn-secondary" data-cg-show-list>
+        一覧から探す
+      </button>
+      <a href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary" data-cg-official-link hidden>
+        公式ページを見る
+        <Icon name="external-link" class="w-4 h-4" />
+      </a>
+    </div>
+  </div>
+</section>

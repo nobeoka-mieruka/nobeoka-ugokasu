@@ -1,34 +1,7 @@
 ---
 // 著作権上の懸念がないよう、すべて自作のシンプルな線画SVGアイコンです。
-type IconName =
-  | "heart"
-  | "handshake"
-  | "smile"
-  | "welfare"
-  | "childcare"
-  | "disaster"
-  | "menu"
-  | "close"
-  | "chevron-right"
-  | "chevron-down"
-  | "chevron-left"
-  | "mail"
-  | "external-link"
-  | "check"
-  | "arrow-right"
-  | "arrow-up"
-  | "location"
-  | "line"
-  | "instagram"
-  | "facebook"
-  | "megaphone"
-  | "document"
-  | "users"
-  | "form"
-  | "document-edit"
-  | "house"
-  | "building"
-  | "ellipsis";
+import type { IconName } from "../types/icon";
+export type { IconName };
 
 interface Props {
   name: IconName;
@@ -254,5 +227,51 @@ const { name, class: className = "w-6 h-6", ariaHidden = true } = Astro.props;
     <line x1="8" y1="12" x2="8.01" y2="12"/>
     <line x1="12" y1="12" x2="12.01" y2="12"/>
     <line x1="16" y1="12" x2="16.01" y2="12"/>
+  </svg>
+)}
+
+{name === "play" && (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden={ariaHidden}>
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M10 8.5l6 3.5-6 3.5v-7z" fill="currentColor" stroke="currentColor" stroke-linejoin="round"/>
+  </svg>
+)}
+
+{name === "youtube" && (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden={ariaHidden}>
+    <rect x="3" y="5" width="18" height="14" rx="4"/>
+    <path d="M10.5 9.5l4.5 2.5-4.5 2.5v-5z" fill="currentColor" stroke="currentColor" stroke-linejoin="round"/>
+  </svg>
+)}
+
+{name === "coin" && (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden={ariaHidden}>
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M9 9.5c0-1 1-1.5 3-1.5s3 .6 3 1.5-1 1.3-3 1.5-3 .6-3 1.5 1 1.5 3 1.5 3-.5 3-1.5"/>
+    <line x1="12" y1="6.5" x2="12" y2="17.5"/>
+  </svg>
+)}
+
+{name === "trash" && (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden={ariaHidden}>
+    <path d="M4 7h16"/>
+    <path d="M9 7V4h6v3"/>
+    <path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/>
+    <line x1="10" y1="11" x2="10" y2="17"/>
+    <line x1="14" y1="11" x2="14" y2="17"/>
+  </svg>
+)}
+
+{name === "water-drop" && (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden={ariaHidden}>
+    <path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>
+  </svg>
+)}
+
+{name === "briefcase" && (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden={ariaHidden}>
+    <rect x="3" y="7" width="18" height="13" rx="2"/>
+    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+    <line x1="3" y1="12.5" x2="21" y2="12.5"/>
   </svg>
 )}

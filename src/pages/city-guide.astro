@@ -1,0 +1,179 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HeroSection from "../components/HeroSection.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import Icon from "../components/Icon.astro";
+import CategorySelector from "../components/cityguide/CategorySelector.astro";
+import QuestionCard from "../components/cityguide/QuestionCard.astro";
+import ResultCard from "../components/cityguide/ResultCard.astro";
+import DepartmentList from "../components/cityguide/DepartmentList.astro";
+import { cityGuideCategories, cityDepartments, generalGuidanceDeptId } from "../data/cityGuideData";
+import { webPageSchema, organizationSchema } from "../utils/structuredData";
+import { buildBreadcrumbList } from "../utils/seo";
+
+const title = "延岡市役所 どこに行けばいい？診断｜福富千恵と延岡を動かす会";
+const description =
+  "住民票、税金、子育て、介護、ごみ、道路など、延岡市役所のどこに相談すればよいかを、質問に答えるだけで確認できる案内ページです。";
+const breadcrumbItems = [{ name: "延岡市役所 どこに行けばいい？診断", path: "/city-guide" }];
+
+const schemas = [
+  webPageSchema({ path: "/city-guide", name: title, description }),
+  organizationSchema(),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/city-guide" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection
+    title="延岡市役所 どこに行けばいい？診断"
+    eyebrow="市役所案内"
+    description="質問に答えるだけで、相談先の課が分かります"
+  />
+
+  <section class="py-10 sm:py-14">
+    <div class="section-wrap max-w-3xl space-y-3">
+      <p class="text-ink-soft leading-relaxed">
+        住民票、税金、子育て、介護、ごみ、道路など、<br class="hidden sm:block" />
+        市役所のどこに相談すればよいかを簡単に確認できます。
+      </p>
+      <p class="text-sm text-ink-soft">
+        ※ 実際の担当は内容によって異なる場合があります。最終的には公式案内もご確認ください。
+      </p>
+      <p class="text-xs text-ink-soft/80 border-t border-black/10 pt-3">
+        このページは「{"福富千恵と延岡を動かす会"}」が独自に作成した非公式の案内です。延岡市の公式ページではありません。
+      </p>
+    </div>
+  </section>
+
+  <section class="pb-20 sm:pb-28">
+    <div class="section-wrap max-w-4xl">
+      <div data-cg-app>
+        <CategorySelector categories={cityGuideCategories} />
+        <QuestionCard />
+        <ResultCard />
+        <DepartmentList departments={cityDepartments} />
+      </div>
+
+      <div class="mt-10 text-center">
+        <button type="button" class="btn-secondary" data-cg-goto-general>
+          <Icon name="handshake" class="w-4 h-4" />
+          困ったときは総合案内へ
+        </button>
+      </div>
+
+      <p class="mt-10 text-center text-xs text-ink-soft">掲載内容は今後更新する場合があります。</p>
+    </div>
+  </section>
+</BaseLayout>
+
+<script is:inline define:vars={{ CATEGORIES: cityGuideCategories, DEPARTMENTS: cityDepartments, GENERAL_ID: generalGuidanceDeptId }}>
+  const app = document.querySelector("[data-cg-app]");
+  const screens = {
+    categories: app?.querySelector('[data-cg-screen="categories"]'),
+    question: app?.querySelector('[data-cg-screen="question"]'),
+    result: app?.querySelector('[data-cg-screen="result"]'),
+    list: app?.querySelector('[data-cg-screen="list"]'),
+  };
+
+  let state = { categoryId: null, questionId: null };
+
+  function findCategory(id) {
+    return CATEGORIES.find((c) => c.id === id);
+  }
+  function findQuestion(category, id) {
+    return category?.questions.find((q) => q.id === id);
+  }
+  function findDepartment(id) {
+    return DEPARTMENTS.find((d) => d.id === id);
+  }
+
+  function showScreen(name) {
+    Object.entries(screens).forEach(([key, el]) => {
+      if (el) el.hidden = key !== name;
+    });
+    app?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function startCategory(categoryId) {
+    const category = findCategory(categoryId);
+    if (!category) return;
+    if (!category.firstQuestionId) {
+      showResult(category.resultDeptId || GENERAL_ID);
+      return;
+    }
+    state = { categoryId, questionId: category.firstQuestionId };
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const category = findCategory(state.categoryId);
+    const question = findQuestion(category, state.questionId);
+    if (!category || !question) {
+      showResult(GENERAL_ID);
+      return;
+    }
+    const labelEl = app?.querySelector("[data-cg-category-label]");
+    const textEl = app?.querySelector("[data-cg-question-text]");
+    if (labelEl) labelEl.textContent = category.label;
+    if (textEl) textEl.textContent = question.text;
+    showScreen("question");
+  }
+
+  function answer(isYes) {
+    const category = findCategory(state.categoryId);
+    const question = findQuestion(category, state.questionId);
+    if (!category || !question) {
+      showResult(GENERAL_ID);
+      return;
+    }
+    const next = isYes ? question.yes : question.no;
+    if (next.startsWith("dept:")) {
+      showResult(next.slice(5));
+    } else {
+      state.questionId = next;
+      renderQuestion();
+    }
+  }
+
+  function showResult(departmentId) {
+    const department = findDepartment(departmentId) || findDepartment(GENERAL_ID);
+    if (!department) return;
+    const nameEl = app?.querySelector("[data-cg-result-name]");
+    const summaryEl = app?.querySelector("[data-cg-result-summary]");
+    const linkEl = app?.querySelector("[data-cg-official-link]");
+    if (nameEl) nameEl.textContent = department.name;
+    if (summaryEl) summaryEl.textContent = department.summary;
+    if (linkEl instanceof HTMLAnchorElement) {
+      if (department.officialUrl) {
+        linkEl.href = department.officialUrl;
+        linkEl.hidden = false;
+      } else {
+        linkEl.hidden = true;
+      }
+    }
+    showScreen("result");
+  }
+
+  function restart() {
+    state = { categoryId: null, questionId: null };
+    showScreen("categories");
+  }
+
+  app?.querySelectorAll("[data-cg-category]").forEach((btn) => {
+    btn.addEventListener("click", () => startCategory(btn.dataset.cgCategory));
+  });
+  app?.querySelectorAll("[data-cg-answer]").forEach((btn) => {
+    btn.addEventListener("click", () => answer(btn.dataset.cgAnswer === "yes"));
+  });
+  app?.querySelectorAll("[data-cg-back]").forEach((btn) => {
+    btn.addEventListener("click", restart);
+  });
+  app?.querySelectorAll("[data-cg-restart]").forEach((btn) => {
+    btn.addEventListener("click", restart);
+  });
+  app?.querySelectorAll("[data-cg-show-list]").forEach((btn) => {
+    btn.addEventListener("click", () => showScreen("list"));
+  });
+  document.querySelector("[data-cg-goto-general]")?.addEventListener("click", () => showResult(GENERAL_ID));
+</script>
