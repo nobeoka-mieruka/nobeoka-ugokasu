@@ -39,7 +39,7 @@ const featuredVideos = videos.filter((v) => v.featured).slice(0, 3);
 const schemas = [
   websiteSchema(),
   organizationSchema(),
-  personSchema({ image: "/images/profile/image0.jpeg" }),
+  personSchema({ image: "/images/profile/fukutomi-chie-800.jpg" }),
   webPageSchema({ path: "/", name: title, description, image: siteConfig.defaultOgpImage }),
 ];
 
@@ -196,7 +196,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
             formats={["avif", "webp"]}
             widths={heroImageWidths}
             sizes={heroImageSizes}
-            alt="福富千恵（福富千恵と延岡を動かす会）"
+            alt="福富千恵"
             class="relative z-10 w-full h-[340px] sm:h-[420px] lg:h-[600px] xl:h-[640px] rounded-3xl mx-auto object-cover shadow-md"
             style="object-position: center 30%;"
             loading="eager"

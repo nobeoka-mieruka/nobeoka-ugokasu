@@ -35,12 +35,12 @@ export const siteConfig = {
     "福富千恵と延岡を動かす会の公式ホームページです。福富千恵のプロフィール、延岡への提言、活動報告、市民の声（みんなの声）を発信しています。",
 
   /**
-   * 共通OGP画像（1200×630px、public/images/ogp/ogp-fukutomi-20260715.png）。
+   * 共通OGP画像（1200×630px、public/images/ogp/ogp-fukutomi-20260717.png）。
    * トップページおよび個別OGP画像を持たない全ページで使用されます。
    * 差し替える場合は、SNS側のキャッシュ対策としてファイル名に日付等を含めた
    * 新しいファイル名を使い、このパスも合わせて変更してください。
    */
-  defaultOgpImage: "/images/ogp/ogp-fukutomi-20260715.png",
+  defaultOgpImage: "/images/ogp/ogp-fukutomi-20260717.png",
 
   /** ロケール */
   locale: "ja_JP",

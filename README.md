@@ -284,7 +284,7 @@ line: "https://line.me/xxxxx",
 
 ## 12. OGP画像を変更する方法
 
-**保存場所**：`public/images/ogp/ogp-fukutomi-20260715.png`（1200×630px）
+**保存場所**：`public/images/ogp/ogp-fukutomi-20260717.png`（1200×630px）
 
 トップページを含め、個別のOGP画像を持たない全ページで共通のOGP画像として使用されています（`src/config/siteConfig.ts` の `defaultOgpImage` で指定）。
 
