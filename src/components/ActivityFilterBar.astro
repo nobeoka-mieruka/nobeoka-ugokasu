@@ -35,23 +35,35 @@ const filters = [
   const filterBar = document.querySelector<HTMLElement>("[data-activity-filter-bar]");
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-activity-filter]"));
   const grid = document.getElementById("activity-grid");
+  const loadMoreButton = document.querySelector<HTMLButtonElement>("[data-activity-load-more]");
   let currentFilter = "all";
+
+  // 初期状態で表示する件数と、「もっと見る」を押すたびに増やす件数
+  const PAGE_SIZE = 6;
+  let visibleLimit = PAGE_SIZE;
 
   function applyFilter(filter: string) {
     currentFilter = filter;
-    let visibleCount = 0;
+
+    const matching = Array.from(document.querySelectorAll<HTMLElement>("[data-activity-card]")).filter((card) => {
+      const platforms = (card.dataset.platforms ?? "website").split(" ");
+      return filter === "all" || platforms.includes(filter);
+    });
+
+    matching.forEach((card, index) => {
+      card.classList.toggle("hidden", index >= visibleLimit);
+    });
 
     document.querySelectorAll<HTMLElement>("[data-activity-card]").forEach((card) => {
-      const platforms = (card.dataset.platforms ?? "website").split(" ");
-      const matches = filter === "all" || platforms.includes(filter);
-      card.classList.toggle("hidden", !matches);
-      if (matches) visibleCount += 1;
+      if (!matching.includes(card)) card.classList.add("hidden");
     });
 
     document.querySelectorAll<HTMLElement>("[data-empty-for]").forEach((el) => {
       const isCurrent = el.dataset.emptyFor === filter;
-      el.classList.toggle("hidden", !(isCurrent && visibleCount === 0));
+      el.classList.toggle("hidden", !(isCurrent && matching.length === 0));
     });
+
+    loadMoreButton?.classList.toggle("hidden", matching.length <= visibleLimit);
   }
 
   function activate(button: HTMLButtonElement, focus: boolean) {
@@ -67,8 +79,14 @@ const filters = [
 
     if (focus) button.focus();
     if (grid) grid.setAttribute("aria-labelledby", button.id);
+    visibleLimit = PAGE_SIZE;
     applyFilter(button.dataset.activityFilter ?? "all");
   }
+
+  loadMoreButton?.addEventListener("click", () => {
+    visibleLimit += PAGE_SIZE;
+    applyFilter(currentFilter);
+  });
 
   filterBar?.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-activity-filter]");

@@ -29,6 +29,11 @@ function dedupeByPermalink(posts: SocialPost[]): SocialPost[] {
 
 export interface SocialSyncResult {
   ok: boolean;
+  /** 表示に使うべき投稿一覧。成功時は新規取得分、全滅時は直前のキャッシュのフォールバック */
+  posts: SocialPost[];
+  status: SocialFeedStatus;
+  /** postsが最後に確定した日時（ISO 8601）。一度もキャッシュが無い場合はnull */
+  updatedAt: string | null;
   facebookFetched: number;
   instagramFetched: number;
   savedCount: number;
@@ -39,28 +44,30 @@ export interface SocialSyncResult {
 
 /**
  * Facebook・Instagramの投稿を取得し、KVキャッシュを更新する。
- * Cron Worker（30分ごと）と、管理者向け手動同期エンドポイントの両方から呼び出される。
+ * 公開API（functions/api/social-feed.ts）がキャッシュを更新する際と、
+ * 管理者向け手動同期エンドポイントの両方から呼び出される。
  *
  * 方針：
  * - 認証情報が未設定のプラットフォームは呼び出さずスキップする（エラーにしない）
  * - 一方のプラットフォームが失敗しても、もう一方の結果だけで同期を継続する
- * - 両方とも取得に失敗した場合は、既存のキャッシュを一切変更しない
+ * - 両方とも取得に失敗した場合は、既存のキャッシュを一切変更せず、そのまま返す
  */
 export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResult> {
   const limit = parseLimit(env.SOCIAL_POST_LIMIT);
   const apiVersion = env.META_GRAPH_API_VERSION;
+  const token = env.META_ACCESS_TOKEN;
   const previous = await readCache(env);
 
   let facebookPosts: SocialPost[] = [];
   let facebookError: string | null = null;
   let facebookAttempted = false;
 
-  if (env.FACEBOOK_PAGE_ID && env.FACEBOOK_PAGE_ACCESS_TOKEN) {
+  if (env.FACEBOOK_PAGE_ID && token) {
     facebookAttempted = true;
     try {
       const raw = await fetchFacebookPosts({
         pageId: env.FACEBOOK_PAGE_ID,
-        accessToken: env.FACEBOOK_PAGE_ACCESS_TOKEN,
+        accessToken: token,
         apiVersion,
         limit,
       });
@@ -74,12 +81,12 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
   let instagramError: string | null = null;
   let instagramAttempted = false;
 
-  if (env.INSTAGRAM_USER_ID && env.INSTAGRAM_ACCESS_TOKEN) {
+  if (env.INSTAGRAM_USER_ID && token) {
     instagramAttempted = true;
     try {
       const raw = await fetchInstagramMedia({
         userId: env.INSTAGRAM_USER_ID,
-        accessToken: env.INSTAGRAM_ACCESS_TOKEN,
+        accessToken: token,
         apiVersion,
         limit,
       });
@@ -105,12 +112,28 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
   };
 
   if (!facebookAttempted && !instagramAttempted) {
-    return { ok: false, ...baseResult, savedCount: 0, skippedReason: "no_credentials_configured" };
+    return {
+      ok: false,
+      ...baseResult,
+      posts: previous?.posts ?? [],
+      status,
+      updatedAt: previous?.updatedAt ?? null,
+      savedCount: 0,
+      skippedReason: "no_credentials_configured",
+    };
   }
 
   if (!facebookSucceeded && !instagramSucceeded) {
-    // どちらも失敗（未設定ではなく実際にエラー）。既存キャッシュは変更しない。
-    return { ok: false, ...baseResult, savedCount: 0, skippedReason: "all_platforms_failed" };
+    // どちらも失敗（未設定ではなく実際にエラー）。既存キャッシュは変更せず、そのまま返す。
+    return {
+      ok: false,
+      ...baseResult,
+      posts: previous?.posts ?? [],
+      status,
+      updatedAt: previous?.updatedAt ?? null,
+      savedCount: 0,
+      skippedReason: "all_platforms_failed",
+    };
   }
 
   // 失敗・未設定のプラットフォームは、直前まで表示できていた投稿をキャッシュから引き継ぐ
@@ -123,9 +146,9 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     .slice(0, limit * 2);
 
-  await writeCache(env, merged, status);
+  const cache = await writeCache(env, merged, status);
 
-  return { ok: true, ...baseResult, savedCount: merged.length };
+  return { ok: true, ...baseResult, posts: merged, status, updatedAt: cache.updatedAt, savedCount: merged.length };
 }
 
 function statusFor(attempted: boolean, succeeded: boolean): PlatformSyncStatus {

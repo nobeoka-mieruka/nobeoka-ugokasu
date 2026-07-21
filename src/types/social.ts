@@ -40,15 +40,21 @@ export interface SocialPost {
   sourceName: string;
 }
 
-/** GET /api/social-posts が返すレスポンスの形 */
+/** GET /api/social-feed が返すレスポンスの形 */
 export interface SocialPostsResponse {
   posts: SocialPost[];
   /** 最後に同期が成功した日時（ISO 8601）。一度も成功していない場合はnull */
   updatedAt: string | null;
-  /** trueの場合、直近の同期に失敗し、以前のキャッシュを表示していることを示す */
+  /** trueの場合、直近の取得に失敗・スキップし、以前のキャッシュを表示していることを示す */
   stale: boolean;
   /** プラットフォームごとの直近の同期状態 */
   status: SocialFeedStatus;
+  /**
+   * trueの場合、Meta APIへの取得自体が（認証情報はあるのに）失敗したことを示す。
+   * 未設定（not_configured）とは区別し、フロント側で「現在、最新の活動報告を
+   * 取得できません」という案内を出し分けるために使う。
+   */
+  fetchFailed: boolean;
 }
 
 /** SocialPostsResponse の別名（Meta連携の設定手順内での呼称に合わせたエイリアス） */

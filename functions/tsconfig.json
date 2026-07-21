@@ -11,5 +11,5 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["**/*.ts", "../worker/**/*.ts", "../server/**/*.ts"]
+  "include": ["**/*.ts", "../server/**/*.ts"]
 }

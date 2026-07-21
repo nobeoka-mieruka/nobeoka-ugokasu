@@ -5,7 +5,7 @@
 
 import type { SocialPost } from "../types/social";
 
-const DESCRIPTION_MAX_LENGTH = 180;
+const DESCRIPTION_MAX_LENGTH = 150;
 
 const ICONS = {
   facebook: '<path d="M15 8h2V4.5h-2.5A4 4 0 0 0 10 8.5V11H8v3.5h2V21h3.5v-6.5H16l.5-3.5h-3V8.8c0-.5.2-.8.7-.8z"/>',
@@ -94,7 +94,7 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
     img.src = displaySrc;
     img.alt = post.title;
     img.loading = "lazy";
-    img.className = "w-full h-full object-cover";
+    img.className = "w-full h-full object-cover object-top";
     img.width = 640;
     img.height = 360;
     // 画像URLの期限切れ等で読み込みに失敗しても、カード自体は崩れないようにする

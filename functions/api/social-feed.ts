@@ -1,12 +1,13 @@
-// GET /api/social-posts
+// GET /api/social-feed
 // ホームページの「活動報告」ページから読み込む公開APIです。
-// KVに保存済みのキャッシュだけを返し、Meta Graph APIへは直接アクセスしません。
-// アクセストークン・Meta APIの生レスポンス・内部エラー詳細など、表示に不要な情報は
-// 一切含めません（返すのは正規化済みの投稿一覧とプラットフォームごとの状態のみ）。
+// Cloudflare KVのキャッシュが新しければそのまま返し、古い場合はこの中でMeta Graph API
+// へ取得しにいきます（server/socialFeed.ts参照）。アクセストークン・Meta APIの生レスポンス・
+// 内部エラー詳細など、表示に不要な情報は一切含めません（返すのは正規化済みの投稿一覧と
+// プラットフォームごとの状態のみ）。
 
 import type { SocialFeedStatus, SocialPostsResponse } from "../../src/types/social";
 import type { SocialSyncEnv } from "../../server/env";
-import { readCache } from "../../server/kv";
+import { getSocialFeed } from "../../server/socialFeed";
 
 const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured" };
 
@@ -14,13 +15,10 @@ async function handleGet(context: Parameters<PagesFunction<SocialSyncEnv>>[0]): 
   let body: SocialPostsResponse;
 
   try {
-    const cache = await readCache(context.env);
-    body = cache
-      ? { posts: cache.posts, updatedAt: cache.updatedAt, stale: false, status: cache.status }
-      : { posts: [], updatedAt: null, stale: false, status: DEFAULT_STATUS };
+    body = await getSocialFeed(context.env);
   } catch {
     // KVバインディング未設定など、想定外の問題が起きても、ページ全体を壊さないよう空の結果を返す
-    body = { posts: [], updatedAt: null, stale: true, status: DEFAULT_STATUS };
+    body = { posts: [], updatedAt: null, stale: true, status: DEFAULT_STATUS, fetchFailed: true };
   }
 
   return new Response(JSON.stringify(body), {

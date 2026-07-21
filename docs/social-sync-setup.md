@@ -19,7 +19,7 @@
 7. [InstagramアカウントIDの確認方法](#7-instagramアカウントidの確認方法)
 8. [アクセストークンの取得・更新方法](#8-アクセストークンの取得更新方法)
 9. [Cloudflare Secretsへの登録場所](#9-cloudflare-secretsへの登録場所)
-10. [Cron Triggerの設定方法](#10-cron-triggerの設定方法)
+10. [投稿の自動更新の仕組み](#10-投稿の自動更新の仕組み)
 11. [手動同期の実行方法](#11-手動同期の実行方法)
 12. [トークン期限切れ時の復旧方法](#12-トークン期限切れ時の復旧方法)
 
@@ -29,17 +29,16 @@
 
 ```
 Facebookページ / Instagram（投稿）
-        ↓ Meta Graph API（10分ごとに取得）
-Cloudflare Worker（worker/social-sync.ts）
-        ↓ 結果を保存
-Cloudflare KV（キャッシュ）
-        ↓ 読み込み
-Cloudflare Pages Functions（functions/api/social-posts.ts）
+        ↓ Meta Graph API（訪問時にキャッシュが古ければ取得）
+Cloudflare Pages Functions（functions/api/social-feed.ts）
+        ↓ 結果をCloudflare KVへ保存（10〜15分キャッシュ）
         ↓ ブラウザがfetchで取得
 ホームページの「活動報告」ページ
 ```
 
-アクセストークン（合言葉のようなもの）は、Cloudflareの「Secrets」という暗号化された場所にだけ保存します。GitHubやホームページのプログラムファイルには一切書き込みません。
+Cloudflare Workerなど別仕組みのデプロイは不要で、**Cloudflare Pagesの設定だけ**で完結します。ページが開かれたときに、直近のキャッシュが10〜15分より古ければその場でMeta Graph APIへ取得しに行き、結果をCloudflare KVへ保存します。取得に失敗した場合は、直前に保存されていたキャッシュをそのまま表示し続けます。
+
+アクセストークン（合言葉のようなもの）は、Cloudflare Pagesの「Secrets」という暗号化された場所にだけ保存します。GitHubやホームページのプログラムファイルには一切書き込みません。
 
 ---
 
@@ -156,9 +155,7 @@ FacebookページのアクセストークンURLは期限切れの概念がない
 
 ## 9. Cloudflare Secretsへの登録場所
 
-秘密情報（アクセストークン等）は、**Cloudflare Pages側**と**Cloudflare Worker側**の両方に、それぞれ個別に登録する必要があります（2つの別々の仕組みとして動いているためです）。
-
-### Cloudflare Pages（サイト本体・手動同期API用）
+秘密情報（アクセストークン等）は、**Cloudflare Pagesの設定のみ**に登録すれば動作します（別途Workerを用意する必要はありません）。
 
 1. Cloudflareダッシュボード → 「Workers & Pages」→ 対象のPagesプロジェクトを開く
 2. 「Settings」→「Environment variables」を開く
@@ -168,57 +165,22 @@ FacebookページのアクセストークンURLは期限切れの概念がない
    |---|---|
    | `META_GRAPH_API_VERSION` | 通常の変数（例：`v21.0`） |
    | `FACEBOOK_PAGE_ID` | 通常の変数 |
-   | `FACEBOOK_PAGE_ACCESS_TOKEN` | **Secret（暗号化）** |
    | `INSTAGRAM_USER_ID` | 通常の変数 |
-   | `INSTAGRAM_ACCESS_TOKEN` | **Secret（暗号化）** |
-   | `SOCIAL_SYNC_SECRET` | **Secret（暗号化）** |
+   | `META_ACCESS_TOKEN` | **Secret（暗号化）**。Facebook・Instagram共通のアクセストークン |
+   | `SOCIAL_SYNC_SECRET` | **Secret（暗号化）**。動作確認用の手動同期エンドポイント保護用（省略可） |
    | `SOCIAL_POST_LIMIT` | 通常の変数（初期値 `6`。1プラットフォームあたりの取得件数） |
    | `FACEBOOK_PAGE_URL` | 通常の変数（公式FacebookページURL。秘密情報ではありません） |
    | `INSTAGRAM_PROFILE_URL` | 通常の変数（公式InstagramプロフィールURL。秘密情報ではありません） |
 
 4. 同じ画面の「KV namespace bindings」（Functionsの設定内）で、`SOCIAL_POSTS_KV` という名前でKV名前空間をバインドする（事前にKV名前空間を作成しておく必要があります。Cloudflareダッシュボードの「Storage & Databases」→「KV」から作成できます）
 
-### Cloudflare Worker（30分ごとの自動同期用）
-
-`worker/` フォルダで、次のコマンドを1つずつ実行します（ターミナル・コマンドプロンプトから）。
-
-```
-cd worker
-wrangler kv namespace create SOCIAL_POSTS_KV
-```
-
-表示された `id` を `worker/wrangler.toml` の `REPLACE_WITH_YOUR_KV_NAMESPACE_ID` の部分に書き込みます。
-
-続けて、秘密情報を登録します（実行するとその場で値の入力を求められます）。
-
-```
-wrangler secret put FACEBOOK_PAGE_ID
-wrangler secret put FACEBOOK_PAGE_ACCESS_TOKEN
-wrangler secret put INSTAGRAM_USER_ID
-wrangler secret put INSTAGRAM_ACCESS_TOKEN
-wrangler secret put SOCIAL_SYNC_SECRET
-```
-
-最後にデプロイします。
-
-```
-wrangler deploy
-```
-
 ---
 
-## 10. Cron Triggerの設定方法
+## 10. 投稿の自動更新の仕組み
 
-`worker/wrangler.toml` に、すでに次の設定が入っています（10分ごとに自動実行。新しい投稿が遅くとも15分程度でホームページへ反映されることを目安にしています）。
+固定間隔のCron Triggerは使っていません。代わりに、`/activities` ページが開かれるたびに、Cloudflare Pages Functions（`functions/api/social-feed.ts`）がKVキャッシュの新しさを確認し、**10〜15分より古ければその場でMeta Graph APIへ取得しに行き**、結果をKVへ保存してから返します。取得に失敗した場合は、直前に保存されていた投稿をそのまま返します（サイトが空白になることはありません）。
 
-```toml
-[triggers]
-crons = ["*/10 * * * *"]
-```
-
-`wrangler deploy` を実行すると、この設定も一緒にCloudflareへ反映されます。実行状況は、Cloudflareダッシュボードの対象Worker →「Triggers」タブ、または「Logs」タブから確認できます。
-
-同期の間隔を変えたい場合は、この`crons`の値を変更してから再度 `wrangler deploy` を実行してください。
+そのため、新しい投稿が実際にホームページへ反映されるタイミングは、「投稿してから最初にページが開かれたとき」になります。アクセス頻度が高いサイトほど、体感的な反映は速くなります。
 
 ---
 
@@ -249,13 +211,13 @@ curl -X POST https://<あなたのサイトのドメイン>/api/admin/sync-socia
 
 ## 12. トークン期限切れ時の復旧方法
 
-アクセストークンの有効期限が切れると、同期が失敗するようになります。ただし、**それまでに正常に取得できていた投稿はキャッシュに残ったまま表示され続けるため、サイトが急に空白になることはありません。**
+アクセストークンの有効期限が切れると、取得が失敗するようになります。ただし、**それまでに正常に取得できていた投稿はキャッシュに残ったまま表示され続けるため、サイトが急に空白になることはありません。**
 
 復旧の手順は次のとおりです。
 
-1. Cloudflareダッシュボードで、対象Worker（または Pages プロジェクト）の「Logs」を確認し、`facebookError` または `instagramError` にエラーが出ていないか確認する
+1. Cloudflareダッシュボードで、対象Pagesプロジェクトの「Logs」（Functionsログ）を確認し、`facebookError` または `instagramError` にエラーが出ていないか確認する
 2. [8. アクセストークンの取得・更新方法](#8-アクセストークンの取得更新方法)の手順で、新しいアクセストークンを発行する
-3. [9. Cloudflare Secretsへの登録場所](#9-cloudflare-secretsへの登録場所)の手順で、Pages側・Worker側の両方のシークレットを新しい値に上書きする
+3. [9. Cloudflare Secretsへの登録場所](#9-cloudflare-secretsへの登録場所)の手順で、`META_ACCESS_TOKEN` を新しい値に上書きする
 4. [11. 手動同期の実行方法](#11-手動同期の実行方法)の手順で、手動同期を実行して正常に復旧したか確認する
 
 長期的には、有効期限のない「ページアクセストークン」を利用する方法（8章参照）にしておくと、更新の手間を減らせます。
@@ -264,7 +226,7 @@ curl -X POST https://<あなたのサイトのドメイン>/api/admin/sync-socia
 
 ## うまく表示されないときの確認方法
 
-- ブラウザで `https://<サイトのドメイン>/api/social-posts` を直接開き、`posts` に投稿が入っているか確認する
-- 空の場合は、Cloudflare側のログで同期エラーがないか確認する（アクセストークンや内部IDはログに出力されません）
+- ブラウザで `https://<サイトのドメイン>/api/social-feed` を直接開き、`posts` に投稿が入っているか確認する
+- 空の場合は、Cloudflare Pagesの「Logs」（Functionsログ）で取得エラーがないか確認する（アクセストークンや内部IDはログに出力されません）
 - Facebookの投稿が「公開」設定になっているか確認する（非公開・友達限定の投稿は取得できません）
 - Instagramの投稿が「ストーリーズ」ではなく、通常の投稿・リール・カルーセルであるか確認する（ストーリーズは仕様上、対象外です）

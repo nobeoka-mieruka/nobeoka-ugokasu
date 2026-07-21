@@ -42,7 +42,7 @@ const dataPlatforms = [entry.platform, entry.crossPostPlatform].filter(Boolean).
 <div class="card p-0 overflow-hidden flex flex-col h-full" data-activity-card data-platforms={dataPlatforms} data-date={entry.date}>
   <div class="aspect-[16/9] bg-brand-orange-light overflow-hidden">
     {entry.image ? (
-      <img src={entry.image.src} alt={entry.image.alt} class="w-full h-full object-cover" loading="lazy" width="640" height="360" />
+      <img src={entry.image.src} alt={entry.image.alt} class="w-full h-full object-cover object-top" loading="lazy" width="640" height="360" />
     ) : (
       <div class="w-full h-full flex items-center justify-center text-brand-orange-dark">
         <Icon name="document" class="w-10 h-10" />

@@ -10,8 +10,7 @@ const rootDir = path.resolve(fileURLToPath(import.meta.url), "../..");
 const distDir = path.join(rootDir, "dist");
 
 const SECRET_NAMES = [
-  "FACEBOOK_PAGE_ACCESS_TOKEN",
-  "INSTAGRAM_ACCESS_TOKEN",
+  "META_ACCESS_TOKEN",
   "SOCIAL_SYNC_SECRET",
 ];
 

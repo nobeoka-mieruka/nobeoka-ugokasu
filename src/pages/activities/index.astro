@@ -64,6 +64,24 @@ const schemas = [
       <ActivityFilterBar />
 
       <div
+        data-sns-fetch-error
+        class="hidden mb-6 rounded-xl border-2 border-brand-orange-dark/30 bg-brand-orange-light/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3"
+        role="status"
+      >
+        <p class="text-sm text-ink">現在、最新の活動報告を取得できません。しばらくしてから再度お試しください。</p>
+        {officialSnsLinks.length > 0 && (
+          <div class="flex flex-wrap gap-2 sm:ml-auto">
+            {officialSnsLinks.map((link) => (
+              <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary text-sm py-1.5 px-4">
+                {link.label}
+                <span class="sr-only">（新しいタブで開く）</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div
         id="activity-grid"
         role="tabpanel"
         aria-labelledby="activity-tab-all"
@@ -88,6 +106,16 @@ const schemas = [
             <SnsActivityCard entry={item.entry} />
           ),
         )}
+      </div>
+
+      <div class="mt-8 flex justify-center">
+        <button
+          type="button"
+          data-activity-load-more
+          class="hidden btn-secondary"
+        >
+          もっと見る
+        </button>
       </div>
 
       <div data-empty-for="all" class:list={["mt-6 card text-center py-16 text-ink-soft flex flex-col items-center gap-6", hasAnyActivity && "hidden"]}>
@@ -213,13 +241,13 @@ const schemas = [
   }
 
   (async () => {
-    // Facebook・InstagramをMeta Graph APIから直接呼び出すことはせず、
-    // Cloudflare KVに保存された同期済みの結果だけを読み込む。
+    // 表示のたびにMeta Graph APIへ直接アクセスすることはせず、Cloudflare側で
+    // キャッシュ・正規化済みの /api/social-feed から結果を読み込むだけ。
     const skeletons = grid ? [createSkeletonCard(), createSkeletonCard(), createSkeletonCard()] : [];
     skeletons.forEach((s) => grid?.append(s));
     if (skeletons.length > 0) document.dispatchEvent(new CustomEvent("social-posts:updated"));
 
-    const { posts } = await fetchSocialPosts();
+    const { posts, fetchFailed } = await fetchSocialPosts();
 
     skeletons.forEach((s) => s.remove());
 
@@ -236,6 +264,10 @@ const schemas = [
         known.add(post.permalink);
       }
     }
+
+    // Meta APIへの取得自体が失敗した場合のみ案内を出す（未設定の場合は既存の空表示に任せる）
+    const errorBanner = document.querySelector<HTMLElement>("[data-sns-fetch-error]");
+    errorBanner?.classList.toggle("hidden", !fetchFailed);
 
     // 投稿が0件・取得失敗の場合でも、既存の絞り込み状態を再評価してもらう
     document.dispatchEvent(new CustomEvent("social-posts:updated"));
