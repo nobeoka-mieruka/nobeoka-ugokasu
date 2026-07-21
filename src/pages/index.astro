@@ -274,36 +274,84 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
   <section class="py-14 sm:py-16 bg-brand-ivory">
     <div class="section-wrap">
       <SectionTitle title="最新の活動報告" align="left" />
-      {activities.length > 0 ? (
-        <div class="grid gap-8 sm:grid-cols-3">
-          {activities.map((entry) => (
-            <ActivityCard
-              slug={entry.slug}
-              title={entry.data.title}
-              date={entry.data.date}
-              category={entry.data.category}
-              summary={entry.data.summary}
-              mainImage={entry.data.mainImage}
-            />
-          ))}
-        </div>
-      ) : (
-        <div class="rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft">
-          <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
-          <p>活動報告は準備中です。</p>
-        </div>
-      )}
+      <div
+        data-home-activity-grid
+        class:list={["grid gap-8 sm:grid-cols-3", activities.length === 0 && "hidden"]}
+      >
+        {activities.map((entry) => (
+          <ActivityCard
+            slug={entry.slug}
+            title={entry.data.title}
+            date={entry.data.date}
+            category={entry.data.category}
+            summary={entry.data.summary}
+            mainImage={entry.data.mainImage}
+          />
+        ))}
+      </div>
+      <div
+        data-home-activities-empty
+        class:list={[
+          "rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft",
+          activities.length > 0 && "hidden",
+        ]}
+      >
+        <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
+        <p>活動報告は準備中です。</p>
+      </div>
       <div class="mt-8 text-center">
-        {activities.length > 0 ? (
-          <a href="/activities/" class="btn-secondary">活動報告一覧を見る</a>
-        ) : (
-          <span class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed" aria-disabled="true">
-            活動報告一覧を見る（準備中）
-          </span>
-        )}
+        <a
+          href="/activities/"
+          data-home-activities-cta
+          class:list={["btn-secondary", activities.length === 0 && "hidden"]}
+        >
+          活動報告一覧を見る
+        </a>
+        <span
+          data-home-activities-cta-disabled
+          class:list={[
+            "inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed",
+            activities.length > 0 && "hidden",
+          ]}
+          aria-disabled="true"
+        >
+          活動報告一覧を見る（準備中）
+        </span>
       </div>
     </div>
   </section>
+
+  <script>
+    // ビルド時点の活動報告（activitiesコレクション）に加えて、Facebookの最新投稿を
+    // /api/social-feed（Cloudflare KVでキャッシュ済み）から取得し、このセクションへ
+    // 差し込む。Meta APIへ直接アクセスすることはしない。
+    import { fetchSocialPosts } from "../services/socialPosts";
+    import { createSocialPostCardElement } from "../scripts/socialPostCard";
+
+    const MAX_HOME_ACTIVITY_CARDS = 3;
+
+    (async () => {
+      const grid = document.querySelector<HTMLElement>("[data-home-activity-grid]");
+      const emptyState = document.querySelector<HTMLElement>("[data-home-activities-empty]");
+      const ctaLink = document.querySelector<HTMLElement>("[data-home-activities-cta]");
+      const ctaDisabled = document.querySelector<HTMLElement>("[data-home-activities-cta-disabled]");
+
+      const { posts } = await fetchSocialPosts();
+
+      if (grid && posts.length > 0) {
+        const remaining = Math.max(0, MAX_HOME_ACTIVITY_CARDS - grid.children.length);
+        for (const post of posts.slice(0, remaining)) {
+          grid.append(createSocialPostCardElement(post));
+        }
+      }
+
+      const hasContent = (grid?.children.length ?? 0) > 0;
+      grid?.classList.toggle("hidden", !hasContent);
+      emptyState?.classList.toggle("hidden", hasContent);
+      ctaLink?.classList.toggle("hidden", !hasContent);
+      ctaDisabled?.classList.toggle("hidden", hasContent);
+    })();
+  </script>
 
   <!-- 8-8 最新のお知らせ -->
   <section class="py-14 sm:py-16">
