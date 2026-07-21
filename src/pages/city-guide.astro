@@ -9,6 +9,7 @@ import QuestionCard from "../components/cityguide/QuestionCard.astro";
 import ResultCard from "../components/cityguide/ResultCard.astro";
 import DepartmentList from "../components/cityguide/DepartmentList.astro";
 import { cityGuideCategories, cityDepartments, generalGuidanceDeptId } from "../data/cityGuideData";
+import { cityGuideConfig } from "../config/cityGuideConfig";
 import { webPageSchema, organizationSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 
@@ -78,7 +79,7 @@ const schemas = [
   </div>
 </BaseLayout>
 
-<script is:inline define:vars={{ CATEGORIES: cityGuideCategories, DEPARTMENTS: cityDepartments, GENERAL_ID: generalGuidanceDeptId }}>
+<script is:inline define:vars={{ CATEGORIES: cityGuideCategories, DEPARTMENTS: cityDepartments, GENERAL_ID: generalGuidanceDeptId, MAIN_PHONE: cityGuideConfig.mainPhone }}>
   const app = document.querySelector("[data-cg-app]");
   const screens = {
     categories: app?.querySelector('[data-cg-screen="categories"]'),
@@ -163,7 +164,6 @@ const schemas = [
     const phoneLinkEl = app?.querySelector("[data-cg-phone-link]");
     const phoneUnknownEl = app?.querySelector("[data-cg-phone-unknown]");
     const phoneButtonEl = app?.querySelector("[data-cg-phone-button]");
-    const hoursEl = app?.querySelector("[data-cg-hours]");
     const locationRowEl = app?.querySelector("[data-cg-location-row]");
     const locationEl = app?.querySelector("[data-cg-location]");
 
@@ -179,27 +179,34 @@ const schemas = [
       }
     }
 
-    if (department.phone) {
-      const telHref = `tel:${department.phone.replace(/[^0-9+]/g, "")}`;
+    // この課の直通番号が未確認の場合は、確認できていれば代表電話番号を案内する
+    // （代表番号にかけた場合と分かるよう、番号の後ろに「（代表）」を付ける）。
+    const isMainFallback = !department.phone && Boolean(MAIN_PHONE);
+    const phone = department.phone || MAIN_PHONE || "";
+
+    if (phone) {
+      const telHref = `tel:${phone.replace(/[^0-9+]/g, "")}`;
+      const displayText = isMainFallback ? `${phone}（代表）` : phone;
+      const phoneLabel = isMainFallback
+        ? `延岡市役所代表へ電話をかける：${phone}`
+        : `${department.name}へ電話をかける：${phone}`;
       if (phoneLinkEl instanceof HTMLAnchorElement) {
         phoneLinkEl.href = telHref;
-        phoneLinkEl.textContent = department.phone;
+        phoneLinkEl.textContent = displayText;
         phoneLinkEl.classList.remove("hidden");
-        phoneLinkEl.setAttribute("aria-label", `${department.name}へ電話をかける：${department.phone}`);
+        phoneLinkEl.setAttribute("aria-label", phoneLabel);
       }
       if (phoneUnknownEl) phoneUnknownEl.classList.add("hidden");
       if (phoneButtonEl instanceof HTMLAnchorElement) {
         phoneButtonEl.href = telHref;
         phoneButtonEl.hidden = false;
-        phoneButtonEl.setAttribute("aria-label", `${department.name}へ電話する：${department.phone}`);
+        phoneButtonEl.setAttribute("aria-label", phoneLabel);
       }
     } else {
       if (phoneLinkEl) phoneLinkEl.classList.add("hidden");
       if (phoneUnknownEl) phoneUnknownEl.classList.remove("hidden");
       if (phoneButtonEl) phoneButtonEl.hidden = true;
     }
-
-    if (hoursEl) hoursEl.textContent = department.hours || "確認中";
 
     if (locationRowEl instanceof HTMLElement) {
       if (department.location) {
