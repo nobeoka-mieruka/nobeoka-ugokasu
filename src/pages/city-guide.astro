@@ -79,7 +79,17 @@ const schemas = [
   </div>
 </BaseLayout>
 
-<script is:inline define:vars={{ CATEGORIES: cityGuideCategories, DEPARTMENTS: cityDepartments, GENERAL_ID: generalGuidanceDeptId, MAIN_PHONE: cityGuideConfig.mainPhone }}>
+<script
+  is:inline
+  define:vars={{
+    CATEGORIES: cityGuideCategories,
+    DEPARTMENTS: cityDepartments,
+    GENERAL_ID: generalGuidanceDeptId,
+    MAIN_PHONE: cityGuideConfig.mainPhone,
+    OFFICE_HOURS: cityGuideConfig.officeHours,
+    OFFICE_HOURS_NOTE: cityGuideConfig.officeHoursNote,
+  }}
+>
   const app = document.querySelector("[data-cg-app]");
   const screens = {
     categories: app?.querySelector('[data-cg-screen="categories"]'),
@@ -166,9 +176,25 @@ const schemas = [
     const phoneButtonEl = app?.querySelector("[data-cg-phone-button]");
     const locationRowEl = app?.querySelector("[data-cg-location-row]");
     const locationEl = app?.querySelector("[data-cg-location]");
+    const hoursEl = app?.querySelector("[data-cg-hours]");
+    const hoursNoteEl = app?.querySelector("[data-cg-hours-note]");
 
     if (nameEl) nameEl.textContent = department.name;
     if (summaryEl) summaryEl.textContent = department.summary;
+
+    // 受付時間は全課共通（OFFICE_HOURS）が基本だが、この課だけ受付時間が異なる場合は
+    // department.hoursを優先する（例：土日も受け付ける「なんでも総合相談センター」）。
+    const usesCommonHours = !department.hours;
+    const hours = department.hours || OFFICE_HOURS || "";
+    if (hoursEl) hoursEl.textContent = hours || "確認中";
+    if (hoursNoteEl) {
+      if (usesCommonHours && OFFICE_HOURS && OFFICE_HOURS_NOTE) {
+        hoursNoteEl.textContent = `※${OFFICE_HOURS_NOTE}`;
+        hoursNoteEl.hidden = false;
+      } else {
+        hoursNoteEl.hidden = true;
+      }
+    }
 
     if (linkEl instanceof HTMLAnchorElement) {
       if (department.officialUrl) {

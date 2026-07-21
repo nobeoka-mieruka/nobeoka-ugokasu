@@ -28,12 +28,10 @@ import { cityGuideConfig } from "../../config/cityGuideConfig";
         <Icon name="clock" class="w-5 h-5 flex-shrink-0 mt-0.5 text-brand-orange-dark" />
         <div class="min-w-0 flex-1">
           <dt class="text-xs font-bold text-ink-soft">受付時間</dt>
-          <dd class="text-ink-soft [overflow-wrap:break-word]">
+          <dd class="text-ink-soft [overflow-wrap:break-word]" data-cg-hours>
             {cityGuideConfig.officeHours || "確認中"}
           </dd>
-          {cityGuideConfig.officeHours && cityGuideConfig.officeHoursNote && (
-            <p class="mt-0.5 text-xs text-ink-soft/80 [overflow-wrap:break-word]">※{cityGuideConfig.officeHoursNote}</p>
-          )}
+          <p class="mt-0.5 text-xs text-ink-soft/80 [overflow-wrap:break-word]" data-cg-hours-note hidden></p>
         </div>
       </div>
 
