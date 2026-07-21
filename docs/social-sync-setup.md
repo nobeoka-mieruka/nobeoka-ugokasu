@@ -31,12 +31,12 @@
 Facebookページ / Instagram（投稿）
         ↓ Meta Graph API（訪問時にキャッシュが古ければ取得）
 Cloudflare Pages Functions（functions/api/social-feed.ts）
-        ↓ 結果をCloudflare KVへ保存（10〜15分キャッシュ）
+        ↓ 結果をCloudflare KVへ保存（約5分キャッシュ）
         ↓ ブラウザがfetchで取得
 ホームページの「活動報告」ページ
 ```
 
-Cloudflare Workerなど別仕組みのデプロイは不要で、**Cloudflare Pagesの設定だけ**で完結します。ページが開かれたときに、直近のキャッシュが10〜15分より古ければその場でMeta Graph APIへ取得しに行き、結果をCloudflare KVへ保存します。取得に失敗した場合は、直前に保存されていたキャッシュをそのまま表示し続けます。
+Cloudflare Workerなど別仕組みのデプロイは不要で、**Cloudflare Pagesの設定だけ**で完結します。ページが開かれたときに、直近のキャッシュが約5分より古ければその場でMeta Graph APIへ取得しに行き、結果をCloudflare KVへ保存します。取得に失敗した場合は、直前に保存されていたキャッシュをそのまま表示し続けます。
 
 アクセストークン（合言葉のようなもの）は、Cloudflare Pagesの「Secrets」という暗号化された場所にだけ保存します。GitHubやホームページのプログラムファイルには一切書き込みません。
 
@@ -178,7 +178,7 @@ FacebookページのアクセストークンURLは期限切れの概念がない
 
 ## 10. 投稿の自動更新の仕組み
 
-固定間隔のCron Triggerは使っていません。代わりに、`/activities` ページが開かれるたびに、Cloudflare Pages Functions（`functions/api/social-feed.ts`）がKVキャッシュの新しさを確認し、**10〜15分より古ければその場でMeta Graph APIへ取得しに行き**、結果をKVへ保存してから返します。取得に失敗した場合は、直前に保存されていた投稿をそのまま返します（サイトが空白になることはありません）。
+固定間隔のCron Triggerは使っていません。代わりに、`/activities` ページが開かれるたびに、Cloudflare Pages Functions（`functions/api/social-feed.ts`）がKVキャッシュの新しさを確認し、**約5分より古ければその場でMeta Graph APIへ取得しに行き**、結果をKVへ保存してから返します。取得に失敗した場合は、直前に保存されていた投稿をそのまま返します（サイトが空白になることはありません）。
 
 そのため、新しい投稿が実際にホームページへ反映されるタイミングは、「投稿してから最初にページが開かれたとき」になります。アクセス頻度が高いサイトほど、体感的な反映は速くなります。
 

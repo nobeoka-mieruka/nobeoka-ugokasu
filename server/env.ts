@@ -33,4 +33,13 @@ export interface SocialSyncEnv {
 
   /** 保存・表示するSNS投稿の最大件数（文字列で渡ってくるため利用側で数値化する） */
   SOCIAL_POST_LIMIT?: string;
+
+  /** YouTube Data API v3のAPIキー（秘密情報）。ブラウザへは一切送信しない */
+  YOUTUBE_API_KEY?: string;
+
+  /** YouTubeチャンネルID（例: "UCxxxxxxxx"）。チャンネルページへのリンク表示に使用 */
+  YOUTUBE_CHANNEL_ID?: string;
+
+  /** チャンネルの「アップロード動画」プレイリストID。playlistItems.list呼び出しに使用 */
+  YOUTUBE_UPLOADS_PLAYLIST_ID?: string;
 }

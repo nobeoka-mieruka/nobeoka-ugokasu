@@ -387,22 +387,81 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
     </div>
   </section>
 
-  {featuredVideos.length > 0 && (
-    <!-- 8-8b 注目の動画 -->
-    <section class="py-14 sm:py-16">
-      <div class="section-wrap">
-        <SectionTitle title="注目の動画" align="left" />
-        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredVideos.map((video) => (
-            <VideoCard video={video} />
-          ))}
-        </div>
-        <div class="mt-8 text-center">
-          <a href="/videos/" class="btn-secondary">動画をもっと見る</a>
-        </div>
+  <!-- 8-8b 最新の動画 -->
+  <section class="py-14 sm:py-16">
+    <div class="section-wrap">
+      <SectionTitle title="最新の動画" align="left" />
+      <div
+        data-home-video-grid
+        class:list={["grid gap-8 sm:grid-cols-2 lg:grid-cols-3", featuredVideos.length === 0 && "hidden"]}
+      >
+        {featuredVideos.map((video) => (
+          <VideoCard video={video} />
+        ))}
       </div>
-    </section>
-  )}
+      <div
+        data-home-videos-empty
+        class:list={[
+          "rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft",
+          featuredVideos.length > 0 && "hidden",
+        ]}
+      >
+        <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
+        <p>動画は準備中です。</p>
+      </div>
+      <div class="mt-8 text-center">
+        <a
+          href="/videos/"
+          data-home-videos-cta
+          class:list={["btn-secondary", featuredVideos.length === 0 && "hidden"]}
+        >
+          動画をもっと見る
+        </a>
+        <span
+          data-home-videos-cta-disabled
+          class:list={[
+            "inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed",
+            featuredVideos.length > 0 && "hidden",
+          ]}
+          aria-disabled="true"
+        >
+          動画をもっと見る（準備中）
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ビルド時点の注目動画（videos.ts、任意）に加えて、YouTubeチャンネルの最新動画を
+    // /api/youtube-feed（Cloudflare KVでキャッシュ済み）から取得し、このセクションへ
+    // 差し込む。YouTube Data APIキーはブラウザから直接呼び出さない。
+    import { fetchYoutubeFeed } from "../services/youtubeFeed";
+    import { createYoutubeVideoCardElement } from "../scripts/youtubeVideoCard";
+
+    const MAX_HOME_VIDEO_CARDS = 3;
+
+    (async () => {
+      const grid = document.querySelector<HTMLElement>("[data-home-video-grid]");
+      const emptyState = document.querySelector<HTMLElement>("[data-home-videos-empty]");
+      const ctaLink = document.querySelector<HTMLElement>("[data-home-videos-cta]");
+      const ctaDisabled = document.querySelector<HTMLElement>("[data-home-videos-cta-disabled]");
+
+      const { videos: fetchedVideos } = await fetchYoutubeFeed();
+
+      if (grid && fetchedVideos.length > 0) {
+        const remaining = Math.max(0, MAX_HOME_VIDEO_CARDS - grid.children.length);
+        for (const video of fetchedVideos.slice(0, remaining)) {
+          grid.append(createYoutubeVideoCardElement(video));
+        }
+      }
+
+      const hasContent = (grid?.children.length ?? 0) > 0;
+      grid?.classList.toggle("hidden", !hasContent);
+      emptyState?.classList.toggle("hidden", hasContent);
+      ctaLink?.classList.toggle("hidden", !hasContent);
+      ctaDisabled?.classList.toggle("hidden", hasContent);
+    })();
+  </script>
 
   <!-- 8-9 後援会案内 -->
   <section class="py-14 sm:py-16 bg-brand-ivory">

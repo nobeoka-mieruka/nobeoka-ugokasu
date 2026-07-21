@@ -4,7 +4,6 @@ import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import Icon from "../../components/Icon.astro";
 import VideoCard from "../../components/VideoCard.astro";
-import VideoFilterBar from "../../components/VideoFilterBar.astro";
 import { videos } from "../../data/videos";
 import { webPageSchema, organizationSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
@@ -36,24 +35,51 @@ const sortedVideos = [...videos].sort((a, b) => {
 
   <section class="py-14 sm:py-20">
     <div class="section-wrap">
-      {sortedVideos.length > 0 ? (
-        <>
-          <VideoFilterBar />
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {sortedVideos.map((video) => (
-              <VideoCard video={video} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <div class="card mx-auto flex max-w-xl flex-col items-center gap-4 py-14 text-center">
-          <Icon name="youtube" class="w-10 h-10 text-brand-orange" />
-          <h2 class="text-xl font-bold text-ink">動画を準備しています</h2>
-          <p class="text-ink-soft leading-relaxed">
-            活動や政策に関する動画を、今後こちらでご紹介します。公開までしばらくお待ちください。
-          </p>
-        </div>
-      )}
+      <div
+        data-video-page-grid
+        class:list={["grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3", sortedVideos.length === 0 && "hidden"]}
+      >
+        {sortedVideos.map((video) => (
+          <VideoCard video={video} />
+        ))}
+      </div>
+      <div
+        data-video-page-empty
+        class:list={[
+          "card mx-auto flex max-w-xl flex-col items-center gap-4 py-14 text-center",
+          sortedVideos.length > 0 && "hidden",
+        ]}
+      >
+        <Icon name="youtube" class="w-10 h-10 text-brand-orange" />
+        <h2 class="text-xl font-bold text-ink">動画は準備中です</h2>
+        <p class="text-ink-soft leading-relaxed">
+          活動や政策に関する動画を、今後こちらでご紹介します。公開までしばらくお待ちください。
+        </p>
+      </div>
     </div>
   </section>
+
+  <script>
+    // ビルド時点の注目動画（videos.ts、任意）に加えて、YouTubeチャンネルの最新動画を
+    // /api/youtube-feed（Cloudflare KVでキャッシュ済み）から取得し、この一覧へ差し込む。
+    import { fetchYoutubeFeed } from "../../services/youtubeFeed";
+    import { createYoutubeVideoCardElement } from "../../scripts/youtubeVideoCard";
+
+    (async () => {
+      const grid = document.querySelector<HTMLElement>("[data-video-page-grid]");
+      const emptyState = document.querySelector<HTMLElement>("[data-video-page-empty]");
+
+      const { videos: fetchedVideos } = await fetchYoutubeFeed();
+
+      if (grid && fetchedVideos.length > 0) {
+        for (const video of fetchedVideos) {
+          grid.append(createYoutubeVideoCardElement(video));
+        }
+      }
+
+      const hasContent = (grid?.children.length ?? 0) > 0;
+      grid?.classList.toggle("hidden", !hasContent);
+      emptyState?.classList.toggle("hidden", hasContent);
+    })();
+  </script>
 </BaseLayout>

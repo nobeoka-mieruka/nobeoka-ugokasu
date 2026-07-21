@@ -28,10 +28,10 @@ async function handleGet(context: Parameters<PagesFunction<SocialSyncEnv>>[0]): 
     status: 200,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      // Meta APIへのアクセス回数を抑えるため、10〜15分程度のキャッシュを許容する。
-      // s-maxage=900（Cloudflareエッジで15分）、stale-while-revalidateで
+      // Meta APIへのアクセス回数を抑えつつ、新しい投稿を約5分以内に反映するため、
+      // s-maxage=300（Cloudflareエッジで5分）とする。stale-while-revalidateで
       // 同期が遅延・失敗していても古いキャッシュの提供を継続する。
-      "Cache-Control": "public, max-age=300, s-maxage=900, stale-while-revalidate=86400",
+      "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
     },
   });
 }

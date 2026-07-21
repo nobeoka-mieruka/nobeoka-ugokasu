@@ -9,8 +9,8 @@ import type { SocialSyncEnv } from "./env";
 import { readCache } from "./kv";
 import { runSocialSync, summarizeForLog } from "./socialSync";
 
-/** キャッシュをどれだけの間「新しい」とみなすか（10〜15分の目安の中央値） */
-const FRESH_TTL_MS = 12 * 60 * 1000;
+/** キャッシュをどれだけの間「新しい」とみなすか（約5分） */
+const FRESH_TTL_MS = 5 * 60 * 1000;
 
 const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured" };
 

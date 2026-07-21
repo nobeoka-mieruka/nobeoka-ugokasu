@@ -170,7 +170,7 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
   viewLink.target = "_blank";
   viewLink.rel = "noopener noreferrer";
   viewLink.className = `inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all ${meta.buttonClass.join(" ")}`;
-  viewLink.append(svgIcon(meta.icon, "w-4 h-4"), document.createTextNode(`${meta.label}で投稿を見る`));
+  viewLink.append(svgIcon(meta.icon, "w-4 h-4"), document.createTextNode(`${meta.label}で見る`));
   const srOnlyView = el("span", "sr-only");
   srOnlyView.textContent = "（新しいタブで開く）";
   viewLink.append(srOnlyView, svgIcon("externalLink", "w-3.5 h-3.5"));
