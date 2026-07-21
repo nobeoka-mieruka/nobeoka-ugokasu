@@ -18,6 +18,15 @@ export interface CityDepartment {
   id: string;
   name: string;
   summary: string;
+  /**
+   * 電話番号（例："0982-xx-xxxx"）。確認できるまでは未設定のままにしてください
+   * （未設定の間は「確認中」と表示され、架空の番号は表示されません）。
+   */
+  phone?: string;
+  /** 受付時間（例："平日 8:30〜17:15"）。確認できるまでは未設定のままにしてください */
+  hours?: string;
+  /** 市役所本庁舎内の窓口場所（例："本庁舎1階"）。確認できる場合のみ設定してください */
+  location?: string;
   /** 公式ページURL（未設定の間はボタンを表示しません） */
   officialUrl?: string;
   /** この案内内容を最終確認した日（"YYYY-MM-DD"）。未設定の間は表示しません */

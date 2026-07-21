@@ -3,28 +3,67 @@ import Icon from "../Icon.astro";
 ---
 
 <section data-cg-screen="result" hidden>
-  <div class="card text-center py-10 px-6 sm:px-10 border-l-4 border-brand-orange">
+  <div class="card text-center py-10 px-6 sm:px-10 border-l-4 border-brand-orange min-w-0">
     <div class="mx-auto flex items-center justify-center w-14 h-14 rounded-full bg-brand-orange-light text-brand-orange-dark mb-4">
       <Icon name="check" class="w-7 h-7" />
     </div>
-    <h2 class="text-lg font-bold text-ink-soft">あなたの相談先はこちら</h2>
-    <p class="mt-2 text-3xl sm:text-4xl font-bold text-ink" data-cg-result-name></p>
-    <p class="mt-4 text-ink-soft leading-relaxed" data-cg-result-summary></p>
-    <p class="mt-4 text-sm text-ink-soft">※ 相談内容によっては、別の課をご案内する場合があります。</p>
-    <p class="mt-2 text-sm font-bold text-ink-soft">来庁前に、お電話または延岡市公式ホームページでご確認ください。</p>
-    <p class="mt-2 text-xs text-ink-soft/80" data-cg-last-confirmed hidden></p>
+    <h2 class="text-lg font-bold text-ink-soft" data-cg-result-heading tabindex="-1">あなたの相談先はこちら</h2>
+    <p class="mt-2 text-3xl sm:text-4xl font-bold text-ink [overflow-wrap:break-word]" data-cg-result-name></p>
+    <p class="mt-4 text-ink-soft leading-relaxed [overflow-wrap:break-word]" data-cg-result-summary></p>
 
-    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-      <button type="button" class="btn-primary" data-cg-restart>
+    <dl class="mt-6 max-w-sm mx-auto space-y-4 border-t border-black/10 pt-6 text-left">
+      <div class="flex items-start gap-3">
+        <Icon name="phone" class="w-5 h-5 flex-shrink-0 mt-0.5 text-brand-orange-dark" />
+        <div class="min-w-0 flex-1">
+          <dt class="text-xs font-bold text-ink-soft">電話番号</dt>
+          <dd class="min-w-0">
+            <a href="#" data-cg-phone-link class="hidden text-lg font-bold text-ink underline [overflow-wrap:anywhere]"></a>
+            <span data-cg-phone-unknown class="text-ink-soft">確認中</span>
+          </dd>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-3">
+        <Icon name="clock" class="w-5 h-5 flex-shrink-0 mt-0.5 text-brand-orange-dark" />
+        <div class="min-w-0 flex-1">
+          <dt class="text-xs font-bold text-ink-soft">受付時間</dt>
+          <dd class="text-ink-soft [overflow-wrap:break-word]" data-cg-hours>確認中</dd>
+        </div>
+      </div>
+
+      <div class="hidden items-start gap-3" data-cg-location-row>
+        <Icon name="location" class="w-5 h-5 flex-shrink-0 mt-0.5 text-brand-orange-dark" />
+        <div class="min-w-0 flex-1">
+          <dt class="text-xs font-bold text-ink-soft">場所</dt>
+          <dd class="text-ink-soft [overflow-wrap:break-word]" data-cg-location></dd>
+        </div>
+      </div>
+    </dl>
+
+    <div class="mt-6 rounded-xl bg-brand-orange-light/50 px-4 py-3 text-left">
+      <p class="flex items-start gap-2 text-sm text-ink">
+        <Icon name="document" class="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <span>組織変更などにより担当窓口が変更される場合があります。来庁前に、お電話または延岡市公式ホームページでご確認ください。</span>
+      </p>
+      <p class="mt-2 text-xs text-ink-soft" data-cg-last-confirmed hidden></p>
+    </div>
+
+    <div class="mt-8 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-center gap-3">
+      <a href="#" data-cg-phone-button hidden class="btn-primary justify-center">
+        <Icon name="phone" class="w-5 h-5" />
+        電話する
+      </a>
+      <a href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary justify-center" data-cg-official-link hidden>
+        <Icon name="external-link" class="w-4 h-4" />
+        公式ページを見る
+        <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+      </a>
+      <button type="button" class="btn-secondary justify-center" data-cg-restart>
         最初からやり直す
       </button>
-      <button type="button" class="btn-secondary" data-cg-show-list>
+      <button type="button" class="btn-secondary justify-center" data-cg-show-list>
         一覧から探す
       </button>
-      <a href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary" data-cg-official-link hidden>
-        公式ページを見る
-        <Icon name="external-link" class="w-4 h-4" />
-      </a>
     </div>
   </div>
 </section>

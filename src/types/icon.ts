@@ -33,4 +33,6 @@ export type IconName =
   | "coin"
   | "trash"
   | "water-drop"
-  | "briefcase";
+  | "briefcase"
+  | "phone"
+  | "clock";

@@ -100,6 +100,19 @@ const { name, class: className = "w-6 h-6", ariaHidden = true } = Astro.props;
   </svg>
 )}
 
+{name === "phone" && (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden={ariaHidden}>
+    <path d="M4 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L14 13l5 2v4a2 2 0 0 1-2 2C9.6 21 3 14.4 3 6a2 2 0 0 1 2-2z"/>
+  </svg>
+)}
+
+{name === "clock" && (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden={ariaHidden}>
+    <circle cx="12" cy="12" r="9"/>
+    <polyline points="12 7 12 12 16 14"/>
+  </svg>
+)}
+
 {name === "external-link" && (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden={ariaHidden}>
     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>

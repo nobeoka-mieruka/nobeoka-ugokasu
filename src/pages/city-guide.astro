@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import HeroSection from "../components/HeroSection.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
+import RelatedContent from "../components/RelatedContent.astro";
 import Icon from "../components/Icon.astro";
 import CategorySelector from "../components/cityguide/CategorySelector.astro";
 import QuestionCard from "../components/cityguide/QuestionCard.astro";
@@ -11,9 +12,9 @@ import { cityGuideCategories, cityDepartments, generalGuidanceDeptId } from "../
 import { webPageSchema, organizationSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 
-const title = "延岡市役所 どこに行けばいい？診断｜非公式窓口案内";
+const title = "延岡市役所 どこに行けばいい？診断｜相談先の課を簡単検索";
 const description =
-  "住民票、税金、子育て、介護、ごみ、道路など、延岡市役所のどこに相談すればよいかを、質問に答えるだけで確認できる案内ページです。";
+  "延岡市で困った時、どこの課に相談すればよいか質問に答えるだけで確認できます。福祉、子育て、高齢者、防災、生活相談など、市役所の相談窓口を分かりやすく案内します。";
 const breadcrumbItems = [{ name: "延岡市役所 どこに行けばいい？診断", path: "/city-guide" }];
 
 const schemas = [
@@ -40,8 +41,8 @@ const schemas = [
       <p class="text-sm text-ink-soft">
         ※ 実際の担当は内容によって異なる場合があります。最終的には公式案内もご確認ください。
       </p>
-      <p class="text-xs text-ink-soft/80 border-t border-black/10 pt-3">
-        このページは「{"福富千恵と延岡を動かす会"}」が独自に作成した非公式の案内です。延岡市の公式ページではありません。
+      <p class="text-xs text-ink-soft/80 border-t border-black/10 pt-3 leading-relaxed">
+        本ページは、延岡市民の皆さまが相談先を探す際の参考情報として、「{"福富千恵と延岡を動かす会"}」が独自に作成した非公式案内です。延岡市の公式ページではありません。最新の情報や正式な手続きについては、延岡市公式ホームページまたは各担当窓口へご確認ください。
       </p>
     </div>
   </section>
@@ -65,6 +66,16 @@ const schemas = [
       <p class="mt-10 text-center text-xs text-ink-soft">掲載内容は今後更新する場合があります。</p>
     </div>
   </section>
+
+  <div class="section-wrap">
+    <RelatedContent
+      items={[
+        { title: "みんなの声", href: "/voices", description: "行政手続き以外のご意見・お困りごともお寄せください。" },
+        { title: "私たちの提言", href: "/vision", description: "延岡市の暮らしやすさに関する提言をご紹介します。" },
+        { title: "福富千恵と延岡を動かす会について", href: "/", description: "延岡市を拠点に活動する当団体のトップページです。" },
+      ]}
+    />
+  </div>
 </BaseLayout>
 
 <script is:inline define:vars={{ CATEGORIES: cityGuideCategories, DEPARTMENTS: cityDepartments, GENERAL_ID: generalGuidanceDeptId }}>
@@ -136,6 +147,12 @@ const schemas = [
     }
   }
 
+  function formatConfirmedDate(value) {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+  }
+
   function showResult(departmentId) {
     const department = findDepartment(departmentId) || findDepartment(GENERAL_ID);
     if (!department) return;
@@ -143,8 +160,16 @@ const schemas = [
     const summaryEl = app?.querySelector("[data-cg-result-summary]");
     const linkEl = app?.querySelector("[data-cg-official-link]");
     const confirmedEl = app?.querySelector("[data-cg-last-confirmed]");
+    const phoneLinkEl = app?.querySelector("[data-cg-phone-link]");
+    const phoneUnknownEl = app?.querySelector("[data-cg-phone-unknown]");
+    const phoneButtonEl = app?.querySelector("[data-cg-phone-button]");
+    const hoursEl = app?.querySelector("[data-cg-hours]");
+    const locationRowEl = app?.querySelector("[data-cg-location-row]");
+    const locationEl = app?.querySelector("[data-cg-location]");
+
     if (nameEl) nameEl.textContent = department.name;
     if (summaryEl) summaryEl.textContent = department.summary;
+
     if (linkEl instanceof HTMLAnchorElement) {
       if (department.officialUrl) {
         linkEl.href = department.officialUrl;
@@ -153,15 +178,53 @@ const schemas = [
         linkEl.hidden = true;
       }
     }
+
+    if (department.phone) {
+      const telHref = `tel:${department.phone.replace(/[^0-9+]/g, "")}`;
+      if (phoneLinkEl instanceof HTMLAnchorElement) {
+        phoneLinkEl.href = telHref;
+        phoneLinkEl.textContent = department.phone;
+        phoneLinkEl.classList.remove("hidden");
+        phoneLinkEl.setAttribute("aria-label", `${department.name}へ電話をかける：${department.phone}`);
+      }
+      if (phoneUnknownEl) phoneUnknownEl.classList.add("hidden");
+      if (phoneButtonEl instanceof HTMLAnchorElement) {
+        phoneButtonEl.href = telHref;
+        phoneButtonEl.hidden = false;
+        phoneButtonEl.setAttribute("aria-label", `${department.name}へ電話する：${department.phone}`);
+      }
+    } else {
+      if (phoneLinkEl) phoneLinkEl.classList.add("hidden");
+      if (phoneUnknownEl) phoneUnknownEl.classList.remove("hidden");
+      if (phoneButtonEl) phoneButtonEl.hidden = true;
+    }
+
+    if (hoursEl) hoursEl.textContent = department.hours || "確認中";
+
+    if (locationRowEl instanceof HTMLElement) {
+      if (department.location) {
+        if (locationEl) locationEl.textContent = department.location;
+        locationRowEl.classList.remove("hidden");
+        locationRowEl.classList.add("flex");
+      } else {
+        locationRowEl.classList.add("hidden");
+        locationRowEl.classList.remove("flex");
+      }
+    }
+
     if (confirmedEl) {
-      if (department.lastConfirmedAt) {
-        confirmedEl.textContent = `情報の最終確認日：${department.lastConfirmedAt}`;
+      const formatted = department.lastConfirmedAt ? formatConfirmedDate(department.lastConfirmedAt) : null;
+      if (formatted) {
+        confirmedEl.textContent = `最終確認日：${formatted}`;
         confirmedEl.hidden = false;
       } else {
         confirmedEl.hidden = true;
       }
     }
+
     showScreen("result");
+    const headingEl = app?.querySelector("[data-cg-result-heading]");
+    if (headingEl instanceof HTMLElement) headingEl.focus();
   }
 
   function restart() {
