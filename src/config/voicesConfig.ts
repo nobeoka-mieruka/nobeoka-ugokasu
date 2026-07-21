@@ -10,6 +10,13 @@ export const voicesConfig = {
   googleFormUrl: "https://docs.google.com/forms/d/e/1FAIpQLSezz5jWvNZUNtpEJaVVHjrLcoEPPYPfGgb4DpbZjZCfr4BY1Q/viewform",
 
   /**
+   * 座談会・意見交換会の開催希望を受け付けるフォームのURL。
+   * 空欄の間は「声の集め方」の当該カードはクリックできない情報カードとして表示されます。
+   * 専用フォームを用意でき次第、ここへURLを設定してください。
+   */
+  roundtableFormUrl: "",
+
+  /**
    * AIによる自動分析・自動送信の有効化フラグ。
    *
    * 初期公開時は必ず false としてください。

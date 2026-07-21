@@ -1,6 +1,12 @@
 ---
-import Icon from "./Icon.astro";
+// 「声の集め方」カード一覧です。クリックできる方法は実際の送信先（Googleフォーム・
+// メール・座談会開催希望フォーム・LINE）が設定されている場合のみリンクになり、
+// 未設定の間は情報のみのカードとして表示されます（架空のリンク先は設定しません）。
+import type { IconName } from "../types/icon";
 import { voicesConfig } from "../config/voicesConfig";
+import { siteConfig } from "../config/siteConfig";
+import { socialLinks } from "../data/socialLinks";
+import VoiceMethodCardContent from "./VoiceMethodCardContent.astro";
 
 interface Props {
   heading?: string;
@@ -8,53 +14,69 @@ interface Props {
 
 const { heading = "声の集め方" } = Astro.props;
 
-type IconName = "form" | "users" | "document-edit" | "house" | "mail" | "line" | "building" | "ellipsis";
+const mailSubject = "延岡への意見・提案について";
+const mailHref = `mailto:${siteConfig.email}?subject=${encodeURIComponent(mailSubject)}`;
 
-const methodMeta: Record<
-  (typeof voicesConfig.collectionMethods)[number],
-  { description: string; icon: IconName; badgeClass: string }
-> = {
-  Googleフォーム: {
-    description: "オンラインで手軽に\nご意見を送れます",
+interface VoiceMethodCard {
+  label: string;
+  description: string;
+  note?: string;
+  actionText?: string;
+  icon: IconName;
+  badgeClass: string;
+  href?: string;
+  external?: boolean;
+}
+
+const methods: VoiceMethodCard[] = [
+  {
+    label: "Googleフォームで意見を送る",
+    description: "オンラインで手軽にご意見を送れます。",
+    actionText: "フォームへ移動",
     icon: "form",
     badgeClass: "bg-rose-50 text-rose-500",
+    href: voicesConfig.googleFormUrl || undefined,
+    external: true,
   },
-  意見交換会: {
-    description: "直接お会いして\nご意見を伺います",
+  {
+    label: "メールで意見を送る",
+    description: "メールでのご意見を受け付けています。",
+    actionText: "メール作成",
+    icon: "mail",
+    badgeClass: "bg-blue-50 text-blue-500",
+    href: mailHref,
+  },
+  {
+    label: "座談会・意見交換会を希望する",
+    description:
+      "地域や団体の皆さまと直接お話しする機会を設けています。日頃感じていることや地域の課題について、お聞かせください。",
+    note: "活動会場でも直接ご意見を伺っています。",
+    actionText: "開催希望を送る",
     icon: "users",
     badgeClass: "bg-brand-orange-light text-brand-orange-dark",
+    href: voicesConfig.roundtableFormUrl || undefined,
+    external: true,
   },
-  紙のアンケート: {
-    description: "紙面でのご意見を\n受け付けています",
+  {
+    label: "紙のアンケート",
+    description: "紙面でのご意見を受け付けています。",
     icon: "document-edit",
     badgeClass: "bg-green-50 text-green-600",
   },
-  地域での聞き取り: {
-    description: "地域を訪問して\n声をお聞きします",
-    icon: "house",
-    badgeClass: "bg-purple-50 text-purple-500",
-  },
-  メール: {
-    description: "メールでのご意見を\n受け付けています",
-    icon: "mail",
-    badgeClass: "bg-blue-50 text-blue-500",
-  },
-  LINE: {
-    description: "LINEでお気軽に\nご連絡ください",
+  {
+    label: "LINEで送る",
+    description: "LINEでお気軽にご連絡ください。",
+    actionText: "LINEを開く",
     icon: "line",
     badgeClass: "bg-emerald-50 text-emerald-600",
+    href: socialLinks.line || undefined,
+    external: true,
   },
-  活動会場: {
-    description: "活動会場でも\nご意見を伺います",
-    icon: "building",
-    badgeClass: "bg-sky-50 text-sky-500",
-  },
-  その他: {
-    description: "その他の方法でも\n受け付けています",
-    icon: "ellipsis",
-    badgeClass: "bg-brand-orange-light text-brand-orange-dark",
-  },
-};
+];
+
+const cardClass =
+  "voice-method-card group flex min-w-0 flex-col w-full h-full rounded-2xl bg-white ring-1 ring-black/5 p-5 text-left transition-all";
+const clickableCardClass = "hover:ring-brand-orange-dark hover:shadow-md hover:-translate-y-0.5 cursor-pointer";
 ---
 
 <div>
@@ -65,32 +87,44 @@ const methodMeta: Record<
   <p class="text-ink-soft leading-relaxed mb-6">
     デジタルを利用しない方のご意見も大切にしたいと考えており、以下の方法で声を集めています。
   </p>
-  <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-    {voicesConfig.collectionMethods.map((method) => {
-      const meta = methodMeta[method];
-      return (
-        <li
-          class="voice-method-card group min-w-0 rounded-2xl bg-white ring-1 ring-black/5 p-5 transition-all hover:ring-brand-orange-dark hover:shadow-md hover:-translate-y-0.5"
-          style="writing-mode: horizontal-tb;"
-        >
-          <div class="flex items-start justify-between gap-2">
-            <span class:list={["inline-flex items-center justify-center w-11 h-11 rounded-xl", meta.badgeClass]}>
-              <Icon name={meta.icon} class="w-6 h-6" ariaHidden={true} />
-            </span>
-            <Icon
-              name="chevron-right"
-              class="flex-shrink-0 w-5 h-5 mt-1 text-ink-soft/50 transition-transform group-hover:translate-x-1"
-              ariaHidden={true}
+  <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    {methods.map((item) =>
+      item.href ? (
+        <li class="min-w-0">
+          <a
+            href={item.href}
+            target={item.external ? "_blank" : undefined}
+            rel={item.external ? "noopener noreferrer" : undefined}
+            aria-label={item.actionText ? `${item.label}（${item.actionText}）` : item.label}
+            class:list={[cardClass, clickableCardClass]}
+          >
+            <VoiceMethodCardContent
+              label={item.label}
+              description={item.description}
+              note={item.note}
+              actionText={item.actionText}
+              icon={item.icon}
+              badgeClass={item.badgeClass}
+              clickable={true}
+              external={item.external}
+            />
+          </a>
+        </li>
+      ) : (
+        <li class="min-w-0">
+          <div class={cardClass}>
+            <VoiceMethodCardContent
+              label={item.label}
+              description={item.description}
+              note={item.note}
+              actionText={item.actionText}
+              icon={item.icon}
+              badgeClass={item.badgeClass}
+              clickable={false}
             />
           </div>
-          <p class="mt-3 min-w-0 w-full text-base font-bold text-ink [white-space:normal] [word-break:normal] [overflow-wrap:break-word] leading-snug">
-            {method}
-          </p>
-          <p class="mt-1 min-w-0 w-full text-sm text-ink-soft [white-space:pre-line] [word-break:normal] [overflow-wrap:break-word] leading-relaxed">
-            {meta.description}
-          </p>
         </li>
-      );
-    })}
+      ),
+    )}
   </ul>
 </div>

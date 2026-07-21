@@ -1,0 +1,47 @@
+---
+import Icon from "./Icon.astro";
+import type { IconName } from "../types/icon";
+
+interface Props {
+  label: string;
+  description: string;
+  note?: string;
+  actionText?: string;
+  icon: IconName;
+  badgeClass: string;
+  clickable: boolean;
+  external?: boolean;
+}
+
+const { label, description, note, actionText, icon, badgeClass, clickable, external } = Astro.props;
+---
+
+<div class="flex items-start justify-between gap-2">
+  <span class:list={["inline-flex items-center justify-center w-11 h-11 rounded-xl", badgeClass]}>
+    <Icon name={icon} class="w-6 h-6" ariaHidden={true} />
+  </span>
+  {clickable && (
+    <Icon
+      name="chevron-right"
+      class="flex-shrink-0 w-5 h-5 mt-1 text-ink-soft/50 transition-transform group-hover:translate-x-1"
+      ariaHidden={true}
+    />
+  )}
+</div>
+<p class="mt-3 min-w-0 w-full text-base font-bold text-ink [overflow-wrap:break-word] leading-snug">
+  {label}
+</p>
+<p class="mt-1 min-w-0 w-full text-sm text-ink-soft [overflow-wrap:break-word] leading-relaxed">
+  {description}
+</p>
+{note && (
+  <p class="mt-1 min-w-0 w-full text-xs text-ink-soft/80 [overflow-wrap:break-word] leading-relaxed">
+    {note}
+  </p>
+)}
+{clickable && actionText && (
+  <span class="mt-3 inline-flex items-center gap-1 text-xs font-bold text-brand-orange-dark">
+    {actionText}
+    {external && <span class="sr-only">（新しいタブで開く）</span>}
+  </span>
+)}
