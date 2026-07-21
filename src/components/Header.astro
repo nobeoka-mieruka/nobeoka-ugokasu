@@ -25,14 +25,14 @@ function isCurrent(href: string, path: string) {
       />
     </a>
 
-    <nav aria-label="メインメニュー" class="hidden xl:block min-w-0">
-      <ul class="flex items-center gap-2 xl:gap-3">
+    <nav aria-label="メインメニュー" class="hidden md:block min-w-0 flex-1">
+      <ul class="flex flex-wrap items-center justify-end gap-x-[clamp(6px,1vw,20px)] gap-y-1">
         {headerNav.map((item) => (
-          <li>
+          <li class="min-w-0">
             <a
               href={item.href}
               class:list={[
-                "inline-block whitespace-nowrap rounded-lg px-1.5 py-2 text-[14px] font-bold transition-colors border-b-2",
+                "inline-block min-w-0 rounded-lg px-[clamp(4px,0.6vw,10px)] py-2 text-[clamp(12px,0.9vw,15px)] leading-snug font-bold transition-colors border-b-2 [overflow-wrap:break-word]",
                 isCurrent(item.href, currentPath)
                   ? "text-ink bg-brand-orange-light border-brand-orange-dark"
                   : "text-ink border-transparent hover:bg-brand-orange-light hover:border-brand-orange-dark",
@@ -47,10 +47,11 @@ function isCurrent(href: string, path: string) {
     </nav>
 
     {/*
-      1280〜1535px（xl帯）は、ナビゲーション項目自体がこの幅で既に目一杯のため、
-      アイコンを追加すると重なってしまう。2xl（1536px）から表示することで、
-      どの画面幅でも文字とアイコンが重ならないようにしている。
-      1536px未満でもフッターから常にFacebook/Instagramへアクセスできる。
+      768〜1535px（横並びナビゲーション表示中）は、ナビゲーション項目自体で
+      幅を使い切りやすいため、アイコンを追加すると窮屈になりやすい。
+      2xl（1536px）から表示することで、どの画面幅でも文字とアイコンが
+      重ならないようにしている。1536px未満でもフッターから常に
+      Facebook/Instagramへアクセスできる。
     */}
     <div class="hidden 2xl:flex flex-shrink-0 items-center">
       <SocialLinks />
