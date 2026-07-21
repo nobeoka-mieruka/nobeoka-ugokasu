@@ -5,6 +5,8 @@ import Breadcrumb from "../../components/Breadcrumb.astro";
 import SectionTitle from "../../components/SectionTitle.astro";
 import RelatedContent from "../../components/RelatedContent.astro";
 import Icon from "../../components/Icon.astro";
+import VoiceEngagementFlow from "../../components/VoiceEngagementFlow.astro";
+import VoiceSummaryPanel from "../../components/VoiceSummaryPanel.astro";
 import { voicesConfig } from "../../config/voicesConfig";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
@@ -50,6 +52,20 @@ const schemas = [
           <p class="text-sm text-ink-soft">どのように集め、整理しているかをご説明します。</p>
         </a>
       </div>
+    </div>
+  </section>
+
+  <section class="py-14 sm:py-20 bg-brand-ivory">
+    <div class="section-wrap max-w-4xl">
+      <SectionTitle title="受付から反映までの流れ" align="left" />
+      <VoiceEngagementFlow />
+    </div>
+  </section>
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-4xl">
+      <SectionTitle title="受付状況" align="left" />
+      <VoiceSummaryPanel />
     </div>
   </section>
 

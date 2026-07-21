@@ -10,9 +10,9 @@ import { visionHeading, visionSubtitle, visionProposals } from "../data/vision";
 import { webPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 
-const title = "福富千恵の提言｜福祉・子育て・暮らしやすい延岡へ";
+const title = "福富千恵の政策・提言｜延岡市の未来を考える";
 const description =
-  "福富千恵と延岡を動かす会の提言をご紹介します。福祉・介護、子育て、防災・避難の3つの分野で、支え合いと希望あふれる延岡を目指します。";
+  "福富千恵が取り組む政策や提言をご紹介します。福祉、子育て、高齢者支援、行政サービス改善などについて発信しています。";
 
 const breadcrumbItems = [{ name: "私たちの提言", path: "/vision" }];
 
@@ -46,14 +46,7 @@ const schemas = [
             <h2 class="text-2xl sm:text-3xl font-bold text-ink whitespace-pre-line">{proposal.title}</h2>
 
             <div class="mt-6">
-              <h3 class="text-lg font-bold text-ink">背景</h3>
-              <div class="mt-2 space-y-2 text-ink-soft leading-relaxed">
-                {proposal.background.map((p) => <p>{p}</p>)}
-              </div>
-            </div>
-
-            <div class="mt-6">
-              <h3 class="text-lg font-bold text-ink">現在感じている課題</h3>
+              <h3 class="text-lg font-bold text-ink">現状と課題</h3>
               <ul class="mt-2 space-y-1">
                 {proposal.currentIssues.map((issue) => (
                   <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
@@ -65,12 +58,19 @@ const schemas = [
             </div>
 
             <div class="mt-6">
-              <h3 class="text-lg font-bold text-ink">対象となる人</h3>
+              <h3 class="text-lg font-bold text-ink">なぜ取り組むのか</h3>
+              <div class="mt-2 space-y-2 text-ink-soft leading-relaxed">
+                {proposal.background.map((p) => <p>{p}</p>)}
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <h3 class="text-lg font-bold text-ink">対象となる市民</h3>
               <p class="mt-2 text-ink-soft leading-relaxed">{proposal.targetAudience}</p>
             </div>
 
             <div class="mt-6">
-              <h3 class="text-lg font-bold text-ink">提言の内容</h3>
+              <h3 class="text-lg font-bold text-ink">具体的な取り組み</h3>
               <ul class="mt-2 space-y-2">
                 {proposal.proposals.map((item) => (
                   <li class="flex items-start gap-2 font-bold text-ink">
@@ -79,11 +79,25 @@ const schemas = [
                   </li>
                 ))}
               </ul>
+              <p class="mt-3 text-ink-soft leading-relaxed">{proposal.administrativeAsk}</p>
             </div>
 
             <div class="mt-6">
-              <h3 class="text-lg font-bold text-ink">行政に求めること</h3>
-              <p class="mt-2 text-ink-soft leading-relaxed">{proposal.administrativeAsk}</p>
+              <h3 class="text-lg font-bold text-ink">実現へのステップ</h3>
+              <ul class="mt-2 space-y-2">
+                <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                  <span class="mt-0.5 flex-shrink-0 rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold text-ink">短期</span>
+                  <span>{proposal.implementationSteps.shortTerm}</span>
+                </li>
+                <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                  <span class="mt-0.5 flex-shrink-0 rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold text-ink">中期</span>
+                  <span>{proposal.implementationSteps.midTerm}</span>
+                </li>
+                <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                  <span class="mt-0.5 flex-shrink-0 rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold text-ink">長期</span>
+                  <span>{proposal.implementationSteps.longTerm}</span>
+                </li>
+              </ul>
             </div>
 
             <div class="mt-6">
@@ -92,7 +106,7 @@ const schemas = [
             </div>
 
             <div class="mt-6">
-              <h3 class="text-lg font-bold text-ink">市民の声</h3>
+              <h3 class="text-lg font-bold text-ink">市民の声との関係</h3>
               <p class="mt-2 text-ink-soft leading-relaxed">{proposal.citizenVoices}</p>
             </div>
 
@@ -118,7 +132,7 @@ const schemas = [
 
             {proposal.officialLinks.length > 0 && (
               <div class="mt-6">
-                <h3 class="text-lg font-bold text-ink">関連する公的資料・延岡市公式ページ</h3>
+                <h3 class="text-lg font-bold text-ink">関連資料（公的資料・延岡市公式ページ）</h3>
                 <ul class="mt-2 space-y-1">
                   {proposal.officialLinks.map((link) => (
                     <li>

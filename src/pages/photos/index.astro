@@ -1,0 +1,152 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import HeroSection from "../../components/HeroSection.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import Icon from "../../components/Icon.astro";
+import { getSortedPhotos, photoCategoryLabels } from "../../data/photos";
+import { webPageSchema } from "../../utils/structuredData";
+import { buildBreadcrumbList } from "../../utils/seo";
+
+const title = "活動写真｜福富千恵と延岡を動かす会";
+const description =
+  "福富千恵と延岡を動かす会の活動や地域との関わりを、写真でご紹介します。地域活動、市民との対話、福祉、子育てなど、現場の様子をお伝えします。";
+const breadcrumbItems = [{ name: "活動写真", path: "/photos" }];
+
+const photos = getSortedPhotos();
+
+const schemas = [
+  webPageSchema({ path: "/photos", name: title, description }),
+  buildBreadcrumbList(breadcrumbItems),
+];
+
+function formatDateLabel(iso?: string): string | undefined {
+  if (!iso) return undefined;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+}
+---
+
+<BaseLayout title={title} description={description} path="/photos" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection
+    title="活動写真"
+    eyebrow="活動写真"
+    description={"福富千恵と延岡を動かす会では、地域の皆さまとの対話や活動の様子を大切に記録しています。\n現場の声を聞き、地域の課題を知り、一緒により良い延岡を考える活動を続けています。"}
+  />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap">
+      {photos.length > 0 ? (
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4" data-photo-grid>
+          {photos.map((photo, index) => (
+            <button
+              type="button"
+              class="card p-0 overflow-hidden aspect-square min-w-0 group relative"
+              data-photo-trigger
+              data-photo-index={index}
+              aria-label={`拡大表示：${photo.title}`}
+            >
+              <img
+                src={photo.image}
+                alt={photo.alt ?? photo.title}
+                loading={index < 8 ? "eager" : "lazy"}
+                decoding="async"
+                width="480"
+                height="480"
+                class="w-full h-full object-cover transition-transform group-hover:scale-105"
+              />
+              <span class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
+                <span class="block text-xs font-bold text-white rounded-full bg-black/30 px-2 py-0.5 w-fit">
+                  {photoCategoryLabels[photo.category]}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-3">
+          <Icon name="document" class="w-10 h-10 text-brand-orange" />
+          <p class="text-lg">活動写真を順次掲載していきます。</p>
+        </div>
+      )}
+    </div>
+  </section>
+
+  {photos.length > 0 && (
+    <div
+      data-photo-lightbox
+      class="hidden fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 sm:p-8"
+      role="dialog"
+      aria-modal="true"
+      aria-label="写真の拡大表示"
+    >
+      <button
+        type="button"
+        data-photo-close
+        class="absolute top-4 right-4 inline-flex items-center justify-center w-11 h-11 rounded-full bg-white/10 text-white hover:bg-white/20"
+        aria-label="拡大表示を閉じる"
+      >
+        <Icon name="close" class="w-6 h-6" />
+      </button>
+      <div class="max-w-3xl w-full max-h-full flex flex-col items-center gap-4">
+        <img data-photo-lightbox-image src="" alt="" class="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-xl" />
+        <div class="text-center text-white px-2">
+          <p class="text-sm text-white/70" data-photo-lightbox-date></p>
+          <p class="mt-1 font-bold text-lg" data-photo-lightbox-title></p>
+          <p class="mt-1 text-sm text-white/85" data-photo-lightbox-description></p>
+        </div>
+      </div>
+    </div>
+  )}
+</BaseLayout>
+
+{photos.length > 0 && (
+  <script define:vars={{ photos: photos.map((p) => ({ ...p, dateLabel: formatDateLabel(p.date) })) }}>
+    const lightbox = document.querySelector("[data-photo-lightbox]");
+    const imageEl = document.querySelector("[data-photo-lightbox-image]");
+    const titleEl = document.querySelector("[data-photo-lightbox-title]");
+    const descEl = document.querySelector("[data-photo-lightbox-description]");
+    const dateEl = document.querySelector("[data-photo-lightbox-date]");
+    const closeButton = document.querySelector("[data-photo-close]");
+    let lastTrigger = null;
+
+    function openLightbox(index) {
+      const photo = photos[index];
+      if (!photo || !lightbox) return;
+      lastTrigger = document.activeElement;
+      if (imageEl) {
+        imageEl.src = photo.image;
+        imageEl.alt = photo.alt || photo.title;
+      }
+      if (titleEl) titleEl.textContent = photo.title;
+      if (descEl) descEl.textContent = photo.description || "";
+      if (dateEl) dateEl.textContent = photo.dateLabel || "";
+      lightbox.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      closeButton?.focus();
+    }
+
+    function closeLightbox() {
+      if (!lightbox) return;
+      lightbox.classList.add("hidden");
+      document.body.style.overflow = "";
+      if (lastTrigger instanceof HTMLElement) lastTrigger.focus();
+    }
+
+    document.querySelectorAll("[data-photo-trigger]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.photoIndex);
+        openLightbox(index);
+      });
+    });
+
+    closeButton?.addEventListener("click", closeLightbox);
+    lightbox?.addEventListener("click", (event) => {
+      if (event.target === lightbox) closeLightbox();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !lightbox?.classList.contains("hidden")) closeLightbox();
+    });
+  </script>
+)}

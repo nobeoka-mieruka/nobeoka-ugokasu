@@ -14,6 +14,12 @@ export type VisionProposal = {
   proposals: string[];
   /** 行政に求めること。個別に確定していない場合は自然な案内文を設定する */
   administrativeAsk: string;
+  /** 実現へのステップ（短期・中期・長期）。個別に確定していない場合は自然な案内文を設定する */
+  implementationSteps: {
+    shortTerm: string;
+    midTerm: string;
+    longTerm: string;
+  };
   targetChange: string;
   citizenVoices: string;
   reviewStatus: string;
@@ -47,6 +53,11 @@ export const visionProposals: VisionProposal[] = [
       "福祉職員の採用・研修・\n定着の支援",
     ],
     administrativeAsk: "現在、現場の声や既存制度を確認しながら、具体的な内容を整理しています。",
+    implementationSteps: {
+      shortTerm: "「みんなの声」を通じて、福祉・介護の現場の声や困りごとを幅広く集めています。",
+      midTerm: "現在、現場の声や既存制度を確認しながら、具体的な内容を整理しています。",
+      longTerm: "現在、現場の声や既存制度を確認しながら、具体的な内容を整理しています。",
+    },
     targetChange:
       "支える人も、支えられる人も、安心して暮らせる延岡を目指します。",
     citizenVoices:
@@ -74,6 +85,11 @@ export const visionProposals: VisionProposal[] = [
       "子どもサポート団体への支援事業",
     ],
     administrativeAsk: "現在、現場の声や既存制度を確認しながら、具体的な内容を整理しています。",
+    implementationSteps: {
+      shortTerm: "「みんなの声」を通じて、子育て世帯の声や困りごとを幅広く集めています。",
+      midTerm: "現在、現場の声や既存制度を確認しながら、具体的な内容を整理しています。",
+      longTerm: "現在、現場の声や既存制度を確認しながら、具体的な内容を整理しています。",
+    },
     targetChange: "安心して子育てできる延岡を目指します。",
     citizenVoices:
       "「みんなの声」を通じて、子育てに関するご意見を募集しています。寄せられた声はこのページへ順次反映していきます。",
@@ -101,6 +117,11 @@ export const visionProposals: VisionProposal[] = [
       "避難所機能強化\n（医療・福祉面）",
     ],
     administrativeAsk: "現在、現場の声や既存制度を確認しながら、具体的な内容を整理しています。",
+    implementationSteps: {
+      shortTerm: "「みんなの声」を通じて、防災・避難に関する不安や困りごとを幅広く集めています。",
+      midTerm: "現在、現場の声や既存制度を確認しながら、具体的な内容を整理しています。",
+      longTerm: "現在、現場の声や既存制度を確認しながら、具体的な内容を整理しています。",
+    },
     targetChange: "災害時に命を守れる延岡を目指します。",
     citizenVoices:
       "「みんなの声」を通じて、防災・避難に関するご意見を募集しています。寄せられた声はこのページへ順次反映していきます。",

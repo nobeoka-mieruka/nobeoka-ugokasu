@@ -57,10 +57,25 @@ const schemas = [
 
       {proposal && (
         <div class:list={["border-l-4 pl-6 mb-10", accentClass.border]}>
-          <h2 class="font-bold text-ink">対象となる人</h2>
+          <h2 class="font-bold text-ink">現状と課題</h2>
+          <ul class="mt-2 space-y-1">
+            {proposal.currentIssues.map((issue) => (
+              <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                <span class="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-ink-soft"></span>
+                <span>{issue}</span>
+              </li>
+            ))}
+          </ul>
+
+          <h2 class="mt-6 font-bold text-ink">なぜ取り組むのか</h2>
+          <div class="mt-2 space-y-2 text-ink-soft leading-relaxed">
+            {proposal.background.map((p) => <p>{p}</p>)}
+          </div>
+
+          <h2 class="mt-6 font-bold text-ink">対象となる市民</h2>
           <p class="mt-2 text-ink-soft leading-relaxed">{proposal.targetAudience}</p>
 
-          <h2 class="mt-6 font-bold text-ink">提言の内容</h2>
+          <h2 class="mt-6 font-bold text-ink">具体的な取り組み</h2>
           <ul class="mt-2 space-y-2">
             {proposal.proposals.map((item) => (
               <li class="flex items-start gap-2 font-bold text-ink">
@@ -69,16 +84,33 @@ const schemas = [
               </li>
             ))}
           </ul>
+          <p class="mt-3 text-ink-soft leading-relaxed">{proposal.administrativeAsk}</p>
 
-          <h2 class="mt-6 font-bold text-ink">行政に求めること</h2>
-          <p class="mt-2 text-ink-soft leading-relaxed">{proposal.administrativeAsk}</p>
+          <h2 class="mt-6 font-bold text-ink">実現へのステップ</h2>
+          <ul class="mt-2 space-y-2">
+            <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+              <span class="mt-0.5 flex-shrink-0 rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold text-ink">短期</span>
+              <span>{proposal.implementationSteps.shortTerm}</span>
+            </li>
+            <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+              <span class="mt-0.5 flex-shrink-0 rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold text-ink">中期</span>
+              <span>{proposal.implementationSteps.midTerm}</span>
+            </li>
+            <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+              <span class="mt-0.5 flex-shrink-0 rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold text-ink">長期</span>
+              <span>{proposal.implementationSteps.longTerm}</span>
+            </li>
+          </ul>
+
+          <h2 class="mt-6 font-bold text-ink">市民の声との関係</h2>
+          <p class="mt-2 text-ink-soft leading-relaxed">{proposal.citizenVoices}</p>
 
           <h2 class="mt-6 font-bold text-ink">現在の検討状況</h2>
           <p class="mt-2 text-ink-soft leading-relaxed">{proposal.reviewStatus}</p>
 
           {proposal.officialLinks.length > 0 && (
             <>
-              <h2 class="mt-6 font-bold text-ink">関連する公的資料・延岡市公式ページ</h2>
+              <h2 class="mt-6 font-bold text-ink">関連資料（公的資料・延岡市公式ページ）</h2>
               <ul class="mt-2 space-y-1">
                 {proposal.officialLinks.map((link) => (
                   <li>

@@ -10,6 +10,7 @@ export type NavItem = {
 const videoNavItem: NavItem = { label: "動画", href: "/videos/" };
 
 const cityGuideNavItem: NavItem = { label: "市役所案内", href: "/city-guide/" };
+const photosNavItem: NavItem = { label: "活動写真", href: "/photos/" };
 
 export const headerNav: NavItem[] = [
   { label: "ホーム", href: "/" },
@@ -29,6 +30,7 @@ export const footerNav: NavItem[] = [
   { label: "福富千恵について", href: "/profile/" },
   { label: "私たちの提言", href: "/vision/" },
   { label: "活動報告", href: "/activities/" },
+  photosNavItem,
   { label: "みんなの声", href: "/voices/" },
   videoNavItem,
   cityGuideNavItem,

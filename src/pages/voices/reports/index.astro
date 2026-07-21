@@ -4,6 +4,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import HeroSection from "../../../components/HeroSection.astro";
 import Breadcrumb from "../../../components/Breadcrumb.astro";
 import VoiceReportCard from "../../../components/VoiceReportCard.astro";
+import VoiceSummaryPanel from "../../../components/VoiceSummaryPanel.astro";
 import Icon from "../../../components/Icon.astro";
 import { webPageSchema } from "../../../utils/structuredData";
 import { buildBreadcrumbList } from "../../../utils/seo";
@@ -28,6 +29,12 @@ const schemas = [
 <BaseLayout title={title} description={description} path="/voices/reports" schemas={schemas}>
   <Breadcrumb items={breadcrumbItems} />
   <HeroSection title="分析結果一覧" eyebrow="みんなの声" description="寄せられた声を整理した分析結果を公開しています。" />
+
+  <section class="py-10 sm:py-14">
+    <div class="section-wrap max-w-4xl">
+      <VoiceSummaryPanel />
+    </div>
+  </section>
 
   <section class="py-14 sm:py-20">
     <div class="section-wrap">

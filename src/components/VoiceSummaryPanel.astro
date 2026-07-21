@@ -1,0 +1,59 @@
+---
+// 「みんなの声」の受付・整理状況の要約表示です。実データがない項目は、
+// 架空の数字を出さず自然な案内文に切り替わります（src/data/voicesSummary.ts参照）。
+import { voicesSummary } from "../data/voicesSummary";
+
+const hasTotal = typeof voicesSummary.total === "number";
+const hasCategories = voicesSummary.categories.length > 0;
+const hasStatus = voicesSummary.status.length > 0;
+const updatedLabel = voicesSummary.updatedAt
+  ? new Date(voicesSummary.updatedAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })
+  : undefined;
+---
+
+<div class="card">
+  <h3 class="font-bold text-ink text-lg mb-4">受付状況</h3>
+  <div class="grid gap-6 sm:grid-cols-3">
+    <div class="min-w-0">
+      <p class="text-sm font-bold text-ink-soft mb-1">受付件数</p>
+      {hasTotal ? (
+        <p class="text-3xl font-bold text-ink">
+          {voicesSummary.total}<span class="ml-1 text-base font-bold text-ink-soft">件</span>
+        </p>
+      ) : (
+        <p class="text-ink-soft leading-relaxed">現在集計中</p>
+      )}
+    </div>
+    <div class="min-w-0">
+      <p class="text-sm font-bold text-ink-soft mb-1">分類</p>
+      {hasCategories ? (
+        <ul class="space-y-1">
+          {voicesSummary.categories.map((c) => (
+            <li class="flex items-center justify-between gap-2 text-sm text-ink">
+              <span class="min-w-0 [overflow-wrap:break-word]">{c.label}</span>
+              <span class="flex-shrink-0 font-bold">{c.count}件</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="text-ink-soft leading-relaxed">順次整理しています</p>
+      )}
+    </div>
+    <div class="min-w-0">
+      <p class="text-sm font-bold text-ink-soft mb-1">対応状況</p>
+      {hasStatus ? (
+        <ul class="space-y-1">
+          {voicesSummary.status.map((s) => (
+            <li class="flex items-center justify-between gap-2 text-sm text-ink">
+              <span class="min-w-0 [overflow-wrap:break-word]">{s.label}</span>
+              <span class="flex-shrink-0 font-bold">{s.count}件</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="text-ink-soft leading-relaxed">内容を確認し、今後の活動や提言へ活用します</p>
+      )}
+    </div>
+  </div>
+  {updatedLabel && <p class="mt-4 text-xs text-ink-soft">更新日：{updatedLabel}</p>}
+</div>
