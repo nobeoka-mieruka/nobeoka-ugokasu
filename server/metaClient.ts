@@ -33,8 +33,10 @@ export interface FacebookPostRaw {
 }
 
 /**
- * Graph APIがエラー時に返すerrorオブジェクト。messageも含めてアクセストークンの値は
- * 一切含まれない（Meta公式仕様上、エラーメッセージにトークン文字列が含まれることはない）。
+ * Graph APIがエラー時に返すerrorオブジェクト。
+ * 注意：messageフィールドには、エラーの種類によってはアクセストークンの値そのものが
+ * Meta側から含まれて返ってくることがある（例：「Malformed access token <トークン文字列>」）。
+ * ログへ残す前に必ず redactSecrets() を通すこと。
  */
 interface GraphApiError {
   message?: string;
@@ -48,14 +50,23 @@ interface FacebookPostsResponse {
   error?: GraphApiError;
 }
 
-/** ログ出力用に、原因特定に必要な範囲だけを安全な文字列へまとめる（トークンは含まない） */
+/**
+ * Meta Graph APIのアクセストークンは20文字以上の英数字・アンダースコア・ハイフンの
+ * 連続した文字列であるため、その形状に一致する部分をすべて伏せ字にする。
+ * エラーメッセージにトークンの値がそのまま含まれるケースがあるための対策。
+ */
+function redactSecrets(text: string): string {
+  return text.replace(/[A-Za-z0-9_-]{20,}/g, "[REDACTED]");
+}
+
+/** ログ出力用に、原因特定に必要な範囲だけを安全な文字列へまとめる（トークン等は伏せ字化する） */
 function describeGraphApiError(httpStatus: number, error: GraphApiError | undefined): string {
   const detail = {
     httpStatus,
     type: error?.type ?? null,
     code: error?.code ?? null,
     subcode: error?.error_subcode ?? null,
-    message: error?.message ? error.message.slice(0, 300) : null,
+    message: error?.message ? redactSecrets(error.message.slice(0, 300)) : null,
   };
   return JSON.stringify(detail);
 }
