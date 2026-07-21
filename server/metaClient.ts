@@ -32,9 +32,32 @@ export interface FacebookPostRaw {
   };
 }
 
+/**
+ * Graph APIがエラー時に返すerrorオブジェクト。messageも含めてアクセストークンの値は
+ * 一切含まれない（Meta公式仕様上、エラーメッセージにトークン文字列が含まれることはない）。
+ */
+interface GraphApiError {
+  message?: string;
+  type?: string;
+  code?: number;
+  error_subcode?: number;
+}
+
 interface FacebookPostsResponse {
   data?: FacebookPostRaw[];
-  error?: { message?: string; type?: string; code?: number };
+  error?: GraphApiError;
+}
+
+/** ログ出力用に、原因特定に必要な範囲だけを安全な文字列へまとめる（トークンは含まない） */
+function describeGraphApiError(httpStatus: number, error: GraphApiError | undefined): string {
+  const detail = {
+    httpStatus,
+    type: error?.type ?? null,
+    code: error?.code ?? null,
+    subcode: error?.error_subcode ?? null,
+    message: error?.message ? error.message.slice(0, 300) : null,
+  };
+  return JSON.stringify(detail);
 }
 
 export async function fetchFacebookPosts(params: {
@@ -56,7 +79,7 @@ export async function fetchFacebookPosts(params: {
   const body = (await res.json()) as FacebookPostsResponse;
 
   if (!res.ok || body.error) {
-    throw new Error(`facebook_api_error:${body.error?.type ?? res.status}`);
+    throw new Error(`facebook_api_error:${describeGraphApiError(res.status, body.error)}`);
   }
 
   return body.data ?? [];
@@ -87,7 +110,7 @@ export interface InstagramMediaRaw {
 
 interface InstagramMediaResponse {
   data?: InstagramMediaRaw[];
-  error?: { message?: string; type?: string; code?: number };
+  error?: GraphApiError;
 }
 
 export async function fetchInstagramMedia(params: {
@@ -108,7 +131,7 @@ export async function fetchInstagramMedia(params: {
   const body = (await res.json()) as InstagramMediaResponse;
 
   if (!res.ok || body.error) {
-    throw new Error(`instagram_api_error:${body.error?.type ?? res.status}`);
+    throw new Error(`instagram_api_error:${describeGraphApiError(res.status, body.error)}`);
   }
 
   // media_product_type が "STORY" のものは24時間で消えるストーリーズのため対象外にする

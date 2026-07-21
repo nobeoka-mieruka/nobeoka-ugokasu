@@ -7,7 +7,7 @@
 import type { SocialFeedStatus, SocialPostsResponse } from "../src/types/social";
 import type { SocialSyncEnv } from "./env";
 import { readCache } from "./kv";
-import { runSocialSync } from "./socialSync";
+import { runSocialSync, summarizeForLog } from "./socialSync";
 
 /** キャッシュをどれだけの間「新しい」とみなすか（10〜15分の目安の中央値） */
 const FRESH_TTL_MS = 12 * 60 * 1000;
@@ -26,6 +26,15 @@ export async function getSocialFeed(env: SocialSyncEnv): Promise<SocialPostsResp
 
   if (result.ok) {
     return { posts: result.posts, updatedAt: result.updatedAt, stale: false, status: result.status, fetchFailed: false };
+  }
+
+  if (result.facebookError || result.instagramError) {
+    // 訪問者アクセスをきっかけにした自動同期の失敗も、手動同期と同様にCloudflare
+    // Functionsログへ残す（トークン等の秘密情報は含まない。server/socialSync.tsの
+    // summarizeForLog参照）。これが無いと、ページ閲覧時に発生した実際の取得失敗が
+    // ログ上どこにも残らず、原因調査ができなくなる。
+    // eslint-disable-next-line no-console
+    console.error(JSON.stringify(summarizeForLog(result)));
   }
 
   // 取得できなかった（未設定 or 失敗）。previousキャッシュがあればそれを返す。

@@ -16,8 +16,11 @@ async function handleGet(context: Parameters<PagesFunction<SocialSyncEnv>>[0]): 
 
   try {
     body = await getSocialFeed(context.env);
-  } catch {
-    // KVバインディング未設定など、想定外の問題が起きても、ページ全体を壊さないよう空の結果を返す
+  } catch (err) {
+    // KVバインディング未設定など、想定外の問題が起きても、ページ全体を壊さないよう空の結果を返す。
+    // 原因調査のため、エラーメッセージのみ（秘密情報は含まない）Cloudflare Functionsログへ残す。
+    // eslint-disable-next-line no-console
+    console.error("social-feed: unexpected error", err instanceof Error ? err.message : "unknown_error");
     body = { posts: [], updatedAt: null, stale: true, status: DEFAULT_STATUS, fetchFailed: true };
   }
 
