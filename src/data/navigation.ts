@@ -1,16 +1,13 @@
 // ヘッダー・フッターのナビゲーション項目（7章・32章）
 
-import { videos } from "./videos";
-
 export type NavItem = {
   label: string;
   href: string;
 };
 
-// 動画ページへのナビゲーションは、既存メニューを圧迫しないよう、
-// 動画が1件以上登録されるまでは表示しません（videos配下参照）。
+// /videosページはYouTube連携が未設定の間も「動画は準備中です」を表示できるため、
+// 他のメニュー項目と同様、常にナビゲーションへ含める。
 const videoNavItem: NavItem = { label: "動画", href: "/videos/" };
-const hasVideos = videos.length > 0;
 
 const cityGuideNavItem: NavItem = { label: "市役所案内", href: "/city-guide/" };
 
@@ -20,7 +17,7 @@ export const headerNav: NavItem[] = [
   { label: "私たちの提言", href: "/vision/" },
   { label: "活動報告", href: "/activities/" },
   { label: "みんなの声", href: "/voices/" },
-  ...(hasVideos ? [videoNavItem] : []),
+  videoNavItem,
   cityGuideNavItem,
   { label: "後援会について", href: "/supporters/" },
   { label: "後援会に入会する", href: "/supporters/join/" },
@@ -33,7 +30,7 @@ export const footerNav: NavItem[] = [
   { label: "私たちの提言", href: "/vision/" },
   { label: "活動報告", href: "/activities/" },
   { label: "みんなの声", href: "/voices/" },
-  ...(hasVideos ? [videoNavItem] : []),
+  videoNavItem,
   cityGuideNavItem,
   { label: "後援会について", href: "/supporters/" },
   { label: "後援会に入会する", href: "/supporters/join/" },

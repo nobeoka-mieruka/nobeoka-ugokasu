@@ -17,7 +17,7 @@ import { videos } from "../data/videos";
 import { organizationSchema, personSchema, websiteSchema, webPageSchema } from "../utils/structuredData";
 import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
 
-const title = "福富千恵と延岡を動かす会｜あなたと、延岡を動かす";
+const title = "福富千恵と延岡を動かす会｜あなたと、延岡を動かす！";
 const description =
   "福富千恵と延岡を動かす会の公式ホームページ。福富千恵のプロフィール、延岡への提言、活動報告、みんなの声（ブロードリスニング）を発信しています。";
 
@@ -93,7 +93,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
             だからこそ、<br />
             わかる思いがあります。
           </p>
-          <p class="mt-8 text-[40px] sm:text-[52px] lg:text-[56px] leading-[1.15] font-bold text-brand-orange-dark">
+          <p class="mt-8 text-[clamp(1.75rem,7vw,3.5rem)] leading-[1.15] font-bold text-brand-orange-dark">
             <span class="whitespace-nowrap">あなたと、</span><span class="whitespace-nowrap">延岡を動かす！</span>
           </p>
           <div class="mt-8">
@@ -102,9 +102,8 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
           </div>
           <div class="mt-10 flex flex-wrap gap-4">
             <a href="/profile/" class="btn-primary">福富千恵について</a>
-            <a href="/vision/" class="btn-secondary">私たちの提言</a>
-            <a href="/voices/" class="btn-secondary">みんなの声</a>
-            <a href="/activities/" class="btn-secondary">活動報告を見る</a>
+            <a href="/vision/" class="btn-secondary">提言を見る</a>
+            <a href="/voices/submit/" class="btn-secondary">みんなの声を届ける</a>
           </div>
         </div>
         <div class="order-1 lg:order-2 relative rounded-[2rem] overflow-hidden p-4 sm:p-6 md:p-8 lg:p-10">

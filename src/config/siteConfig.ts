@@ -53,14 +53,12 @@ export const siteConfig = {
    * 事務局への連絡先メールアドレス。
    * ホームページ・Googleフォーム・掲載内容・後援会事務局へのお問い合わせなど、
    * 一般のお問い合わせ全般に使用します。
-   * 2026年7月時点で、事務局連絡先と本人連絡先（personalEmail）は同じアドレスに統一されています。
    */
-  email: "fukutomichie1227@gmail.com",
+  email: "nobeoka.ugokasu.contact@gmail.com",
 
   /**
    * 福富千恵本人への連絡先メールアドレス。
-   * プロフィールページの「本人への連絡」欄で使用します。
-   * 現時点ではemailと同じ値です（将来、事務局と本人の連絡先を分ける場合はこちらだけ変更してください）。
+   * プロフィールページの「本人への連絡」欄でのみ使用します（事務局宛のemailとは別に管理）。
    */
   personalEmail: "fukutomichie1227@gmail.com",
 

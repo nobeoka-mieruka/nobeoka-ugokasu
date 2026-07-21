@@ -10,7 +10,7 @@ import { visionHeading, visionSubtitle, visionProposals } from "../data/vision";
 import { webPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 
-const title = "福富千恵の提言｜福祉・子育て・防災から考える延岡";
+const title = "福富千恵の提言｜福祉・子育て・暮らしやすい延岡へ";
 const description =
   "福富千恵と延岡を動かす会の提言をご紹介します。福祉・介護、子育て、防災・避難の3つの分野で、支え合いと希望あふれる延岡を目指します。";
 
@@ -65,6 +65,11 @@ const schemas = [
             </div>
 
             <div class="mt-6">
+              <h3 class="text-lg font-bold text-ink">対象となる人</h3>
+              <p class="mt-2 text-ink-soft leading-relaxed">{proposal.targetAudience}</p>
+            </div>
+
+            <div class="mt-6">
               <h3 class="text-lg font-bold text-ink">提言の内容</h3>
               <ul class="mt-2 space-y-2">
                 {proposal.proposals.map((item) => (
@@ -74,6 +79,11 @@ const schemas = [
                   </li>
                 ))}
               </ul>
+            </div>
+
+            <div class="mt-6">
+              <h3 class="text-lg font-bold text-ink">行政に求めること</h3>
+              <p class="mt-2 text-ink-soft leading-relaxed">{proposal.administrativeAsk}</p>
             </div>
 
             <div class="mt-6">
@@ -105,6 +115,23 @@ const schemas = [
                 <p class="mt-2 text-ink-soft">関連する活動報告は準備中です。</p>
               )}
             </div>
+
+            {proposal.officialLinks.length > 0 && (
+              <div class="mt-6">
+                <h3 class="text-lg font-bold text-ink">関連する公的資料・延岡市公式ページ</h3>
+                <ul class="mt-2 space-y-1">
+                  {proposal.officialLinks.map((link) => (
+                    <li>
+                      <a href={link.href} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-ink font-bold hover:underline">
+                        {link.label}
+                        <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+                        <Icon name="external-link" class="w-4 h-4" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div class="mt-6">
               <LastUpdated date={proposal.lastUpdated || undefined} />

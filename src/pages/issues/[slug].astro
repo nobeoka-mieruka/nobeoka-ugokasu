@@ -5,6 +5,7 @@ import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import RelatedContent from "../../components/RelatedContent.astro";
 import Icon from "../../components/Icon.astro";
+import LastUpdated from "../../components/LastUpdated.astro";
 import { getVisionProposal } from "../../data/vision";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
@@ -50,13 +51,16 @@ const schemas = [
       {entry.data.draft && (
         <div class="mb-8 rounded-xl bg-brand-orange-light px-5 py-4 flex items-start gap-3 text-sm text-ink">
           <Icon name="document" class="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <p>このページは内容を充実させている段階です。最新情報は<a href="/vision/" class="underline font-bold">私たちの提言</a>ページをご覧ください。</p>
+          <p>現在、現場の声や既存制度を確認しながら、このテーマの内容を整理しています。最新の状況は<a href="/vision/" class="underline font-bold">私たちの提言</a>ページでご確認いただけます。</p>
         </div>
       )}
 
       {proposal && (
         <div class:list={["border-l-4 pl-6 mb-10", accentClass.border]}>
-          <h2 class="font-bold text-ink">提言の内容</h2>
+          <h2 class="font-bold text-ink">対象となる人</h2>
+          <p class="mt-2 text-ink-soft leading-relaxed">{proposal.targetAudience}</p>
+
+          <h2 class="mt-6 font-bold text-ink">提言の内容</h2>
           <ul class="mt-2 space-y-2">
             {proposal.proposals.map((item) => (
               <li class="flex items-start gap-2 font-bold text-ink">
@@ -65,7 +69,33 @@ const schemas = [
               </li>
             ))}
           </ul>
-          <p class="mt-4 text-ink-soft leading-relaxed">{proposal.reviewStatus}</p>
+
+          <h2 class="mt-6 font-bold text-ink">行政に求めること</h2>
+          <p class="mt-2 text-ink-soft leading-relaxed">{proposal.administrativeAsk}</p>
+
+          <h2 class="mt-6 font-bold text-ink">現在の検討状況</h2>
+          <p class="mt-2 text-ink-soft leading-relaxed">{proposal.reviewStatus}</p>
+
+          {proposal.officialLinks.length > 0 && (
+            <>
+              <h2 class="mt-6 font-bold text-ink">関連する公的資料・延岡市公式ページ</h2>
+              <ul class="mt-2 space-y-1">
+                {proposal.officialLinks.map((link) => (
+                  <li>
+                    <a href={link.href} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-ink font-bold hover:underline">
+                      {link.label}
+                      <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+                      <Icon name="external-link" class="w-4 h-4" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <div class="mt-6">
+            <LastUpdated date={proposal.lastUpdated || undefined} />
+          </div>
         </div>
       )}
 

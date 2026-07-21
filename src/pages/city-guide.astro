@@ -11,7 +11,7 @@ import { cityGuideCategories, cityDepartments, generalGuidanceDeptId } from "../
 import { webPageSchema, organizationSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 
-const title = "延岡市役所 どこに行けばいい？診断｜福富千恵と延岡を動かす会";
+const title = "延岡市役所 どこに行けばいい？診断｜非公式窓口案内";
 const description =
   "住民票、税金、子育て、介護、ごみ、道路など、延岡市役所のどこに相談すればよいかを、質問に答えるだけで確認できる案内ページです。";
 const breadcrumbItems = [{ name: "延岡市役所 どこに行けばいい？診断", path: "/city-guide" }];
@@ -142,6 +142,7 @@ const schemas = [
     const nameEl = app?.querySelector("[data-cg-result-name]");
     const summaryEl = app?.querySelector("[data-cg-result-summary]");
     const linkEl = app?.querySelector("[data-cg-official-link]");
+    const confirmedEl = app?.querySelector("[data-cg-last-confirmed]");
     if (nameEl) nameEl.textContent = department.name;
     if (summaryEl) summaryEl.textContent = department.summary;
     if (linkEl instanceof HTMLAnchorElement) {
@@ -150,6 +151,14 @@ const schemas = [
         linkEl.hidden = false;
       } else {
         linkEl.hidden = true;
+      }
+    }
+    if (confirmedEl) {
+      if (department.lastConfirmedAt) {
+        confirmedEl.textContent = `情報の最終確認日：${department.lastConfirmedAt}`;
+        confirmedEl.hidden = false;
+      } else {
+        confirmedEl.hidden = true;
       }
     }
     showScreen("result");

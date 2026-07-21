@@ -20,6 +20,8 @@ export interface CityDepartment {
   summary: string;
   /** 公式ページURL（未設定の間はボタンを表示しません） */
   officialUrl?: string;
+  /** この案内内容を最終確認した日（"YYYY-MM-DD"）。未設定の間は表示しません */
+  lastConfirmedAt?: string;
 }
 
 export interface CityGuideQuestion {

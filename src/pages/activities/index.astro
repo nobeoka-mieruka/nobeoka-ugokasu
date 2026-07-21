@@ -13,7 +13,7 @@ import { getSortedSnsActivities, hasSnsActivityFor } from "../../data/snsActivit
 import { socialLinks } from "../../data/socialLinks";
 import { socialConfig } from "../../config/socialConfig";
 
-const title = "福富千恵の活動報告｜延岡市での地域活動";
+const title = "活動報告｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会が延岡市内で行った活動の報告一覧です。実施の目的や参加者の声、今後の対応をお伝えします。";
 const breadcrumbItems = [{ name: "活動報告", path: "/activities" }];
 
@@ -68,7 +68,10 @@ const schemas = [
         class="hidden mb-6 rounded-xl border-2 border-brand-orange-dark/30 bg-brand-orange-light/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3"
         role="status"
       >
-        <p class="text-sm text-ink">現在、最新の活動報告を取得できません。しばらくしてから再度お試しください。</p>
+        <p class="text-sm text-ink">
+          現在、SNSの最新投稿を読み込めません。<br class="hidden sm:block" />
+          最新の活動は、FacebookまたはInstagramからご覧いただけます。
+        </p>
         {officialSnsLinks.length > 0 && (
           <div class="flex flex-wrap gap-2 sm:ml-auto">
             {officialSnsLinks.map((link) => (
@@ -121,12 +124,12 @@ const schemas = [
       <div data-empty-for="all" class:list={["mt-6 card text-center py-16 text-ink-soft flex flex-col items-center gap-6", hasAnyActivity && "hidden"]}>
         <Icon name="document" class="w-10 h-10 text-brand-orange" />
         <p class="text-lg">活動報告は準備中です。</p>
-        <div>
+        <div data-sns-invite>
           <p class="font-bold text-ink">{snsInviteHeading}</p>
           <p class="mt-1">{snsInviteDescription}</p>
         </div>
         {officialSnsLinks.length > 0 && (
-          <div class="flex flex-wrap justify-center gap-3">
+          <div data-sns-invite class="flex flex-wrap justify-center gap-3">
             {officialSnsLinks.map((link) => (
               <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
                 {link.label}
@@ -145,12 +148,12 @@ const schemas = [
       <div data-empty-for="facebook" class:list={["mt-6", !hasFacebook ? "" : "hidden"]}>
         <div class="card text-center py-10 flex flex-col items-center gap-4">
           <Icon name="facebook" class="w-8 h-8 text-sns-facebook" />
-          <div>
+          <div data-sns-invite>
             <p class="font-bold text-ink">{snsInviteHeading}</p>
             <p class="mt-1 text-ink-soft">{snsInviteDescription}</p>
           </div>
           {officialSnsLinks.length > 0 && (
-            <div class="flex flex-wrap justify-center gap-3">
+            <div data-sns-invite class="flex flex-wrap justify-center gap-3">
               {officialSnsLinks.map((link) => (
                 <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
                   {link.label}
@@ -165,12 +168,12 @@ const schemas = [
       <div data-empty-for="instagram" class:list={["mt-6", !hasInstagram ? "" : "hidden"]}>
         <div class="card text-center py-10 flex flex-col items-center gap-4">
           <Icon name="instagram" class="w-8 h-8 text-brand-orange-dark" />
-          <div>
+          <div data-sns-invite>
             <p class="font-bold text-ink">{snsInviteHeading}</p>
             <p class="mt-1 text-ink-soft">{snsInviteDescription}</p>
           </div>
           {officialSnsLinks.length > 0 && (
-            <div class="flex flex-wrap justify-center gap-3">
+            <div data-sns-invite class="flex flex-wrap justify-center gap-3">
               {officialSnsLinks.map((link) => (
                 <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
                   {link.label}
@@ -268,6 +271,13 @@ const schemas = [
     // Meta APIへの取得自体が失敗した場合のみ案内を出す（未設定の場合は既存の空表示に任せる）
     const errorBanner = document.querySelector<HTMLElement>("[data-sns-fetch-error]");
     errorBanner?.classList.toggle("hidden", !fetchFailed);
+
+    // 取得失敗時は、上のエラー案内（Facebook/Instagramボタン付き）とほぼ同内容の
+    // 「SNSでも活動を発信しています」案内が空状態カード内にも重複して表示されて
+    // しまうため、取得失敗時だけそちらを隠す（未設定・0件時はこれまで通り表示する）。
+    document.querySelectorAll<HTMLElement>("[data-sns-invite]").forEach((el) => {
+      el.classList.toggle("hidden", fetchFailed);
+    });
 
     // 投稿が0件・取得失敗の場合でも、既存の絞り込み状態を再評価してもらう
     document.dispatchEvent(new CustomEvent("social-posts:updated"));
