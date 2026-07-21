@@ -21,22 +21,60 @@ const {
   tertiaryHref,
 } = Astro.props;
 
-// 狭い画面幅で「動かす」のような複合語の途中に改行が入らないよう、
-// 該当箇所だけ折り返し禁止（white-space: nowrap）で保護する
-function protectWords(text: string): string {
-  const escaped = text
+function escapeHtml(text: string): string {
+  return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  return escaped
+}
+
+// 狭い画面幅で「動かす」のような複合語の途中に改行が入らないよう、
+// 該当箇所だけ折り返し禁止（white-space: nowrap）で保護する
+function protectWords(escapedText: string): string {
+  return escapedText
     .replace(/動かす/g, '<span style="white-space:nowrap">動かす</span>')
     .replace(/政治団体/g, '<span style="white-space:nowrap">政治団体</span>');
 }
+
+/*
+ * 日本語は単語間にスペースがないため、ブラウザは文字と文字の間を自由な
+ * 改行位置とみなす（例：「延岡」が「延／岡」に分かれる）。
+ * "|" で区切られた呼び出し元（意味のまとまりごとに分割済み）に対しては、
+ * まとまりごとに white-space:nowrap の inline-block spanで包み、
+ * まとまりの内部では改行させず、まとまり同士の間（半角スペース）でのみ
+ * 折り返すようにする。"\n" は強制改行（見出し・段落の区切り）。
+ * "|" を含まない呼び出し元は、従来どおりの表示（protectWordsのみ）を維持する。
+ */
+function renderText(text: string, phraseClass: string): string {
+  if (!text.includes("|")) {
+    return protectWords(escapeHtml(text)).replace(/\n/g, "<br />");
+  }
+  return text
+    .split("\n")
+    .map((line) =>
+      line
+        .split("|")
+        .map((phrase) => `<span class="${phraseClass}">${protectWords(escapeHtml(phrase))}</span>`)
+        .join(" ")
+    )
+    .join("<br />");
+}
+
+const hasPhrases = heading.includes("|") || description.includes("|");
 ---
 
 <div class="rounded-3xl bg-ink text-white px-8 py-12 sm:px-12 sm:py-16 text-center">
-  <h2 class="text-3xl sm:text-4xl font-bold whitespace-pre-line" set:html={protectWords(heading)} />
-  <p class="mt-5 text-lg sm:text-xl text-white/80 leading-relaxed max-w-2xl mx-auto whitespace-pre-line" set:html={protectWords(description)} />
+  <h2
+    class:list={["font-bold", hasPhrases ? "contact-heading" : "text-3xl sm:text-4xl whitespace-pre-line"]}
+    set:html={renderText(heading, "heading-phrase")}
+  />
+  <p
+    class:list={[
+      "mt-5 text-white/80 mx-auto",
+      hasPhrases ? "contact-description" : "text-lg sm:text-xl leading-relaxed max-w-2xl whitespace-pre-line",
+    ]}
+    set:html={renderText(description, "phrase")}
+  />
   <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
     <a href={primaryHref} class="btn-primary">{primaryLabel}</a>
     {secondaryLabel && secondaryHref && (
@@ -51,3 +89,36 @@ function protectWords(text: string): string {
     )}
   </div>
 </div>
+
+<style>
+  /*
+   * hasPhrases（"|"区切り指定）が有効な場合のみ適用。
+   * まとまり(span)は white-space: nowrap の inline-block とし、
+   * まとまり同士の間の半角スペースでのみ折り返しが起こるようにする。
+   */
+  .contact-heading {
+    font-size: clamp(1.5rem, 7vw, 3rem);
+    line-height: 1.35;
+    text-align: center;
+    word-break: normal;
+    overflow-wrap: normal;
+    line-break: strict;
+    text-wrap: balance;
+  }
+
+  .contact-description {
+    max-width: 42rem;
+    font-size: clamp(1rem, 4vw, 1.375rem);
+    line-height: 1.9;
+    text-align: center;
+    word-break: normal;
+    overflow-wrap: normal;
+    line-break: strict;
+  }
+
+  .contact-heading :global(.heading-phrase),
+  .contact-description :global(.phrase) {
+    display: inline-block;
+    white-space: nowrap;
+  }
+</style>
