@@ -6,7 +6,7 @@
 
 export const seoConfig = {
   /** Google Search Console 所有権確認コード（未設定なら出力しない） */
-  gscVerification: import.meta.env.PUBLIC_GSC_VERIFICATION ?? "",
+  gscVerification: import.meta.env.PUBLIC_GSC_VERIFICATION ?? "f69UUuOF1LW2fOCniLvDV6wtdDU8gvuPFnNadGXfkZQ",
 
   /** Bing Webmaster Tools 所有権確認コード（未設定なら出力しない） */
   bingVerification: import.meta.env.PUBLIC_BING_VERIFICATION ?? "",
