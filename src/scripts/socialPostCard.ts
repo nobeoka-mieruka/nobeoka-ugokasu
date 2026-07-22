@@ -77,41 +77,63 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
   wrapper.setAttribute("data-activity-card", "");
   wrapper.setAttribute("data-platforms", post.platform);
 
-  // ---- 画像 / サムネイル ----
-  const mediaBox = el("div", "aspect-[16/9] bg-brand-orange-light overflow-hidden relative");
-  const displaySrc = post.imageUrl ?? post.thumbnailUrl;
+  // ---- 画像 / サムネイル / Facebook埋め込み ----
+  if (post.platform === "facebook") {
+    // FacebookはGraph APIの画像URLを転載せず、公式のXFBML埋め込み（.fb-post）で表示する。
+    // 実際の生成・遅延読み込みは src/scripts/facebookEmbed.ts の observeFacebookEmbeds() が
+    // ページ内の [data-fb-embed-root] を監視して行う。
+    const mediaBox = el("div", "relative overflow-hidden flex justify-center min-h-[200px] sm:min-h-60");
+    mediaBox.dataset.fbEmbedRoot = "";
+    mediaBox.dataset.fbEmbedHref = post.permalink;
 
-  function renderFallbackIcon() {
-    mediaBox.replaceChildren(
-      el("div", "w-full h-full flex items-center justify-center text-brand-orange-dark", [
-        svgIcon("document", "w-10 h-10"),
-      ]),
+    const slot = el("div", "w-full flex justify-center py-4");
+    slot.setAttribute("data-fb-embed-slot", "");
+
+    const placeholder = el(
+      "div",
+      "absolute inset-0 flex items-center justify-center bg-brand-orange-light text-brand-orange-dark",
+      [svgIcon("document", "w-10 h-10")],
     );
-  }
+    placeholder.setAttribute("data-fb-embed-placeholder", "");
 
-  if (displaySrc) {
-    const img = document.createElement("img");
-    img.src = displaySrc;
-    img.alt = post.title;
-    img.loading = "lazy";
-    img.className = "w-full h-full object-cover object-top";
-    img.width = 640;
-    img.height = 360;
-    // 画像URLの期限切れ等で読み込みに失敗しても、カード自体は崩れないようにする
-    img.addEventListener("error", renderFallbackIcon, { once: true });
-    mediaBox.append(img);
-
-    if (post.mediaType === "VIDEO" || post.mediaType === "REELS") {
-      const playOverlay = el("div", "absolute inset-0 flex items-center justify-center pointer-events-none", [
-        el("span", "rounded-full bg-black/50 p-3 text-white", [svgIcon("play", "w-6 h-6")]),
-      ]);
-      mediaBox.append(playOverlay);
-    }
+    mediaBox.append(slot, placeholder);
+    wrapper.append(mediaBox);
   } else {
-    renderFallbackIcon();
-  }
+    const mediaBox = el("div", "h-[200px] sm:h-60 bg-brand-orange-light overflow-hidden relative");
+    const displaySrc = post.imageUrl ?? post.thumbnailUrl;
 
-  wrapper.append(mediaBox);
+    function renderFallbackIcon() {
+      mediaBox.replaceChildren(
+        el("div", "w-full h-full flex items-center justify-center text-brand-orange-dark", [
+          svgIcon("document", "w-10 h-10"),
+        ]),
+      );
+    }
+
+    if (displaySrc) {
+      const img = document.createElement("img");
+      img.src = displaySrc;
+      img.alt = post.title;
+      img.loading = "lazy";
+      img.className = "w-full h-full object-cover object-center";
+      img.width = 640;
+      img.height = 360;
+      // 画像URLの期限切れ等で読み込みに失敗しても、カード自体は崩れないようにする
+      img.addEventListener("error", renderFallbackIcon, { once: true });
+      mediaBox.append(img);
+
+      if (post.mediaType === "VIDEO" || post.mediaType === "REELS") {
+        const playOverlay = el("div", "absolute inset-0 flex items-center justify-center pointer-events-none", [
+          el("span", "rounded-full bg-black/50 p-3 text-white", [svgIcon("play", "w-6 h-6")]),
+        ]);
+        mediaBox.append(playOverlay);
+      }
+    } else {
+      renderFallbackIcon();
+    }
+
+    wrapper.append(mediaBox);
+  }
 
   // ---- 本文エリア ----
   const body = el("div", "p-6 flex flex-col gap-3 flex-1");

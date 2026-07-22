@@ -55,6 +55,17 @@ const schemas = [
 ---
 
 <BaseLayout title={title} description={description} path="/activities" schemas={schemas}>
+  <!-- Facebook JavaScript SDK。活動報告ページ全体で1回だけ読み込み、各カードのFacebook埋め込み
+       （.fb-post）はこのSDKが自動的にレンダリングする。バージョンはMeta公式の最新安定版。 -->
+  <div id="fb-root"></div>
+  <script
+    is:inline
+    async
+    defer
+    crossorigin="anonymous"
+    src="https://connect.facebook.net/ja_JP/sdk.js#xfbml=1&version=v25.0"
+  ></script>
+
   <Breadcrumb items={breadcrumbItems} />
   <HeroSection title="活動報告" description="福富千恵と延岡を動かす会の地域活動をお伝えします。Facebook・Instagramの投稿もあわせてご覧いただけます。" />
 
@@ -205,8 +216,12 @@ const schemas = [
 <script>
   import { fetchSocialPosts } from "../../services/socialPosts";
   import { createSocialPostCardElement } from "../../scripts/socialPostCard";
+  import { observeFacebookEmbeds } from "../../scripts/facebookEmbed";
 
   const grid = document.querySelector<HTMLElement>("[data-activity-grid]");
+
+  // ビルド時に埋め込まれた活動報告（src/data/snsActivities.ts）のFacebook埋め込みを監視開始
+  observeFacebookEmbeds();
 
   function existingPermalinks(): Set<string> {
     const set = new Set<string>();
@@ -240,7 +255,7 @@ const schemas = [
     card.dataset.platforms = "facebook instagram";
 
     const media = document.createElement("div");
-    media.className = "aspect-[16/9] bg-brand-orange-light/60";
+    media.className = "h-[200px] sm:h-60 bg-brand-orange-light/60";
     card.append(media);
 
     const body = document.createElement("div");
@@ -295,5 +310,8 @@ const schemas = [
 
     // 投稿が0件・取得失敗の場合でも、既存の絞り込み状態を再評価してもらう
     document.dispatchEvent(new CustomEvent("social-posts:updated"));
+
+    // 自動取得したFacebook投稿カードの埋め込み監視を開始する
+    observeFacebookEmbeds();
   })();
 </script>

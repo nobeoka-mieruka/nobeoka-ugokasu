@@ -12,7 +12,12 @@
 //    - description: 短い説明文
 //    - platform: "facebook" または "instagram"
 //    - postUrl: 投稿の公開URL
-//    - image: サムネイル画像（省略可。省略時はアイコン付きのプレースホルダーを表示）
+//    - image: サムネイル画像（省略可）。platformが"facebook"の場合は使われない
+//      （Facebook公式の埋め込み投稿で自動的に写真・本文が表示されるため）。
+//      platformが"instagram"の場合のみ、省略時・読み込み失敗時にアイコン付き
+//      プレースホルダーを表示する。画像ファイルは public/images/activities/ に配置し、
+//      src には "/images/activities/ファイル名.jpg" のようなサイト内パスを指定する
+//      （投稿URLから画像を直接読み込むことはしない。期限切れ・削除で表示できなくなるため）。
 //    - embedEnabled: 投稿の埋め込み表示ボタンを出す場合は true
 // 3. 同じ内容をFacebookとInstagramの両方に投稿した場合は、crossPostPlatform と
 //    crossPostUrl にもう一方のURLを設定すると、カードを2枚に分けず1枚にまとめられます。
@@ -44,6 +49,23 @@ export interface SnsActivity {
   /** crossPostPlatform を設定した場合の、もう一方の投稿URL */
   crossPostUrl?: string;
 }
+
+// 記入例（コピーして使ってください）:
+//
+// {
+//   id: "2026-08-01-summer-festival",
+//   date: "2026-08-01",
+//   title: "夏祭りに参加しました",
+//   description: "延岡市内の夏祭りで、地域の皆さまと交流しました。",
+//   platform: "facebook",
+//   postUrl: "https://www.facebook.com/xxxxxxxxx/posts/xxxxxxxxx",
+//   embedEnabled: false,
+// },
+//
+// Facebook投稿がすでに公式Facebookページから自動取得（functions/api/social-feed.ts）
+// で表示されている場合は、このファイルに同じ投稿を重複登録する必要はありません
+// （postUrlが一致する投稿は自動的に重複除去されます）。手動登録が必要なのは、
+// 自動取得の対象外にしたい投稿や、Instagram投稿を個別に追加したい場合です。
 
 // 投稿URLが未登録のため、初期状態では空にしています。
 // 実際の投稿が決まり次第、上記の手順に沿って1件ずつ追加してください。

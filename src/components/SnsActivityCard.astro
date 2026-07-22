@@ -40,9 +40,38 @@ const dataPlatforms = [entry.platform, entry.crossPostPlatform].filter(Boolean).
 ---
 
 <div class="card p-0 overflow-hidden flex flex-col h-full" data-activity-card data-platforms={dataPlatforms} data-date={entry.date}>
-  <div class="aspect-[16/9] bg-brand-orange-light overflow-hidden">
-    {entry.image ? (
-      <img src={entry.image.src} alt={entry.image.alt} class="w-full h-full object-cover object-top" loading="lazy" width="640" height="360" />
+  <div
+    class:list={[
+      "relative overflow-hidden flex justify-center",
+      entry.platform === "facebook" ? "min-h-[200px] sm:min-h-60" : "h-[200px] sm:h-60",
+    ]}
+    {...entry.platform === "facebook" ? { "data-fb-embed-root": "", "data-fb-embed-href": entry.postUrl } : {}}
+  >
+    {entry.platform === "facebook" ? (
+      <>
+        <div class="w-full flex justify-center py-4" data-fb-embed-slot />
+        <div
+          class="absolute inset-0 flex items-center justify-center bg-brand-orange-light text-brand-orange-dark"
+          data-fb-embed-placeholder
+        >
+          <Icon name="document" class="w-10 h-10" />
+        </div>
+      </>
+    ) : entry.image ? (
+      <>
+        <img
+          src={entry.image.src}
+          alt={entry.image.alt}
+          class="w-full h-full object-cover object-center"
+          loading="lazy"
+          width="640"
+          height="360"
+          data-activity-image
+        />
+        <div class="hidden absolute inset-0 items-center justify-center text-brand-orange-dark" data-activity-image-fallback>
+          <Icon name="document" class="w-10 h-10" />
+        </div>
+      </>
     ) : (
       <div class="w-full h-full flex items-center justify-center text-brand-orange-dark">
         <Icon name="document" class="w-10 h-10" />
@@ -121,6 +150,22 @@ const dataPlatforms = [entry.platform, entry.crossPostPlatform].filter(Boolean).
 </div>
 
 <script>
+  // 画像の読み込みに失敗した場合（ファイル未配置・パス誤りなど）は、壊れた画像アイコンを
+  // 見せず、既存のオレンジ色プレースホルダーに切り替える。errorイベントはbubbleしないため
+  // キャプチャフェーズでdocumentに委譲する（カードが何枚あっても1つのリスナーで済む）。
+  document.addEventListener(
+    "error",
+    (event) => {
+      const img = event.target as HTMLElement;
+      if (!(img instanceof HTMLImageElement) || !img.matches("[data-activity-image]")) return;
+      const fallback = img.parentElement?.querySelector<HTMLElement>("[data-activity-image-fallback]");
+      img.remove();
+      fallback?.classList.remove("hidden");
+      fallback?.classList.add("flex");
+    },
+    true,
+  );
+
   // SNS投稿の埋め込みは、ボタンを押すまで読み込まない（表示速度・プライバシー配慮）。
   // イベント委譲で実装しているため、カードが何枚あっても1つのスクリプトで動作する。
   function buildEmbedSrc(platform: string, postUrl: string): string {
