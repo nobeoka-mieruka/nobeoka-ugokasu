@@ -14,7 +14,7 @@
 //   category: "市民との対話",
 // }
 
-export type PhotoCategory = "地域活動" | "市民との対話" | "福祉" | "子育て" | "勉強会" | "その他";
+export type PhotoCategory = "地域活動" | "市民との対話" | "福祉" | "子育て" | "座談会" | "その他";
 
 export interface PhotoItem {
   /** 撮影日・掲載日（"YYYY-MM-DD"形式）。不明な場合は省略可 */
@@ -33,7 +33,7 @@ export const photoCategoryLabels: Record<PhotoCategory, string> = {
   "市民との対話": "市民との対話",
   "福祉": "福祉",
   "子育て": "子育て",
-  "勉強会": "勉強会",
+  "座談会": "座談会",
   "その他": "その他",
 };
 

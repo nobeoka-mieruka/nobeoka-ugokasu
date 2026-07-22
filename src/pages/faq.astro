@@ -3,15 +3,30 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import HeroSection from "../components/HeroSection.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import Icon from "../components/Icon.astro";
+import RelatedContent from "../components/RelatedContent.astro";
 import { siteConfig } from "../config/siteConfig";
 import { webPageSchema, faqPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 
-const title = "よくある質問｜福富千恵と延岡を動かす会";
-const description = "福富千恵と延岡を動かす会に寄せられるよくある質問をまとめました。プロフィール、提言、活動報告、みんなの声についてご案内します。";
+const title = "福富千恵 よくある質問｜延岡市民との対話";
+const description = "福富千恵と延岡を動かす会に寄せられるよくある質問をまとめました。団体の活動内容、意見の届け方、市役所案内、プロフィール、政策についてご案内します。";
 const breadcrumbItems = [{ name: "よくある質問", path: "/faq" }];
 
 const faqItems = [
+  {
+    question: "福富千恵と延岡を動かす会とは？",
+    answer:
+      "地域の声を大切にしながら、延岡市の課題について考え、情報発信を行う活動です。福祉・子育てなどの現場での経験をもとに、市民の皆さまと対話しながら地域づくりに取り組んでいます。",
+  },
+  {
+    question: "市民の声は誰でも送れますか？",
+    answer: "はい。立場や考え方に関係なく、どなたでもご意見をお寄せいただけます。詳しくはみんなの声ページをご覧ください。",
+  },
+  {
+    question: "延岡市役所どこに行けばいい？診断とは？",
+    answer:
+      "相談内容に応じた延岡市役所の窓口を探すための参考情報として作成した非公式案内です。延岡市の公式ページではありません。来庁前には、お電話または延岡市公式ホームページでのご確認をおすすめします。",
+  },
   {
     question: "福富千恵はどのような人ですか",
     answer:
@@ -81,4 +96,15 @@ const schemas = [
       ))}
     </div>
   </section>
+
+  <div class="section-wrap">
+    <RelatedContent
+      items={[
+        { title: "福富千恵について", href: "/profile", description: "福富千恵のプロフィールと歩みをご紹介します。" },
+        { title: "私たちの提言", href: "/vision", description: "福祉・子育て・防災の3つの分野での提言をご紹介します。" },
+        { title: "みんなの声", href: "/voices", description: "延岡での暮らしに関するご意見をお寄せください。" },
+        { title: "延岡市役所 どこに行けばいい？診断", href: "/city-guide", description: "相談内容に応じた市役所の窓口を確認できます。" },
+      ]}
+    />
+  </div>
 </BaseLayout>

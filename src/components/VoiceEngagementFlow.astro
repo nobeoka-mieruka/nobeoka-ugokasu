@@ -2,15 +2,16 @@
 // 「みんなの声」が受付から公開に至るまでの流れです。
 // スマートフォンでは自動的に縦方向のステップ表示になります（横長の図・表は使用しません）。
 const steps = [
-  "市民から意見を受付",
-  "内容を確認",
-  "制度や現状を調査",
-  "必要に応じて提言へ反映",
+  "意見を受付",
+  "内容確認",
+  "個人情報を削除",
+  "内容整理",
+  "必要に応じて政策へ反映",
   "対応状況を公開",
 ];
 ---
 
-<ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+<ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   {steps.map((step, index) => (
     <li class="card flex items-start gap-3 min-w-0 lg:flex-col lg:items-center lg:text-center">
       <span class="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-orange text-white font-bold text-sm">

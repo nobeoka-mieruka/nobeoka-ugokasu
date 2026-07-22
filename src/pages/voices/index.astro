@@ -8,6 +8,7 @@ import Icon from "../../components/Icon.astro";
 import VoiceEngagementFlow from "../../components/VoiceEngagementFlow.astro";
 import VoiceSummaryPanel from "../../components/VoiceSummaryPanel.astro";
 import { voicesConfig } from "../../config/voicesConfig";
+import { voiceThemes } from "../../data/voiceThemes";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
 
@@ -70,6 +71,31 @@ const schemas = [
   </section>
 
   <section class="py-14 sm:py-20 bg-brand-ivory">
+    <div class="section-wrap max-w-4xl">
+      <SectionTitle title="現在寄せられている主なテーマ" align="left" />
+      <p class="text-ink-soft leading-relaxed mb-6">
+        以下のテーマで意見を募集しています。テーマごとの件数は集計中です。
+      </p>
+      <ul class="flex flex-wrap gap-2">
+        {voiceThemes.map((theme) => (
+          <li>
+            <a
+              href={`/voices/themes/${theme.slug}/`}
+              class="inline-flex items-center gap-2 rounded-full bg-white ring-1 ring-black/10 px-4 py-2 text-sm font-bold text-ink hover:ring-brand-orange-dark hover:bg-brand-orange-light transition-colors"
+            >
+              {theme.title}
+              <span class="text-xs font-normal text-ink-soft">集計中</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <div class="mt-6">
+        <a href="/voices/themes/" class="btn-secondary">テーマ一覧を見る</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-14 sm:py-20">
     <div class="section-wrap max-w-4xl">
       <SectionTitle title="対応状況について" align="left" />
       <p class="text-ink-soft leading-relaxed mb-4">
