@@ -8,8 +8,6 @@ import type { SocialPost } from "../types/social";
 import { socialPlatformMeta } from "../config/socialPlatformMeta";
 import { resolveActivityImage, buildActivityImageAlt } from "../utils/activityImage";
 
-const DESCRIPTION_MAX_LENGTH = 150;
-
 const ICONS = {
   facebook: '<path d="M15 8h2V4.5h-2.5A4 4 0 0 0 10 8.5V11H8v3.5h2V21h3.5v-6.5H16l.5-3.5h-3V8.8c0-.5.2-.8.7-.8z"/>',
   instagram:
@@ -55,11 +53,19 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** 取得できた投稿を、既存の活動報告カードと統一感のあるカード要素として組み立てる */
-export function createSocialPostCardElement(post: SocialPost, instagramUsername?: string): HTMLElement {
+/**
+ * 取得できた投稿を、既存の活動報告カードと統一感のあるカード要素として組み立てる。
+ * variant: "home"＝トップページ最新3件（本文を短めに省略）。"list"＝活動報告一覧（既定）。
+ */
+export function createSocialPostCardElement(
+  post: SocialPost,
+  instagramUsername?: string,
+  variant: "home" | "list" = "list",
+): HTMLElement {
   const meta = socialPlatformMeta[post.platform];
+  const bodyClampClass = variant === "home" ? "line-clamp-5" : "line-clamp-[8]";
 
-  const wrapper = el("div", "card p-0 overflow-hidden flex flex-col h-full");
+  const wrapper = el("div", "card p-0 overflow-hidden flex flex-col");
   wrapper.setAttribute("data-activity-card", "");
   wrapper.setAttribute("data-platforms", post.platform);
 
@@ -68,15 +74,20 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
   const isVideoLike = post.mediaType === "VIDEO" || post.mediaType === "REELS";
 
   if (resolvedImage) {
-    const mediaBox = el("div", "relative w-full aspect-[16/9] overflow-hidden bg-brand-orange-light");
+    const isContain = resolvedImage.fit === "contain";
+    const mediaBox = el(
+      "div",
+      `relative w-full aspect-[16/9] overflow-hidden ${isContain ? "bg-brand-ivory" : "bg-brand-orange-light"}`,
+    );
     mediaBox.dataset.activityMedia = "";
 
     const img = document.createElement("img");
     img.src = resolvedImage.src;
-    img.alt = buildActivityImageAlt(post.title);
+    img.alt = buildActivityImageAlt(post);
     img.loading = "lazy";
     img.decoding = "async";
-    img.className = "w-full h-full object-cover object-center";
+    img.className = `w-full h-full ${isContain ? "object-contain" : "object-cover"}`;
+    img.style.objectPosition = resolvedImage.position;
     img.width = resolvedImage.width || 640;
     img.height = resolvedImage.height || 360;
     img.dataset.activityImage = "";
@@ -110,9 +121,9 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
   }
 
   // ---- 本文エリア ----
-  const body = el("div", "p-6 flex flex-col gap-3 flex-1");
+  const body = el("div", "p-6 flex flex-col gap-3");
 
-  const metaRow = el("div", "flex items-center gap-2 text-sm text-ink-soft");
+  const metaRow = el("div", "flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-soft");
   const badge = el("span", `inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold ${meta.badgeClass}`, [
     svgIcon(meta.icon, "w-3.5 h-3.5"),
     document.createTextNode(meta.badgeLabel),
@@ -135,33 +146,17 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
   }
   body.append(metaRow);
 
-  const heading = el("h3", "text-xl font-bold text-ink leading-snug");
+  const heading = el("h3", "text-xl font-bold text-ink leading-snug line-clamp-3");
   heading.textContent = post.title;
   body.append(heading);
 
-  const isTruncated = post.description.length > DESCRIPTION_MAX_LENGTH;
-  const shownText = isTruncated ? `${post.description.slice(0, DESCRIPTION_MAX_LENGTH)}…` : post.description;
-  if (shownText) {
-    const desc = el("p", "text-base text-ink-soft");
-    desc.textContent = shownText;
+  if (post.description) {
+    const desc = el("p", `text-base text-ink-soft ${bodyClampClass}`);
+    desc.textContent = post.description;
     body.append(desc);
   }
 
-  if (isTruncated) {
-    const continueLink = document.createElement("a");
-    continueLink.href = post.permalink;
-    continueLink.target = "_blank";
-    continueLink.rel = "noopener noreferrer";
-    continueLink.className = "text-sm font-bold text-ink underline w-fit";
-    continueLink.dataset.track = "activity_read_more";
-    continueLink.append(document.createTextNode("続きを読む →"));
-    const srOnly = el("span", "sr-only");
-    srOnly.textContent = "（新しいタブで開く）";
-    continueLink.append(srOnly);
-    body.append(continueLink);
-  }
-
-  const actions = el("div", "mt-auto pt-2");
+  const actions = el("div", "pt-2");
   const viewLink = document.createElement("a");
   viewLink.href = post.permalink;
   viewLink.target = "_blank";

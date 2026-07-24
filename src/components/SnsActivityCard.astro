@@ -17,10 +17,10 @@ const meta = socialPlatformMeta[entry.platform];
 const crossMeta = entry.crossPostPlatform ? socialPlatformMeta[entry.crossPostPlatform] : undefined;
 
 const dataPlatforms = [entry.platform, entry.crossPostPlatform].filter(Boolean).join(" ");
-const alt = entry.image?.alt || buildActivityImageAlt(entry.title);
+const alt = entry.image?.alt || buildActivityImageAlt({ id: entry.id, title: entry.title });
 ---
 
-<div class="card p-0 overflow-hidden flex flex-col h-full" data-activity-card data-platforms={dataPlatforms} data-date={entry.date}>
+<div class="card p-0 overflow-hidden flex flex-col" data-activity-card data-platforms={dataPlatforms} data-date={entry.date}>
   {entry.image ? (
     <div class="relative w-full aspect-[16/9] overflow-hidden bg-brand-orange-light" data-activity-media>
       <img
@@ -43,8 +43,8 @@ const alt = entry.image?.alt || buildActivityImageAlt(entry.title);
     </div>
   )}
 
-  <div class="p-6 flex flex-col gap-3 flex-1">
-    <div class="flex items-center gap-2 text-sm text-ink-soft">
+  <div class="p-6 flex flex-col gap-3">
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-soft">
       <span class:list={["inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold", meta.badgeClass]}>
         <Icon name={meta.icon} class="w-3.5 h-3.5" />
         {meta.badgeLabel}
@@ -55,10 +55,10 @@ const alt = entry.image?.alt || buildActivityImageAlt(entry.title);
       <time datetime={entry.date}>{dateLabel}</time>
     </div>
 
-    <h3 class="text-xl font-bold text-ink leading-snug">{entry.title}</h3>
-    <p class="text-base text-ink-soft">{entry.description}</p>
+    <h3 class="text-xl font-bold text-ink leading-snug line-clamp-3">{entry.title}</h3>
+    <p class="text-base text-ink-soft line-clamp-[8]">{entry.description}</p>
 
-    <div class="mt-auto flex flex-col gap-3 pt-2">
+    <div class="flex flex-col gap-3 pt-2">
       <div class="flex flex-wrap gap-2">
         <a
           href={entry.postUrl}

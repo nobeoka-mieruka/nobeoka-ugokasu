@@ -294,7 +294,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
       <SectionTitle title="最新の活動報告" align="left" />
       <div
         data-home-activity-grid
-        class:list={["grid gap-8 sm:grid-cols-3", homeActivities.length === 0 && "hidden"]}
+        class:list={["grid gap-8 sm:grid-cols-3 items-start", homeActivities.length === 0 && "hidden"]}
       >
         {homeActivities.map((item, index) =>
           item.kind === "website" ? (
@@ -307,7 +307,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
               mainImage={item.entry.data.mainImage}
             />
           ) : (
-            <SocialPostCard post={item.entry} priorityImage={index === 0} />
+            <SocialPostCard post={item.entry} priorityImage={index === 0} variant="home" />
           ),
         )}
       </div>
@@ -378,7 +378,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
         const newPosts = posts.filter((post) => !known.has(post.permalink));
         const remaining = Math.max(0, MAX_HOME_ACTIVITY_CARDS - grid.children.length);
         for (const post of newPosts.slice(0, remaining)) {
-          grid.append(createSocialPostCardElement(post));
+          grid.append(createSocialPostCardElement(post, undefined, "home"));
         }
       }
 

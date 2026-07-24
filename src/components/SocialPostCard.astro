@@ -14,29 +14,31 @@ interface Props {
   instagramUsername?: string;
   /** trueの場合のみ、この画像を優先読み込みにする（トップページの最初の1枚だけに使う想定） */
   priorityImage?: boolean;
+  /** "home"＝トップページ最新3件（本文を短めに省略）。"list"＝活動報告一覧（既定、やや長めに表示） */
+  variant?: "home" | "list";
 }
 
-const { post, instagramUsername, priorityImage = false } = Astro.props;
+const { post, instagramUsername, priorityImage = false, variant = "list" } = Astro.props;
 
 const meta = socialPlatformMeta[post.platform];
 const image = resolveActivityImage(post);
-const alt = buildActivityImageAlt(post.title);
+const alt = buildActivityImageAlt(post);
 const isVideoLike = post.mediaType === "VIDEO" || post.mediaType === "REELS";
+const bodyClampClass = variant === "home" ? "line-clamp-5" : "line-clamp-[8]";
 
 const dateLabel = (() => {
   const date = new Date(post.publishedAt);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 })();
-
-const DESCRIPTION_MAX_LENGTH = 150;
-const isTruncated = post.description.length > DESCRIPTION_MAX_LENGTH;
-const shownText = isTruncated ? `${post.description.slice(0, DESCRIPTION_MAX_LENGTH)}…` : post.description;
 ---
 
-<div class="card p-0 overflow-hidden flex flex-col h-full" data-activity-card data-platforms={post.platform} data-date={post.publishedAt}>
+<div class="card p-0 overflow-hidden flex flex-col" data-activity-card data-platforms={post.platform} data-date={post.publishedAt}>
   {image ? (
-    <div class="relative w-full aspect-[16/9] overflow-hidden bg-brand-orange-light" data-activity-media>
+    <div
+      class:list={["relative w-full aspect-[16/9] overflow-hidden", image.fit === "contain" ? "bg-brand-ivory" : "bg-brand-orange-light"]}
+      data-activity-media
+    >
       <img
         src={image.src}
         alt={alt}
@@ -45,7 +47,8 @@ const shownText = isTruncated ? `${post.description.slice(0, DESCRIPTION_MAX_LEN
         loading={priorityImage ? "eager" : "lazy"}
         decoding="async"
         fetchpriority={priorityImage ? "high" : "auto"}
-        class="w-full h-full object-cover object-center"
+        style={`object-position: ${image.position};`}
+        class:list={["w-full h-full", image.fit === "contain" ? "object-contain" : "object-cover"]}
         data-activity-image
       />
       <div class="hidden absolute inset-0 items-center justify-center text-brand-orange-dark" data-activity-image-fallback>
@@ -65,8 +68,8 @@ const shownText = isTruncated ? `${post.description.slice(0, DESCRIPTION_MAX_LEN
     </div>
   )}
 
-  <div class="p-6 flex flex-col gap-3 flex-1">
-    <div class="flex items-center gap-2 text-sm text-ink-soft">
+  <div class="p-6 flex flex-col gap-3">
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-soft">
       <span class:list={["inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold", meta.badgeClass]}>
         <Icon name={meta.icon} class="w-3.5 h-3.5" />
         {meta.badgeLabel}
@@ -77,22 +80,10 @@ const shownText = isTruncated ? `${post.description.slice(0, DESCRIPTION_MAX_LEN
       {dateLabel && <time datetime={post.publishedAt}>{dateLabel}</time>}
     </div>
 
-    <h3 class="text-xl font-bold text-ink leading-snug">{post.title}</h3>
-    {shownText && <p class="text-base text-ink-soft">{shownText}</p>}
+    <h3 class="text-xl font-bold text-ink leading-snug line-clamp-3">{post.title}</h3>
+    {post.description && <p class:list={["text-base text-ink-soft", bodyClampClass]}>{post.description}</p>}
 
-    {isTruncated && (
-      <a
-        href={post.permalink}
-        target="_blank"
-        rel="noopener noreferrer"
-        data-track="activity_read_more"
-        class="text-sm font-bold text-ink underline w-fit"
-      >
-        続きを読む →<span class="sr-only">（新しいタブで開く）</span>
-      </a>
-    )}
-
-    <div class="mt-auto pt-2">
+    <div class="pt-2">
       <a
         href={post.permalink}
         target="_blank"
