@@ -12,12 +12,11 @@
 //    - description: 短い説明文
 //    - platform: "facebook" または "instagram"
 //    - postUrl: 投稿の公開URL
-//    - image: サムネイル画像（省略可）。platformが"facebook"の場合は使われない
-//      （Facebook公式の埋め込み投稿で自動的に写真・本文が表示されるため）。
-//      platformが"instagram"の場合のみ、省略時・読み込み失敗時にアイコン付き
-//      プレースホルダーを表示する。画像ファイルは public/images/activities/ に配置し、
-//      src には "/images/activities/ファイル名.jpg" のようなサイト内パスを指定する
-//      （投稿URLから画像を直接読み込むことはしない。期限切れ・削除で表示できなくなるため）。
+//    - image: サムネイル画像（省略可）。facebook・instagramどちらの投稿でも指定できる。
+//      省略時・読み込み失敗時はコンパクトなアイコン表示になる。画像ファイルは
+//      public/images/activities/ に配置し、src には "/images/activities/ファイル名.jpg"
+//      のようなサイト内パスを指定する（投稿URLから画像を直接読み込むことはしない。
+//      期限切れ・削除で表示できなくなるため）。
 //    - embedEnabled: 投稿の埋め込み表示ボタンを出す場合は true
 // 3. 同じ内容をFacebookとInstagramの両方に投稿した場合は、crossPostPlatform と
 //    crossPostUrl にもう一方のURLを設定すると、カードを2枚に分けず1枚にまとめられます。

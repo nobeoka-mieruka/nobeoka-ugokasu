@@ -30,8 +30,6 @@ const filters = [
 </div>
 
 <script>
-  import { observeFacebookEmbeds, parseFacebookEmbeds } from "../scripts/facebookEmbed";
-
   // SNS自動取得カードはページ読み込み後に非同期で追加されるため、カード一覧は
   // 都度 document から取得し直す（ページ読み込み時点のスナップショットにしない）。
   const filterBar = document.querySelector<HTMLElement>("[data-activity-filter-bar]");
@@ -66,11 +64,6 @@ const filters = [
     });
 
     loadMoreButton?.classList.toggle("hidden", matching.length <= visibleLimit);
-
-    // 絞り込みで表示状態が変わったカードの中に、未読み込みのFacebook埋め込みが
-    // 残っていないか確認する（IntersectionObserverの再評価に加えた念のための保険）。
-    observeFacebookEmbeds();
-    parseFacebookEmbeds();
   }
 
   function activate(button: HTMLButtonElement, focus: boolean) {

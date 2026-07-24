@@ -5,6 +5,7 @@ import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import ActivityCard from "../../components/ActivityCard.astro";
 import SnsActivityCard from "../../components/SnsActivityCard.astro";
+import SocialPostCard from "../../components/SocialPostCard.astro";
 import ActivityFilterBar from "../../components/ActivityFilterBar.astro";
 import Icon from "../../components/Icon.astro";
 import { webPageSchema } from "../../utils/structuredData";
@@ -12,6 +13,8 @@ import { buildBreadcrumbList } from "../../utils/seo";
 import { getSortedSnsActivities, hasSnsActivityFor } from "../../data/snsActivities";
 import { socialLinks } from "../../data/socialLinks";
 import { socialConfig } from "../../config/socialConfig";
+import socialPostsSnapshot from "../../data/socialPostsSnapshot.json";
+import type { BuildSocialPost } from "../../types/social";
 
 const title = "活動報告｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会が延岡市内で行った活動の報告一覧です。実施の目的や参加者の声、今後の対応をお伝えします。";
@@ -22,21 +25,28 @@ const websiteActivities = (await getCollection("activities", ({ data }) => data.
 );
 const snsActivities = getSortedSnsActivities();
 
+// scripts/sync-facebook-posts.mjs が prebuild/predev で生成する、ビルド時点で取得できた
+// Facebook投稿のスナップショット。JS実行前の初期HTMLにも実際の投稿カードを出力するために使う
+//（未設定・取得失敗時は空配列になるだけで、ビルド自体は失敗しない）。
+const buildSocialPosts = socialPostsSnapshot.posts as unknown as BuildSocialPost[];
+
 type UnifiedActivity =
   | { kind: "website"; date: Date; entry: (typeof websiteActivities)[number] }
-  | { kind: "sns"; date: Date; entry: (typeof snsActivities)[number] };
+  | { kind: "sns"; date: Date; entry: (typeof snsActivities)[number] }
+  | { kind: "social"; date: Date; entry: BuildSocialPost };
 
 const unifiedActivities: UnifiedActivity[] = [
   ...websiteActivities.map((entry): UnifiedActivity => ({ kind: "website", date: entry.data.date, entry })),
   ...snsActivities.map((entry): UnifiedActivity => ({ kind: "sns", date: new Date(entry.date), entry })),
+  ...buildSocialPosts.map((entry): UnifiedActivity => ({ kind: "social", date: new Date(entry.publishedAt), entry })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-// これらは「ビルド時点」で分かっている件数。Facebook/Instagramの実際の投稿は
-// ページ読み込み後にAPIから取得されるため、0件表示になっていても
+// ページ読み込み後にAPI（/api/social-feed）からも最新の投稿を取得し、ここでSSRされた分に
+// 無い投稿（ビルド後に新規投稿された分）だけを差し込む。そのため0件表示になっていても
 // クライアント側スクリプトが投稿を見つけ次第、自動的に一覧・絞り込みへ反映される。
 const hasWebsite = websiteActivities.length > 0;
-const hasFacebook = hasSnsActivityFor("facebook");
-const hasInstagram = hasSnsActivityFor("instagram");
+const hasFacebook = hasSnsActivityFor("facebook") || buildSocialPosts.some((p) => p.platform === "facebook");
+const hasInstagram = hasSnsActivityFor("instagram") || buildSocialPosts.some((p) => p.platform === "instagram");
 const hasAnyActivity = unifiedActivities.length > 0;
 
 const officialSnsLinks = [
@@ -55,17 +65,6 @@ const schemas = [
 ---
 
 <BaseLayout title={title} description={description} path="/activities" schemas={schemas}>
-  <!-- Facebook JavaScript SDK。活動報告ページ全体で1回だけ読み込み、各カードのFacebook埋め込み
-       （.fb-post）はこのSDKが自動的にレンダリングする。バージョンはMeta公式の最新安定版。 -->
-  <div id="fb-root"></div>
-  <script
-    is:inline
-    async
-    defer
-    crossorigin="anonymous"
-    src="https://connect.facebook.net/ja_JP/sdk.js#xfbml=1&version=v25.0"
-  ></script>
-
   <Breadcrumb items={breadcrumbItems} />
   <HeroSection title="活動報告" description="福富千恵と延岡を動かす会の地域活動をお伝えします。Facebook・Instagramの投稿もあわせてご覧いただけます。" />
 
@@ -118,22 +117,26 @@ const schemas = [
         data-activity-grid
         data-instagram-username={socialConfig.instagramUsername}
       >
-        {unifiedActivities.map((item) =>
-          item.kind === "website" ? (
-            <div data-activity-card data-platforms="website" data-date={item.date.toISOString()}>
-              <ActivityCard
-                slug={item.entry.slug}
-                title={item.entry.data.title}
-                date={item.entry.data.date}
-                category={item.entry.data.category}
-                summary={item.entry.data.summary}
-                mainImage={item.entry.data.mainImage}
-              />
-            </div>
-          ) : (
-            <SnsActivityCard entry={item.entry} />
-          ),
-        )}
+        {unifiedActivities.map((item) => {
+          if (item.kind === "website") {
+            return (
+              <div data-activity-card data-platforms="website" data-date={item.date.toISOString()}>
+                <ActivityCard
+                  slug={item.entry.slug}
+                  title={item.entry.data.title}
+                  date={item.entry.data.date}
+                  category={item.entry.data.category}
+                  summary={item.entry.data.summary}
+                  mainImage={item.entry.data.mainImage}
+                />
+              </div>
+            );
+          }
+          if (item.kind === "social") {
+            return <SocialPostCard post={item.entry} instagramUsername={socialConfig.instagramUsername} />;
+          }
+          return <SnsActivityCard entry={item.entry} />;
+        })}
       </div>
 
       <div class="mt-8 flex justify-center">
@@ -216,12 +219,12 @@ const schemas = [
 <script>
   import { fetchSocialPosts } from "../../services/socialPosts";
   import { createSocialPostCardElement } from "../../scripts/socialPostCard";
-  import { observeFacebookEmbeds } from "../../scripts/facebookEmbed";
+  import { registerActivityImageFallback } from "../../scripts/activityImageFallback";
 
   const grid = document.querySelector<HTMLElement>("[data-activity-grid]");
 
-  // ビルド時に埋め込まれた活動報告（src/data/snsActivities.ts）のFacebook埋め込みを監視開始
-  observeFacebookEmbeds();
+  // ビルド時に出力された投稿カードの画像読み込み失敗フォールバックを有効化する
+  registerActivityImageFallback();
 
   function existingPermalinks(): Set<string> {
     const set = new Set<string>();
@@ -310,8 +313,5 @@ const schemas = [
 
     // 投稿が0件・取得失敗の場合でも、既存の絞り込み状態を再評価してもらう
     document.dispatchEvent(new CustomEvent("social-posts:updated"));
-
-    // 自動取得したFacebook投稿カードの埋め込み監視を開始する
-    observeFacebookEmbeds();
   })();
 </script>

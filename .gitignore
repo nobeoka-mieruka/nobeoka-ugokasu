@@ -33,3 +33,9 @@ Thumbs.db
 # 内部管理用データ（アンケート原文・個人情報）は絶対にコミットしない
 internal-data/
 *.private.*
+
+# scripts/sync-facebook-posts.mjs が毎ビルド時に生成するFacebook投稿画像のローカルミラー。
+# Facebook側の投稿内容に追従して変化するため、リポジトリにはコミットしない
+# （Cloudflare Pagesのビルドのたびに再取得される）。
+public/images/social/facebook/*
+!public/images/social/facebook/.gitkeep

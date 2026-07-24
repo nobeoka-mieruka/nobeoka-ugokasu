@@ -20,6 +20,14 @@ export interface SocialFeedStatus {
   instagram: PlatformSyncStatus;
 }
 
+/** ビルド時に画像をローカルへミラーした場合の参照情報（public/images/social/以下） */
+export interface LocalMirroredImage {
+  /** サイト内の絶対パス（例: "/images/social/facebook/122105.webp"） */
+  src: string;
+  width: number;
+  height: number;
+}
+
 /** フロントエンド表示用に整形済みのSNS投稿1件分のデータ */
 export interface SocialPost {
   /** 他の投稿と重複しない識別子（Facebook/Instagramの投稿IDそのもの） */
@@ -38,6 +46,18 @@ export interface SocialPost {
   mediaType: SocialMediaType;
   /** 画面表示用の掲載元名称（"Facebook" | "Instagram"） */
   sourceName: string;
+  /**
+   * ビルド時同期（scripts/sync-facebook-posts.mjs）でローカルへ保存できた画像。
+   * 存在する場合は、Facebook CDNの一時URLへ直接リンクせずこちらを優先して表示する。
+   * 実行時API（/api/social-feed）が返す投稿には基本的に含まれない
+   * （Cloudflare Pages Functionsはファイルシステムへ書き込めないため）。
+   */
+  localImage?: LocalMirroredImage | null;
+}
+
+/** src/data/socialPostsSnapshot.json（ビルド時同期の出力）1件分の形。SocialPostのサブセット＋localImage */
+export interface BuildSocialPost extends SocialPost {
+  localImage: LocalMirroredImage | null;
 }
 
 /** GET /api/social-feed が返すレスポンスの形 */

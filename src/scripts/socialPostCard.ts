@@ -1,9 +1,12 @@
 // SNSから自動取得した投稿カードをブラウザ側で組み立てるモジュールです。
-// Astroコンポーネント（.astro）はビルド時にしかレンダリングされないため、
-// ページ読み込み後にAPIから届く投稿はこの純粋なDOM生成関数で描画します。
+// Astroコンポーネント（src/components/SocialPostCard.astro）はビルド時にしかレンダリングされない
+// ため、ページ読み込み後にAPI（/api/social-feed）から届く投稿はこの純粋なDOM生成関数で描画します。
+// 生成するDOM構造・クラスはSocialPostCard.astroと同じものにし、見た目を統一しています。
 // 投稿本文・captionは必ず textContent で挿入し、HTMLとして解釈させません。
 
 import type { SocialPost } from "../types/social";
+import { socialPlatformMeta } from "../config/socialPlatformMeta";
+import { resolveActivityImage, buildActivityImageAlt } from "../utils/activityImage";
 
 const DESCRIPTION_MAX_LENGTH = 150;
 
@@ -33,23 +36,6 @@ function svgIcon(name: keyof typeof ICONS, className: string): SVGSVGElement {
   return svg;
 }
 
-const PLATFORM_META = {
-  facebook: {
-    label: "Facebook",
-    badgeLabel: "公式Facebook",
-    icon: "facebook" as const,
-    badgeClass: ["bg-sns-facebook", "text-white"],
-    buttonClass: ["bg-sns-facebook", "text-white", "hover:brightness-110"],
-  },
-  instagram: {
-    label: "Instagram",
-    badgeLabel: "公式Instagram",
-    icon: "instagram" as const,
-    badgeClass: ["bg-gradient-to-r", "from-[#833AB4]", "to-[#C1266E]", "text-white"],
-    buttonClass: ["bg-gradient-to-r", "from-[#833AB4]", "to-[#C1266E]", "text-white", "hover:brightness-110"],
-  },
-};
-
 function formatDateLabel(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
@@ -71,67 +57,55 @@ function el<K extends keyof HTMLElementTagNameMap>(
 
 /** 取得できた投稿を、既存の活動報告カードと統一感のあるカード要素として組み立てる */
 export function createSocialPostCardElement(post: SocialPost, instagramUsername?: string): HTMLElement {
-  const meta = PLATFORM_META[post.platform];
+  const meta = socialPlatformMeta[post.platform];
 
   const wrapper = el("div", "card p-0 overflow-hidden flex flex-col h-full");
   wrapper.setAttribute("data-activity-card", "");
   wrapper.setAttribute("data-platforms", post.platform);
 
-  // ---- 画像 / サムネイル / Facebook埋め込み ----
-  if (post.platform === "facebook") {
-    // FacebookはGraph APIの画像URLを転載せず、公式のXFBML埋め込み（.fb-post）で表示する。
-    // 実際の生成・遅延読み込みは src/scripts/facebookEmbed.ts の observeFacebookEmbeds() が
-    // ページ内の [data-fb-embed-root] を監視して行う。
-    const mediaBox = el("div", "relative overflow-hidden flex justify-center min-h-[200px] sm:min-h-60");
-    mediaBox.dataset.fbEmbedRoot = "";
-    mediaBox.dataset.fbEmbedHref = post.permalink;
+  // ---- 画像 / コンパクトフォールバック ----
+  const resolvedImage = resolveActivityImage(post);
+  const isVideoLike = post.mediaType === "VIDEO" || post.mediaType === "REELS";
 
-    const slot = el("div", "w-full flex justify-center py-4");
-    slot.setAttribute("data-fb-embed-slot", "");
+  if (resolvedImage) {
+    const mediaBox = el("div", "relative w-full aspect-[16/9] overflow-hidden bg-brand-orange-light");
+    mediaBox.dataset.activityMedia = "";
 
-    const placeholder = el(
-      "div",
-      "absolute inset-0 flex items-center justify-center bg-brand-orange-light text-brand-orange-dark",
-      [svgIcon("document", "w-10 h-10")],
-    );
-    placeholder.setAttribute("data-fb-embed-placeholder", "");
+    const img = document.createElement("img");
+    img.src = resolvedImage.src;
+    img.alt = buildActivityImageAlt(post.title);
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.className = "w-full h-full object-cover object-center";
+    img.width = resolvedImage.width || 640;
+    img.height = resolvedImage.height || 360;
+    img.dataset.activityImage = "";
+    mediaBox.append(img);
 
-    mediaBox.append(slot, placeholder);
+    const fallback = el("div", "hidden absolute inset-0 items-center justify-center text-brand-orange-dark", [
+      svgIcon("document", "w-8 h-8"),
+    ]);
+    fallback.setAttribute("data-activity-image-fallback", "");
+    mediaBox.append(fallback);
+    // 画像URLの期限切れ等で読み込みに失敗した場合の処理は、ページ側で1回だけ登録される
+    // registerActivityImageFallback()（イベント委譲）が行う。動的に追加したこの<img>にも
+    // 同じ[data-activity-image]属性が付いているため、追加のリスナー登録は不要。
+
+    if (isVideoLike) {
+      const playOverlay = el("div", "absolute inset-0 flex items-center justify-center pointer-events-none", [
+        el("span", "rounded-full bg-black/50 p-3 text-white", [svgIcon("play", "w-6 h-6")]),
+      ]);
+      mediaBox.append(playOverlay);
+    }
+
     wrapper.append(mediaBox);
   } else {
-    const mediaBox = el("div", "h-[200px] sm:h-60 bg-brand-orange-light overflow-hidden relative");
-    const displaySrc = post.imageUrl ?? post.thumbnailUrl;
-
-    function renderFallbackIcon() {
-      mediaBox.replaceChildren(
-        el("div", "w-full h-full flex items-center justify-center text-brand-orange-dark", [
-          svgIcon("document", "w-10 h-10"),
-        ]),
-      );
-    }
-
-    if (displaySrc) {
-      const img = document.createElement("img");
-      img.src = displaySrc;
-      img.alt = post.title;
-      img.loading = "lazy";
-      img.className = "w-full h-full object-cover object-center";
-      img.width = 640;
-      img.height = 360;
-      // 画像URLの期限切れ等で読み込みに失敗しても、カード自体は崩れないようにする
-      img.addEventListener("error", renderFallbackIcon, { once: true });
-      mediaBox.append(img);
-
-      if (post.mediaType === "VIDEO" || post.mediaType === "REELS") {
-        const playOverlay = el("div", "absolute inset-0 flex items-center justify-center pointer-events-none", [
-          el("span", "rounded-full bg-black/50 p-3 text-white", [svgIcon("play", "w-6 h-6")]),
-        ]);
-        mediaBox.append(playOverlay);
-      }
-    } else {
-      renderFallbackIcon();
-    }
-
+    const mediaBox = el(
+      "div",
+      "w-full h-[72px] flex items-center justify-center bg-brand-orange-light text-brand-orange-dark",
+      [svgIcon("document", "w-6 h-6")],
+    );
+    mediaBox.dataset.activityMedia = "";
     wrapper.append(mediaBox);
   }
 
@@ -139,7 +113,7 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
   const body = el("div", "p-6 flex flex-col gap-3 flex-1");
 
   const metaRow = el("div", "flex items-center gap-2 text-sm text-ink-soft");
-  const badge = el("span", `inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold ${meta.badgeClass.join(" ")}`, [
+  const badge = el("span", `inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold ${meta.badgeClass}`, [
     svgIcon(meta.icon, "w-3.5 h-3.5"),
     document.createTextNode(meta.badgeLabel),
   ]);
@@ -179,7 +153,7 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
     continueLink.target = "_blank";
     continueLink.rel = "noopener noreferrer";
     continueLink.className = "text-sm font-bold text-ink underline w-fit";
-    continueLink.textContent = "続きを読む →";
+    continueLink.append(document.createTextNode("続きを読む →"));
     const srOnly = el("span", "sr-only");
     srOnly.textContent = "（新しいタブで開く）";
     continueLink.append(srOnly);
@@ -191,11 +165,12 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
   viewLink.href = post.permalink;
   viewLink.target = "_blank";
   viewLink.rel = "noopener noreferrer";
-  viewLink.className = `inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all ${meta.buttonClass.join(" ")}`;
-  viewLink.append(svgIcon(meta.icon, "w-4 h-4"), document.createTextNode(`${meta.label}で見る`));
+  viewLink.className = `inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all ${meta.buttonClass}`;
+  viewLink.append(svgIcon(meta.icon, "w-4 h-4"), document.createTextNode(`${meta.label}で全文を見る`));
+  viewLink.append(svgIcon("externalLink", "w-3.5 h-3.5"));
   const srOnlyView = el("span", "sr-only");
   srOnlyView.textContent = "（新しいタブで開く）";
-  viewLink.append(srOnlyView, svgIcon("externalLink", "w-3.5 h-3.5"));
+  viewLink.append(srOnlyView);
   actions.append(viewLink);
   body.append(actions);
 

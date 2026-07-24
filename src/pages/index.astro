@@ -7,6 +7,7 @@ import MessageCard from "../components/MessageCard.astro";
 import ProfileSummary from "../components/ProfileSummary.astro";
 import VisionCard from "../components/VisionCard.astro";
 import ActivityCard from "../components/ActivityCard.astro";
+import SocialPostCard from "../components/SocialPostCard.astro";
 import NewsCard from "../components/NewsCard.astro";
 import ContactBanner from "../components/ContactBanner.astro";
 import Icon from "../components/Icon.astro";
@@ -16,6 +17,8 @@ import { visionHeading, visionSubtitle, visionProposals } from "../data/vision";
 import { videos } from "../data/videos";
 import { organizationSchema, personSchema, websiteSchema, webPageSchema } from "../utils/structuredData";
 import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
+import socialPostsSnapshot from "../data/socialPostsSnapshot.json";
+import type { BuildSocialPost } from "../types/social";
 
 const title = "福富千恵と延岡を動かす会｜あなたと、延岡を動かす！";
 const description =
@@ -26,8 +29,24 @@ const ogTitle = "福富千恵と延岡を動かす会｜あなたと、延岡を
 const ogDescription =
   "福富千恵のプロフィール、活動報告、提言、市民の声（ブロードリスニング）を掲載する公式ホームページです。";
 
-const activities = (await getCollection("activities", ({ data }) => data.published))
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+const websiteActivities = (await getCollection("activities", ({ data }) => data.published)).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+);
+
+// scripts/sync-facebook-posts.mjs が prebuild/predev で生成する、ビルド時点で取得できた
+// Facebook投稿のスナップショット。JS実行前の初期HTMLにも実際の投稿カードを出力するために使う
+//（未設定・取得失敗時は空配列になるだけで、ビルド自体は失敗しない）。
+const buildSocialPosts = socialPostsSnapshot.posts as unknown as BuildSocialPost[];
+
+type HomeActivityItem =
+  | { kind: "website"; date: Date; entry: (typeof websiteActivities)[number] }
+  | { kind: "social"; date: Date; entry: BuildSocialPost };
+
+const homeActivities: HomeActivityItem[] = [
+  ...websiteActivities.map((entry): HomeActivityItem => ({ kind: "website", date: entry.data.date, entry })),
+  ...buildSocialPosts.map((entry): HomeActivityItem => ({ kind: "social", date: new Date(entry.publishedAt), entry })),
+]
+  .sort((a, b) => b.date.getTime() - a.date.getTime())
   .slice(0, 3);
 
 const news = (await getCollection("news", ({ data }) => data.published))
@@ -275,24 +294,28 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
       <SectionTitle title="最新の活動報告" align="left" />
       <div
         data-home-activity-grid
-        class:list={["grid gap-8 sm:grid-cols-3", activities.length === 0 && "hidden"]}
+        class:list={["grid gap-8 sm:grid-cols-3", homeActivities.length === 0 && "hidden"]}
       >
-        {activities.map((entry) => (
-          <ActivityCard
-            slug={entry.slug}
-            title={entry.data.title}
-            date={entry.data.date}
-            category={entry.data.category}
-            summary={entry.data.summary}
-            mainImage={entry.data.mainImage}
-          />
-        ))}
+        {homeActivities.map((item, index) =>
+          item.kind === "website" ? (
+            <ActivityCard
+              slug={item.entry.slug}
+              title={item.entry.data.title}
+              date={item.entry.data.date}
+              category={item.entry.data.category}
+              summary={item.entry.data.summary}
+              mainImage={item.entry.data.mainImage}
+            />
+          ) : (
+            <SocialPostCard post={item.entry} priorityImage={index === 0} />
+          ),
+        )}
       </div>
       <div
         data-home-activities-empty
         class:list={[
           "rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft",
-          activities.length > 0 && "hidden",
+          homeActivities.length > 0 && "hidden",
         ]}
       >
         <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
@@ -302,7 +325,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
         <a
           href="/activities/"
           data-home-activities-cta
-          class:list={["btn-secondary", activities.length === 0 && "hidden"]}
+          class:list={["btn-secondary", homeActivities.length === 0 && "hidden"]}
         >
           活動報告一覧を見る
         </a>
@@ -310,7 +333,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
           data-home-activities-cta-disabled
           class:list={[
             "inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed",
-            activities.length > 0 && "hidden",
+            homeActivities.length > 0 && "hidden",
           ]}
           aria-disabled="true"
         >
@@ -321,13 +344,25 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
   </section>
 
   <script>
-    // ビルド時点の活動報告（activitiesコレクション）に加えて、Facebookの最新投稿を
-    // /api/social-feed（Cloudflare KVでキャッシュ済み）から取得し、このセクションへ
-    // 差し込む。Meta APIへ直接アクセスすることはしない。
+    // ビルド時点の活動報告（activitiesコレクション・SNS投稿スナップショット）に加えて、
+    // 最新のFacebook投稿を /api/social-feed（Cloudflare KVでキャッシュ済み）から取得し、
+    // ビルド時点にまだ無かった投稿だけをこのセクションへ差し込む。
+    // Meta APIへ直接アクセスすることはしない。
     import { fetchSocialPosts } from "../services/socialPosts";
     import { createSocialPostCardElement } from "../scripts/socialPostCard";
+    import { registerActivityImageFallback } from "../scripts/activityImageFallback";
 
     const MAX_HOME_ACTIVITY_CARDS = 3;
+
+    registerActivityImageFallback();
+
+    function existingPermalinks(grid: HTMLElement): Set<string> {
+      const set = new Set<string>();
+      grid.querySelectorAll<HTMLAnchorElement>("[data-activity-card] a[href]").forEach((a) => {
+        set.add(a.href);
+      });
+      return set;
+    }
 
     (async () => {
       const grid = document.querySelector<HTMLElement>("[data-home-activity-grid]");
@@ -338,8 +373,11 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
       const { posts } = await fetchSocialPosts();
 
       if (grid && posts.length > 0) {
+        // ビルド時点で既にSSRされている投稿（同じFacebook permalink）は重複させない
+        const known = existingPermalinks(grid);
+        const newPosts = posts.filter((post) => !known.has(post.permalink));
         const remaining = Math.max(0, MAX_HOME_ACTIVITY_CARDS - grid.children.length);
-        for (const post of posts.slice(0, remaining)) {
+        for (const post of newPosts.slice(0, remaining)) {
           grid.append(createSocialPostCardElement(post));
         }
       }

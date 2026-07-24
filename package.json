@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/generate-build-info.mjs",
+    "predev": "node scripts/generate-build-info.mjs && node scripts/sync-facebook-posts.mjs",
     "dev": "astro dev",
     "start": "astro dev",
-    "prebuild": "node scripts/generate-build-info.mjs",
+    "prebuild": "node scripts/generate-build-info.mjs && node scripts/sync-facebook-posts.mjs",
     "build": "astro check && astro build",
     "preview": "astro preview",
     "astro": "astro",
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260716.1",
+    "sharp": "^0.34.0",
     "wrangler": "^4.0.0"
   }
 }

@@ -1,7 +1,9 @@
 ---
 import Icon from "./Icon.astro";
-import type { SnsActivity, SnsPlatform } from "../data/snsActivities";
+import type { SnsActivity } from "../data/snsActivities";
 import { socialConfig } from "../config/socialConfig";
+import { socialPlatformMeta } from "../config/socialPlatformMeta";
+import { buildActivityImageAlt } from "../utils/activityImage";
 
 interface Props {
   entry: SnsActivity;
@@ -9,75 +11,37 @@ interface Props {
 
 const { entry } = Astro.props;
 
-const platformMeta: Record<
-  SnsPlatform,
-  { label: string; badgeLabel: string; icon: "facebook" | "instagram"; badgeClass: string; buttonClass: string }
-> = {
-  facebook: {
-    label: "Facebook",
-    badgeLabel: "公式Facebook",
-    icon: "facebook",
-    badgeClass: "bg-sns-facebook text-white",
-    buttonClass: "bg-sns-facebook text-white hover:brightness-110",
-  },
-  // Instagramらしい紫→ピンクのグラデーション。実際のロゴに使われる黄〜オレンジの帯は
-  // 白文字とのコントラスト比が4.5:1未満になるため、あえて含めていません（WCAG AA基準）。
-  instagram: {
-    label: "Instagram",
-    badgeLabel: "公式Instagram",
-    icon: "instagram",
-    badgeClass: "bg-gradient-to-r from-[#833AB4] to-[#C1266E] text-white",
-    buttonClass: "bg-gradient-to-r from-[#833AB4] to-[#C1266E] text-white hover:brightness-110",
-  },
-};
-
 const dateLabel = new Date(entry.date).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
-const meta = platformMeta[entry.platform];
+const meta = socialPlatformMeta[entry.platform];
 
-const crossMeta = entry.crossPostPlatform ? platformMeta[entry.crossPostPlatform] : undefined;
+const crossMeta = entry.crossPostPlatform ? socialPlatformMeta[entry.crossPostPlatform] : undefined;
 
 const dataPlatforms = [entry.platform, entry.crossPostPlatform].filter(Boolean).join(" ");
+const alt = entry.image?.alt || buildActivityImageAlt(entry.title);
 ---
 
 <div class="card p-0 overflow-hidden flex flex-col h-full" data-activity-card data-platforms={dataPlatforms} data-date={entry.date}>
-  <div
-    class:list={[
-      "relative overflow-hidden flex justify-center",
-      entry.platform === "facebook" ? "min-h-[200px] sm:min-h-60" : "h-[200px] sm:h-60",
-    ]}
-    {...entry.platform === "facebook" ? { "data-fb-embed-root": "", "data-fb-embed-href": entry.postUrl } : {}}
-  >
-    {entry.platform === "facebook" ? (
-      <>
-        <div class="w-full flex justify-center py-4" data-fb-embed-slot />
-        <div
-          class="absolute inset-0 flex items-center justify-center bg-brand-orange-light text-brand-orange-dark"
-          data-fb-embed-placeholder
-        >
-          <Icon name="document" class="w-10 h-10" />
-        </div>
-      </>
-    ) : entry.image ? (
-      <>
-        <img
-          src={entry.image.src}
-          alt={entry.image.alt}
-          class="w-full h-full object-cover object-center"
-          loading="lazy"
-          width="640"
-          height="360"
-          data-activity-image
-        />
-        <div class="hidden absolute inset-0 items-center justify-center text-brand-orange-dark" data-activity-image-fallback>
-          <Icon name="document" class="w-10 h-10" />
-        </div>
-      </>
-    ) : (
-      <div class="w-full h-full flex items-center justify-center text-brand-orange-dark">
-        <Icon name="document" class="w-10 h-10" />
+  {entry.image ? (
+    <div class="relative w-full aspect-[16/9] overflow-hidden bg-brand-orange-light" data-activity-media>
+      <img
+        src={entry.image.src}
+        alt={alt}
+        class="w-full h-full object-cover object-center"
+        loading="lazy"
+        decoding="async"
+        width="640"
+        height="360"
+        data-activity-image
+      />
+      <div class="hidden absolute inset-0 items-center justify-center text-brand-orange-dark" data-activity-image-fallback>
+        <Icon name="document" class="w-8 h-8" />
       </div>
-    )}
-  </div>
+    </div>
+  ) : (
+    <div class="w-full h-[72px] flex items-center justify-center bg-brand-orange-light text-brand-orange-dark" data-activity-media>
+      <Icon name="document" class="w-6 h-6" />
+    </div>
+  )}
 
   <div class="p-6 flex flex-col gap-3 flex-1">
     <div class="flex items-center gap-2 text-sm text-ink-soft">
@@ -103,9 +67,9 @@ const dataPlatforms = [entry.platform, entry.crossPostPlatform].filter(Boolean).
           class:list={["inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all", meta.buttonClass]}
         >
           <Icon name={meta.icon} class="w-4 h-4" />
-          {meta.label}で見る
-          <span class="sr-only">（新しいタブで開く）</span>
+          {meta.label}で全文を見る
           <Icon name="external-link" class="w-3.5 h-3.5" ariaHidden={true} />
+          <span class="sr-only">（新しいタブで開く）</span>
         </a>
         {crossMeta && entry.crossPostUrl && (
           <a
@@ -150,24 +114,11 @@ const dataPlatforms = [entry.platform, entry.crossPostPlatform].filter(Boolean).
 </div>
 
 <script>
-  // 画像の読み込みに失敗した場合（ファイル未配置・パス誤りなど）は、壊れた画像アイコンを
-  // 見せず、既存のオレンジ色プレースホルダーに切り替える。errorイベントはbubbleしないため
-  // キャプチャフェーズでdocumentに委譲する（カードが何枚あっても1つのリスナーで済む）。
-  document.addEventListener(
-    "error",
-    (event) => {
-      const img = event.target as HTMLElement;
-      if (!(img instanceof HTMLImageElement) || !img.matches("[data-activity-image]")) return;
-      const fallback = img.parentElement?.querySelector<HTMLElement>("[data-activity-image-fallback]");
-      img.remove();
-      fallback?.classList.remove("hidden");
-      fallback?.classList.add("flex");
-    },
-    true,
-  );
-
   // SNS投稿の埋め込みは、ボタンを押すまで読み込まない（表示速度・プライバシー配慮）。
   // イベント委譲で実装しているため、カードが何枚あっても1つのスクリプトで動作する。
+  // なお画像読み込み失敗時のフォールバック処理は src/scripts/activityImageFallback.ts の
+  // registerActivityImageFallback()（各ページのブートストラップスクリプトが1回だけ呼び出す）
+  // に共通化している。
   function buildEmbedSrc(platform: string, postUrl: string): string {
     if (platform === "facebook") {
       const width = Math.max(280, Math.min(window.innerWidth - 48, 500));

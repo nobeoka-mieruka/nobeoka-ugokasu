@@ -1,0 +1,103 @@
+---
+// Facebook/Instagramから自動取得したSNS投稿1件分のカードです。ビルド時に取得できた投稿
+//（src/data/socialPostsSnapshot.json、scripts/sync-facebook-posts.mjsが生成）をSSRするために
+// トップページ・活動報告ページの両方から使う共通コンポーネントです。
+// ページ読み込み後にAPI（/api/social-feed）から追加される投稿は、同じ見た目になるよう
+// src/scripts/socialPostCard.ts がこのコンポーネントと同じ構造のDOMをJSで組み立てます。
+import Icon from "./Icon.astro";
+import type { SocialPost } from "../types/social";
+import { socialPlatformMeta } from "../config/socialPlatformMeta";
+import { resolveActivityImage, buildActivityImageAlt } from "../utils/activityImage";
+
+interface Props {
+  post: SocialPost;
+  instagramUsername?: string;
+  /** trueの場合のみ、この画像を優先読み込みにする（トップページの最初の1枚だけに使う想定） */
+  priorityImage?: boolean;
+}
+
+const { post, instagramUsername, priorityImage = false } = Astro.props;
+
+const meta = socialPlatformMeta[post.platform];
+const image = resolveActivityImage(post);
+const alt = buildActivityImageAlt(post.title);
+const isVideoLike = post.mediaType === "VIDEO" || post.mediaType === "REELS";
+
+const dateLabel = (() => {
+  const date = new Date(post.publishedAt);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+})();
+
+const DESCRIPTION_MAX_LENGTH = 150;
+const isTruncated = post.description.length > DESCRIPTION_MAX_LENGTH;
+const shownText = isTruncated ? `${post.description.slice(0, DESCRIPTION_MAX_LENGTH)}…` : post.description;
+---
+
+<div class="card p-0 overflow-hidden flex flex-col h-full" data-activity-card data-platforms={post.platform} data-date={post.publishedAt}>
+  {image ? (
+    <div class="relative w-full aspect-[16/9] overflow-hidden bg-brand-orange-light" data-activity-media>
+      <img
+        src={image.src}
+        alt={alt}
+        width={image.width || 640}
+        height={image.height || 360}
+        loading={priorityImage ? "eager" : "lazy"}
+        decoding="async"
+        fetchpriority={priorityImage ? "high" : "auto"}
+        class="w-full h-full object-cover object-center"
+        data-activity-image
+      />
+      <div class="hidden absolute inset-0 items-center justify-center text-brand-orange-dark" data-activity-image-fallback>
+        <Icon name="document" class="w-8 h-8" />
+      </div>
+      {isVideoLike && (
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span class="rounded-full bg-black/50 p-3 text-white">
+            <Icon name="play" class="w-6 h-6" />
+          </span>
+        </div>
+      )}
+    </div>
+  ) : (
+    <div class="w-full h-[72px] flex items-center justify-center bg-brand-orange-light text-brand-orange-dark" data-activity-media>
+      <Icon name="document" class="w-6 h-6" />
+    </div>
+  )}
+
+  <div class="p-6 flex flex-col gap-3 flex-1">
+    <div class="flex items-center gap-2 text-sm text-ink-soft">
+      <span class:list={["inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold", meta.badgeClass]}>
+        <Icon name={meta.icon} class="w-3.5 h-3.5" />
+        {meta.badgeLabel}
+      </span>
+      {post.platform === "instagram" && instagramUsername && (
+        <span class="text-xs text-ink-soft">@{instagramUsername}</span>
+      )}
+      {dateLabel && <time datetime={post.publishedAt}>{dateLabel}</time>}
+    </div>
+
+    <h3 class="text-xl font-bold text-ink leading-snug">{post.title}</h3>
+    {shownText && <p class="text-base text-ink-soft">{shownText}</p>}
+
+    {isTruncated && (
+      <a href={post.permalink} target="_blank" rel="noopener noreferrer" class="text-sm font-bold text-ink underline w-fit">
+        続きを読む →<span class="sr-only">（新しいタブで開く）</span>
+      </a>
+    )}
+
+    <div class="mt-auto pt-2">
+      <a
+        href={post.permalink}
+        target="_blank"
+        rel="noopener noreferrer"
+        class:list={["inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all", meta.buttonClass]}
+      >
+        <Icon name={meta.icon} class="w-4 h-4" />
+        {meta.label}で全文を見る
+        <Icon name="external-link" class="w-3.5 h-3.5" ariaHidden={true} />
+        <span class="sr-only">（新しいタブで開く）</span>
+      </a>
+    </div>
+  </div>
+</div>
