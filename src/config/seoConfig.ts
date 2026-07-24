@@ -11,8 +11,14 @@ export const seoConfig = {
   /** Bing Webmaster Tools 所有権確認コード（未設定なら出力しない） */
   bingVerification: import.meta.env.PUBLIC_BING_VERIFICATION ?? "",
 
-  /** Google Analytics 4 測定ID（未設定なら計測タグを読み込まない） */
-  ga4Id: import.meta.env.PUBLIC_GA4_ID ?? "",
+  /**
+   * Google Analytics 4 測定ID（未設定なら計測タグを読み込まない）。
+   * 測定IDそのものは秘密情報ではないため、Search Console確認コードと同様に既定値を
+   * ここへ直接設定しています。実際に計測が有効になるかは、本番ホストであること・
+   * 訪問者がアクセス解析を無効にしていないことも条件になります
+   *（src/scripts/analyticsBootstrap.ts参照）。
+   */
+  ga4Id: import.meta.env.PUBLIC_GA_MEASUREMENT_ID || "G-GYSZ7DQ1D1",
 
   /** Cloudflare Web Analytics トークン（未設定なら計測タグを読み込まない） */
   cfAnalyticsToken: import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN ?? "",

@@ -153,6 +153,7 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
     continueLink.target = "_blank";
     continueLink.rel = "noopener noreferrer";
     continueLink.className = "text-sm font-bold text-ink underline w-fit";
+    continueLink.dataset.track = "activity_read_more";
     continueLink.append(document.createTextNode("続きを読む →"));
     const srOnly = el("span", "sr-only");
     srOnly.textContent = "（新しいタブで開く）";
@@ -166,6 +167,7 @@ export function createSocialPostCardElement(post: SocialPost, instagramUsername?
   viewLink.target = "_blank";
   viewLink.rel = "noopener noreferrer";
   viewLink.className = `inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all ${meta.buttonClass}`;
+  viewLink.dataset.track = "activity_read_more";
   viewLink.append(svgIcon(meta.icon, "w-4 h-4"), document.createTextNode(`${meta.label}で全文を見る`));
   viewLink.append(svgIcon("externalLink", "w-3.5 h-3.5"));
   const srOnlyView = el("span", "sr-only");

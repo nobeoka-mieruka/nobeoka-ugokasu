@@ -81,7 +81,13 @@ const shownText = isTruncated ? `${post.description.slice(0, DESCRIPTION_MAX_LEN
     {shownText && <p class="text-base text-ink-soft">{shownText}</p>}
 
     {isTruncated && (
-      <a href={post.permalink} target="_blank" rel="noopener noreferrer" class="text-sm font-bold text-ink underline w-fit">
+      <a
+        href={post.permalink}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-track="activity_read_more"
+        class="text-sm font-bold text-ink underline w-fit"
+      >
         続きを読む →<span class="sr-only">（新しいタブで開く）</span>
       </a>
     )}
@@ -91,6 +97,7 @@ const shownText = isTruncated ? `${post.description.slice(0, DESCRIPTION_MAX_LEN
         href={post.permalink}
         target="_blank"
         rel="noopener noreferrer"
+        data-track="activity_read_more"
         class:list={["inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all", meta.buttonClass]}
       >
         <Icon name={meta.icon} class="w-4 h-4" />

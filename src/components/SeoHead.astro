@@ -72,15 +72,11 @@ const isNoindex = shouldNoindex(noindex);
 )}
 
 {seoConfig.ga4Id && (
-  <>
-    <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${seoConfig.ga4Id}`}></script>
-    <script is:inline define:vars={{ ga4Id: seoConfig.ga4Id }}>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() { dataLayer.push(arguments); }
-      gtag("js", new Date());
-      gtag("config", ga4Id, { anonymize_ip: true });
-    </script>
-  </>
+  <script>
+    // 実際の読み込み判定（本番ホストか・計測に同意しているか）と主要リンクの自動計測は
+    // src/scripts/analyticsBootstrap.ts が行う。ここでは1ページにつき1回だけ読み込む。
+    import "../scripts/analyticsBootstrap";
+  </script>
 )}
 
 {seoConfig.cfAnalyticsToken && (

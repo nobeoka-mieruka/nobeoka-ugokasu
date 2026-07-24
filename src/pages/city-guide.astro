@@ -120,6 +120,8 @@ const schemas = [
   function startCategory(categoryId) {
     const category = findCategory(categoryId);
     if (!category) return;
+    // 診断を開始した事実だけを計測する（カテゴリ名や回答内容は送信しない）
+    window.trackEvent?.("city_guide_start");
     if (!category.firstQuestionId) {
       showResult(category.resultDeptId || GENERAL_ID);
       return;
@@ -167,6 +169,8 @@ const schemas = [
   function showResult(departmentId) {
     const department = findDepartment(departmentId) || findDepartment(GENERAL_ID);
     if (!department) return;
+    // 診断が完了した事実だけを計測する（案内先の課名・回答内容は送信しない）
+    window.trackEvent?.("city_guide_complete");
     const nameEl = app?.querySelector("[data-cg-result-name]");
     const summaryEl = app?.querySelector("[data-cg-result-summary]");
     const linkEl = app?.querySelector("[data-cg-official-link]");

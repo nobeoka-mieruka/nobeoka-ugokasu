@@ -358,14 +358,19 @@ PUBLIC_GSC_VERIFICATION=コピーした値
 
 ## 18. Google Analyticsの設定
 
-1. GA4のプロパティを作成し、測定ID（`G-`から始まる文字列）を取得します。
-2. `.env` に以下を設定します。
+GA4の測定ID（`G-`から始まる文字列）は秘密情報ではないため、`src/config/seoConfig.ts` に既定値（`G-GYSZ7DQ1D1`）を直接設定済みです。別の測定IDを使いたい場合のみ、`.env` に以下を設定してください（未設定なら既定値が使われます）。
 
 ```
-PUBLIC_GA4_ID=G-XXXXXXXXXX
+PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
-3. 再ビルドすると計測タグが読み込まれます。測定IDが空欄の間はタグが読み込まれません。
+計測タグ（gtag.js）は `src/scripts/analyticsBootstrap.ts` が読み込みます。次の場合はタグ自体を読み込みません。
+
+- 測定IDが空欄の場合
+- 本番ホスト（`siteConfig.siteUrl` のホスト名）以外でアクセスした場合（`localhost`・Cloudflare Pagesのプレビューデプロイなど）
+- 訪問者が[プライバシーポリシー](/privacy/)ページで「アクセス解析を無効にする」を選択している場合（`localStorage` に保存され、次回以降の訪問にも適用されます）
+
+主要なリンク（Facebook・Instagram・みんなの声フォーム・後援会入会フォーム・後援会規約PDF・お問い合わせ用メールリンク・活動報告の続きを読む）のクリックは、`src/scripts/analyticsBootstrap.ts` が自動的にGA4イベントとして計測します。氏名・メールアドレス・フォーム回答内容・診断結果などの個人情報はイベントへ一切含めません。
 
 ---
 
