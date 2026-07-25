@@ -88,25 +88,10 @@ const schemas = [
       <ActivityFilterBar />
 
       <div
-        data-sns-fetch-error
-        class="hidden mb-6 rounded-xl border-2 border-brand-orange-dark/30 bg-brand-orange-light/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3"
-        role="status"
-      >
-        <p class="text-sm text-ink">
-          現在、SNSの最新投稿を読み込めません。<br class="hidden sm:block" />
-          最新の活動は、FacebookまたはInstagramからご覧いただけます。
-        </p>
-        {officialSnsLinks.length > 0 && (
-          <div class="flex flex-wrap gap-2 sm:ml-auto">
-            {officialSnsLinks.map((link) => (
-              <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary text-sm py-1.5 px-4">
-                {link.label}
-                <span class="sr-only">（新しいタブで開く）</span>
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
+        data-sns-fetch-error-container
+        data-facebook-url={socialLinks.facebook ?? ""}
+        data-instagram-url={socialLinks.instagram ?? ""}
+      ></div>
 
       <div
         id="activity-grid"
@@ -149,36 +134,13 @@ const schemas = [
         </button>
       </div>
 
-      <div data-empty-for="all" class:list={["mt-6 card text-center py-16 text-ink-soft flex flex-col items-center gap-6", hasAnyActivity && "hidden"]}>
-        <Icon name="document" class="w-10 h-10 text-brand-orange" />
-        <p class="text-lg">活動報告は準備中です。</p>
-        <div data-sns-invite>
-          <p class="font-bold text-ink">{snsInviteHeading}</p>
-          <p class="mt-1">{snsInviteDescription}</p>
-        </div>
-        {officialSnsLinks.length > 0 && (
-          <div data-sns-invite class="flex flex-wrap justify-center gap-3">
-            {officialSnsLinks.map((link) => (
-              <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
-                {link.label}
-                <span class="sr-only">（新しいタブで開く）</span>
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div data-empty-for="website" class:list={["mt-6 card text-center py-10 text-ink-soft flex flex-col items-center gap-3", !hasWebsite ? "" : "hidden"]}>
-        <Icon name="document" class="w-8 h-8 text-brand-orange" />
-        <p>公式サイトでの活動報告は準備中です。</p>
-      </div>
-
-      <div data-empty-for="facebook" class:list={["mt-6", !hasFacebook ? "" : "hidden"]}>
-        <div class="card text-center py-10 flex flex-col items-center gap-4">
-          <Icon name="facebook" class="w-8 h-8 text-sns-facebook" />
+      {!hasAnyActivity && (
+        <div data-empty-for="all" class="mt-6 card text-center py-16 text-ink-soft flex flex-col items-center gap-6">
+          <Icon name="document" class="w-10 h-10 text-brand-orange" />
+          <p class="text-lg">活動報告は準備中です。</p>
           <div data-sns-invite>
             <p class="font-bold text-ink">{snsInviteHeading}</p>
-            <p class="mt-1 text-ink-soft">{snsInviteDescription}</p>
+            <p class="mt-1">{snsInviteDescription}</p>
           </div>
           {officialSnsLinks.length > 0 && (
             <div data-sns-invite class="flex flex-wrap justify-center gap-3">
@@ -191,27 +153,58 @@ const schemas = [
             </div>
           )}
         </div>
-      </div>
+      )}
 
-      <div data-empty-for="instagram" class:list={["mt-6", !hasInstagram ? "" : "hidden"]}>
-        <div class="card text-center py-10 flex flex-col items-center gap-4">
-          <Icon name="instagram" class="w-8 h-8 text-brand-orange-dark" />
-          <div data-sns-invite>
-            <p class="font-bold text-ink">{snsInviteHeading}</p>
-            <p class="mt-1 text-ink-soft">{snsInviteDescription}</p>
-          </div>
-          {officialSnsLinks.length > 0 && (
-            <div data-sns-invite class="flex flex-wrap justify-center gap-3">
-              {officialSnsLinks.map((link) => (
-                <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
-                  {link.label}
-                  <span class="sr-only">（新しいタブで開く）</span>
-                </a>
-              ))}
-            </div>
-          )}
+      {!hasWebsite && (
+        <div data-empty-for="website" class="mt-6 card text-center py-10 text-ink-soft flex flex-col items-center gap-3">
+          <Icon name="document" class="w-8 h-8 text-brand-orange" />
+          <p>公式サイトでの活動報告は準備中です。</p>
         </div>
-      </div>
+      )}
+
+      {!hasFacebook && (
+        <div data-empty-for="facebook" class="mt-6">
+          <div class="card text-center py-10 flex flex-col items-center gap-4">
+            <Icon name="facebook" class="w-8 h-8 text-sns-facebook" />
+            <div data-sns-invite>
+              <p class="font-bold text-ink">{snsInviteHeading}</p>
+              <p class="mt-1 text-ink-soft">{snsInviteDescription}</p>
+            </div>
+            {officialSnsLinks.length > 0 && (
+              <div data-sns-invite class="flex flex-wrap justify-center gap-3">
+                {officialSnsLinks.map((link) => (
+                  <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+                    {link.label}
+                    <span class="sr-only">（新しいタブで開く）</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!hasInstagram && (
+        <div data-empty-for="instagram" class="mt-6">
+          <div class="card text-center py-10 flex flex-col items-center gap-4">
+            <Icon name="instagram" class="w-8 h-8 text-brand-orange-dark" />
+            <div data-sns-invite>
+              <p class="font-bold text-ink">{snsInviteHeading}</p>
+              <p class="mt-1 text-ink-soft">{snsInviteDescription}</p>
+            </div>
+            {officialSnsLinks.length > 0 && (
+              <div data-sns-invite class="flex flex-wrap justify-center gap-3">
+                {officialSnsLinks.map((link) => (
+                  <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+                    {link.label}
+                    <span class="sr-only">（新しいタブで開く）</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   </section>
 </BaseLayout>
@@ -247,6 +240,53 @@ const schemas = [
     } else {
       grid.append(card);
     }
+  }
+
+  /**
+   * Meta APIへの取得自体が失敗した場合にだけ表示する案内バナー。
+   * ビルド時点では成否が分からないため、hiddenで常に置いておくのではなく、
+   * 実際に失敗したときだけDOMを生成する。
+   */
+  function createFetchErrorBanner(container: HTMLElement): HTMLElement {
+    const banner = document.createElement("div");
+    banner.dataset.snsFetchError = "";
+    banner.className =
+      "mb-6 rounded-xl border-2 border-brand-orange-dark/30 bg-brand-orange-light/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3";
+    banner.setAttribute("role", "status");
+
+    const text = document.createElement("p");
+    text.className = "text-sm text-ink";
+    text.append("現在、SNSの最新投稿を読み込めません。");
+    text.append(document.createElement("br"));
+    text.append("最新の活動は、FacebookまたはInstagramからご覧いただけます。");
+    banner.append(text);
+
+    const facebookUrl = container.dataset.facebookUrl;
+    const instagramUrl = container.dataset.instagramUrl;
+    const links: { url: string; label: string }[] = [];
+    if (facebookUrl) links.push({ url: facebookUrl, label: "Facebookを見る" });
+    if (instagramUrl) links.push({ url: instagramUrl, label: "Instagramを見る" });
+
+    if (links.length > 0) {
+      const linkWrap = document.createElement("div");
+      linkWrap.className = "flex flex-wrap gap-2 sm:ml-auto";
+      for (const link of links) {
+        const a = document.createElement("a");
+        a.href = link.url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.className = "btn-secondary text-sm py-1.5 px-4";
+        a.append(link.label);
+        const sr = document.createElement("span");
+        sr.className = "sr-only";
+        sr.append("（新しいタブで開く）");
+        a.append(sr);
+        linkWrap.append(a);
+      }
+      banner.append(linkWrap);
+    }
+
+    return banner;
   }
 
   /** 取得中であることを示す、既存カードと同じ配色のスケルトンカードを作る */
@@ -301,8 +341,15 @@ const schemas = [
     }
 
     // Meta APIへの取得自体が失敗した場合のみ案内を出す（未設定の場合は既存の空表示に任せる）
-    const errorBanner = document.querySelector<HTMLElement>("[data-sns-fetch-error]");
-    errorBanner?.classList.toggle("hidden", !fetchFailed);
+    const errorContainer = document.querySelector<HTMLElement>("[data-sns-fetch-error-container]");
+    if (errorContainer) {
+      const existingBanner = errorContainer.querySelector<HTMLElement>("[data-sns-fetch-error]");
+      if (fetchFailed && !existingBanner) {
+        errorContainer.append(createFetchErrorBanner(errorContainer));
+      } else if (!fetchFailed && existingBanner) {
+        existingBanner.remove();
+      }
+    }
 
     // 取得失敗時は、上のエラー案内（Facebook/Instagramボタン付き）とほぼ同内容の
     // 「SNSでも活動を発信しています」案内が空状態カード内にも重複して表示されて

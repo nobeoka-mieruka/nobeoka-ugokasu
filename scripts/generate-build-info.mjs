@@ -43,10 +43,18 @@ if (isValidIsoDate(gitCommitDate)) {
   lastUpdated = now;
 }
 
+// プライバシーポリシー（src/pages/privacy.astro）を最後に変更したコミットの日時。
+// サイト全体の最終更新日とは独立して扱う（活動報告だけを更新した場合に
+// プライバシーポリシーの最終改定日まで変わってしまわないようにするため）。
+// 取得できない場合はnullのまま安全側に倒し、画面側で既存の固定値フォールバックへ委ねる。
+const privacyCommitDate = tryExec("git log -1 --format=%cI -- src/pages/privacy.astro");
+const privacyLastModified = isValidIsoDate(privacyCommitDate) ? new Date(privacyCommitDate).toISOString() : null;
+
 const buildInfo = {
   lastUpdated,
   commitSha: gitCommitSha ?? process.env.CF_PAGES_COMMIT_SHA ?? null,
   isCloudflarePages: Boolean(process.env.CF_PAGES),
+  privacyLastModified,
   generatedAt: now,
 };
 
@@ -55,3 +63,4 @@ writeFileSync(outputPath, `${JSON.stringify(buildInfo, null, 2)}\n`, "utf8");
 // アクセストークン等の秘密情報は一切含まれないため、内容をログへ出しても問題ない
 console.log(`[generate-build-info] wrote ${outputPath}`);
 console.log(`[generate-build-info] lastUpdated=${buildInfo.lastUpdated} isCloudflarePages=${buildInfo.isCloudflarePages}`);
+console.log(`[generate-build-info] privacyLastModified=${buildInfo.privacyLastModified}`);

@@ -6,10 +6,30 @@ import { siteConfig } from "../config/siteConfig";
 import { seoConfig } from "../config/seoConfig";
 import { webPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
+import buildInfo from "../data/build-info.json";
 
 const title = "プライバシーポリシー｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会公式ホームページのプライバシーポリシーです。取得する情報、利用目的、アクセス解析サービスについて説明します。";
 const breadcrumbItems = [{ name: "プライバシーポリシー", path: "/privacy" }];
+
+// 制定日は固定値のまま維持する（このページ自体の初出時点の日付のため、Git履歴とは連動させない）。
+const establishedDateLabel = "2026年7月17日";
+
+// 最終改定日は、このページ（src/pages/privacy.astro）を最後にGitコミットした日時
+//（scripts/generate-build-info.mjs が生成する build-info.json の privacyLastModified）を
+// 日本時間で表示する。ビルド実行時刻ではなく、Gitのコミッター日時そのものを使う。
+// 取得できない場合は、制定日と同じ安全な固定値へフォールバックする（ビルドは失敗させない）。
+const privacyLastModifiedRaw = buildInfo?.privacyLastModified ?? null;
+const privacyLastModifiedDate = privacyLastModifiedRaw ? new Date(privacyLastModifiedRaw) : null;
+const hasValidPrivacyDate = privacyLastModifiedDate !== null && !Number.isNaN(privacyLastModifiedDate.getTime());
+const lastRevisedLabel = hasValidPrivacyDate
+  ? privacyLastModifiedDate.toLocaleDateString("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  : establishedDateLabel;
 
 const analyticsServices = [
   { name: "Google Search Console", enabled: Boolean(seoConfig.gscVerification), purpose: "検索結果での表示状況の確認" },
@@ -125,7 +145,13 @@ const schemas = [
         </p>
       </div>
 
-      <p class="text-sm text-ink-soft/70">制定日：2026年7月17日<br class="sm:hidden" /> 最終改定日：2026年7月17日</p>
+      <p class="text-sm text-ink-soft/70">
+        制定日：{establishedDateLabel}<br class="sm:hidden" /> 最終改定日：{hasValidPrivacyDate ? (
+          <time datetime={privacyLastModifiedDate!.toISOString()}>{lastRevisedLabel}</time>
+        ) : (
+          lastRevisedLabel
+        )}
+      </p>
     </div>
   </section>
 </BaseLayout>
