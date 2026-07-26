@@ -10,6 +10,7 @@ import { getVisionProposal } from "../../data/vision";
 import { getVoiceTheme } from "../../data/voiceThemes";
 import { articleSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
+import { warnIfMissingSlug } from "../../utils/devWarn";
 
 export async function getStaticPaths() {
   const entries = await getCollection("activities", ({ data }) => data.published);
@@ -35,6 +36,13 @@ const relatedProposals = entry.data.relatedIssues
   .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
 const relatedVoiceTheme = entry.data.relatedVoiceTheme ? getVoiceTheme(entry.data.relatedVoiceTheme) : undefined;
+if (entry.data.relatedVoiceTheme) {
+  warnIfMissingSlug(
+    Boolean(relatedVoiceTheme),
+    `activities/${entry.slug} の relatedVoiceTheme`,
+    entry.data.relatedVoiceTheme,
+  );
+}
 
 const dateLabel = entry.data.date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 

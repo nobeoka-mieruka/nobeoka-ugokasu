@@ -26,6 +26,7 @@ const currentIndex = VISION_STATUS_ORDER.indexOf(status);
             "card flex items-center gap-3 min-w-0 py-3",
             isCurrent && "ring-2 ring-brand-orange-dark",
           ]}
+          aria-current={isCurrent ? "step" : undefined}
         >
           <span
             class:list={[

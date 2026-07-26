@@ -8,9 +8,15 @@ import type { VisionEvidenceItem } from "../data/vision";
 interface Props {
   evidenceItems: VisionEvidenceItem[];
   relatedPlans: { label: string; href?: string }[];
+  /** 呼び出し元ページの見出し階層に合わせる（vision.astroはh3の並び、issues/[slug].astroはh2の並びのため） */
+  headingLevel?: "h2" | "h3";
 }
 
-const { evidenceItems, relatedPlans } = Astro.props;
+const { evidenceItems, relatedPlans, headingLevel = "h3" } = Astro.props;
+const Heading = headingLevel;
+// vision.astro側のh3見出しは "text-lg font-bold text-ink"、issues/[slug].astro側のh2見出しは
+// "font-bold text-ink"（サイズ指定なし）で統一されているため、それぞれに合わせる
+const headingClass = headingLevel === "h2" ? "font-bold text-ink" : "text-lg font-bold text-ink";
 const hasContent = evidenceItems.length > 0 || relatedPlans.length > 0;
 
 function formatConfirmedDate(value: string): string | null {
@@ -21,7 +27,7 @@ function formatConfirmedDate(value: string): string | null {
 ---
 
 <div class="mt-6">
-  <h3 class="text-lg font-bold text-ink">現状データ・参考資料</h3>
+  <Heading class={headingClass}>現状データ・参考資料</Heading>
 
   {!hasContent && (
     <p class="mt-2 text-ink-soft leading-relaxed">公的資料を確認しながら整理しています。</p>

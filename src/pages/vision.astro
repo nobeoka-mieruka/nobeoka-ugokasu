@@ -17,6 +17,7 @@ import { getVoiceTheme } from "../data/voiceThemes";
 import { webPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 import { buildRelatedActivities } from "../utils/relatedActivities";
+import { warnIfMissingSlug } from "../utils/devWarn";
 import socialPostsSnapshot from "../data/socialPostsSnapshot.json";
 import type { BuildSocialPost } from "../types/social";
 
@@ -49,6 +50,22 @@ function getRelatedProfileChapters(proposal: VisionProposal) {
   return proposal.relatedProfileChapterIds
     .map((chapterId) => profileChapters.find((chapter) => chapter.id === chapterId))
     .filter((chapter): chapter is NonNullable<typeof chapter> => Boolean(chapter));
+}
+
+// 設定ミスで存在しないslugを参照していないかをビルド時に確認する（console.warnのみ、ビルドは失敗させない）
+for (const proposal of visionProposals) {
+  warnIfMissingSlug(
+    Boolean(getVoiceTheme(proposal.relatedVoiceThemeSlug)),
+    `vision.ts の "${proposal.slug}" 提言の relatedVoiceThemeSlug`,
+    proposal.relatedVoiceThemeSlug,
+  );
+  for (const chapterId of proposal.relatedProfileChapterIds) {
+    warnIfMissingSlug(
+      profileChapters.some((chapter) => chapter.id === chapterId),
+      `vision.ts の "${proposal.slug}" 提言の relatedProfileChapterIds`,
+      chapterId,
+    );
+  }
 }
 
 const schemas = [
