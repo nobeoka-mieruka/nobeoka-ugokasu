@@ -3,6 +3,9 @@ import type { FacebookPostRaw, InstagramMediaRaw } from "./metaClient";
 
 const TITLE_MAX_LENGTH = 40;
 const CONTROL_CHAR_MAX_CODE = 0x1f;
+// 1行がハッシュタグ（と空白）だけで構成されているかの判定用
+const HASHTAG_ONLY_LINE = /^(#\S+)(\s+#\S+)*$/u;
+const HASHTAG_PATTERN = /#[^\s#]+/gu;
 
 /**
  * 投稿本文の制御文字（改行・タブを除く）だけを取り除く。表示側は常にtextContentで
@@ -18,12 +21,45 @@ function sanitizeText(text: string): string {
   return result.trim();
 }
 
+function isHashtagOnlyLine(line: string): boolean {
+  return HASHTAG_ONLY_LINE.test(line);
+}
+
+/**
+ * ハッシュタグしか無い行から、タイトルとして表示できる文言を作る。
+ * ハッシュタグの文字列そのものを使うだけで、投稿内容にない事実は補わない。
+ */
+function titleFromHashtags(line: string): string | null {
+  const tags = (line.match(HASHTAG_PATTERN) ?? []).map((tag) => tag.slice(1)).filter(Boolean);
+  if (tags.length === 0) return null;
+  const joined = tags.slice(0, 2).join("・");
+  const title = `${joined}について`;
+  return title.length <= TITLE_MAX_LENGTH ? title : `${joined.slice(0, TITLE_MAX_LENGTH - 1)}…`;
+}
+
+/**
+ * 投稿本文からタイトルを作る。先頭行がハッシュタグだけの場合（例：
+ * 「#就労継続支援B型事業所延岡」）は、本文中に文章がある行があればそちらを優先し、
+ * 投稿全体がハッシュタグだけの場合はハッシュタグの文言から読める形のタイトルを作る。
+ */
 function makeTitle(body: string, fallback: string): string {
   const clean = sanitizeText(body);
   if (clean.length === 0) return fallback;
-  const firstLine = clean.split(/\r?\n/)[0];
-  if (firstLine.length <= TITLE_MAX_LENGTH) return firstLine;
-  return `${firstLine.slice(0, TITLE_MAX_LENGTH)}...`;
+
+  const lines = clean
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  if (lines.length === 0) return fallback;
+
+  const sourceLine = lines.find((line) => !isHashtagOnlyLine(line)) ?? lines[0];
+
+  if (isHashtagOnlyLine(sourceLine)) {
+    return titleFromHashtags(sourceLine) ?? fallback;
+  }
+
+  if (sourceLine.length <= TITLE_MAX_LENGTH) return sourceLine;
+  return `${sourceLine.slice(0, TITLE_MAX_LENGTH)}...`;
 }
 
 export function normalizeFacebookPost(raw: FacebookPostRaw): SocialPost | null {

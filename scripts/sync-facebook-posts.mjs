@@ -100,6 +100,9 @@ async function fetchPublishedPosts() {
 // ---- 4. 投稿の正規化（server/normalize.ts の normalizeFacebookPost と同じ優先順位） ----
 
 const CONTROL_CHAR_MAX_CODE = 0x1f;
+// 1行がハッシュタグ（と空白）だけで構成されているかの判定用
+const HASHTAG_ONLY_LINE = /^(#\S+)(\s+#\S+)*$/u;
+const HASHTAG_PATTERN = /#[^\s#]+/gu;
 
 function sanitizeText(text) {
   let result = "";
@@ -111,12 +114,41 @@ function sanitizeText(text) {
   return result.trim();
 }
 
+function isHashtagOnlyLine(line) {
+  return HASHTAG_ONLY_LINE.test(line);
+}
+
+// ハッシュタグしか無い行から、タイトルとして表示できる文言を作る。
+// ハッシュタグの文字列そのものを使うだけで、投稿内容にない事実は補わない。
+function titleFromHashtags(line) {
+  const tags = (line.match(HASHTAG_PATTERN) ?? []).map((tag) => tag.slice(1)).filter(Boolean);
+  if (tags.length === 0) return null;
+  const joined = tags.slice(0, 2).join("・");
+  const title = `${joined}について`;
+  return title.length <= TITLE_MAX_LENGTH ? title : `${joined.slice(0, TITLE_MAX_LENGTH - 1)}…`;
+}
+
+// 投稿本文からタイトルを作る。先頭行がハッシュタグだけの場合（例：
+// 「#就労継続支援B型事業所延岡」）は、本文中に文章がある行があればそちらを優先し、
+// 投稿全体がハッシュタグだけの場合はハッシュタグの文言から読める形のタイトルを作る。
 function makeTitle(body, fallback) {
   const clean = sanitizeText(body);
   if (clean.length === 0) return fallback;
-  const firstLine = clean.split(/\r?\n/)[0];
-  if (firstLine.length <= TITLE_MAX_LENGTH) return firstLine;
-  return `${firstLine.slice(0, TITLE_MAX_LENGTH)}...`;
+
+  const lines = clean
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  if (lines.length === 0) return fallback;
+
+  const sourceLine = lines.find((line) => !isHashtagOnlyLine(line)) ?? lines[0];
+
+  if (isHashtagOnlyLine(sourceLine)) {
+    return titleFromHashtags(sourceLine) ?? fallback;
+  }
+
+  if (sourceLine.length <= TITLE_MAX_LENGTH) return sourceLine;
+  return `${sourceLine.slice(0, TITLE_MAX_LENGTH)}...`;
 }
 
 function normalizeFacebookPost(raw) {

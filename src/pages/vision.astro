@@ -5,10 +5,16 @@ import HeroSection from "../components/HeroSection.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import LastUpdated from "../components/LastUpdated.astro";
 import RelatedContent from "../components/RelatedContent.astro";
+import VisionStatusBadge from "../components/VisionStatusBadge.astro";
 import Icon from "../components/Icon.astro";
-import { visionHeading, visionSubtitle, visionProposals } from "../data/vision";
+import { visionHeading, visionSubtitle, visionProposals, type VisionProposal } from "../data/vision";
+import { getSortedSnsActivities } from "../data/snsActivities";
+import { getVoiceTheme } from "../data/voiceThemes";
 import { webPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
+import { textMatchesKeywords } from "../utils/visionRelated";
+import socialPostsSnapshot from "../data/socialPostsSnapshot.json";
+import type { BuildSocialPost } from "../types/social";
 
 const title = "福富千恵の政策・提言｜延岡市の未来を考える";
 const description =
@@ -17,6 +23,40 @@ const description =
 const breadcrumbItems = [{ name: "私たちの提言", path: "/vision" }];
 
 const activities = await getCollection("activities", ({ data }) => data.published);
+
+// scripts/sync-facebook-posts.mjs がビルド時に生成する、Facebook投稿のスナップショット。
+// 実際の活動報告は主にこのSNS投稿から構成されているため、提言との関連付けにも使う
+//（Meta APIへ直接アクセスすることはしない）。
+const buildSocialPosts = socialPostsSnapshot.posts as unknown as BuildSocialPost[];
+const snsActivities = getSortedSnsActivities();
+
+type RelatedActivityItem = { title: string; href: string; date: Date; external: boolean };
+
+const MAX_RELATED_ACTIVITIES = 3;
+
+/**
+ * 提言ごとに関連する活動報告を集める。公式サイトの活動報告コレクション（relatedIssues）に
+ * 加えて、実際の活動報告の中心であるFacebook投稿・手動登録SNS投稿もキーワードで
+ * 絞り込む。ビルド時点で見つからない場合も、ページ側の<script>が/api/social-feedの
+ * 最新投稿から同じ条件で補って表示する。
+ */
+function buildRelatedActivities(proposal: VisionProposal): RelatedActivityItem[] {
+  const website: RelatedActivityItem[] = activities
+    .filter((a) => a.data.relatedIssues.includes(proposal.slug))
+    .map((a) => ({ title: a.data.title, href: `/activities/${a.slug}/`, date: a.data.date, external: false }));
+
+  const social: RelatedActivityItem[] = buildSocialPosts
+    .filter((p) => textMatchesKeywords(`${p.title} ${p.description}`, proposal.relatedKeywords))
+    .map((p) => ({ title: p.title, href: p.permalink, date: new Date(p.publishedAt), external: true }));
+
+  const sns: RelatedActivityItem[] = snsActivities
+    .filter((s) => textMatchesKeywords(`${s.title} ${s.description}`, proposal.relatedKeywords))
+    .map((s) => ({ title: s.title, href: s.postUrl, date: new Date(s.date), external: true }));
+
+  return [...website, ...social, ...sns]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, MAX_RELATED_ACTIVITIES);
+}
 
 const accentClassMap = {
   welfare: { text: "text-accent-welfare", border: "border-accent-welfare" },
@@ -38,12 +78,12 @@ const schemas = [
     <div class="section-wrap max-w-4xl space-y-16">
       {visionProposals.map((proposal) => {
         const accent = accentClassMap[proposal.accentColor];
-        const relatedActivities = activities.filter((a) =>
-          a.data.relatedIssues.includes(proposal.slug),
-        );
+        const relatedActivities = buildRelatedActivities(proposal);
+        const voiceTheme = getVoiceTheme(proposal.relatedVoiceThemeSlug);
         return (
           <article id={proposal.slug} class:list={["border-l-4 pl-6 scroll-mt-24", accent.border]}>
-            <h2 class="text-2xl sm:text-3xl font-bold text-ink whitespace-pre-line">{proposal.title}</h2>
+            <VisionStatusBadge status={proposal.status} />
+            <h2 class="mt-3 text-2xl sm:text-3xl font-bold text-ink whitespace-pre-line">{proposal.title}</h2>
 
             <div class="mt-6">
               <h3 class="text-lg font-bold text-ink">現状と課題</h3>
@@ -115,20 +155,42 @@ const schemas = [
               <p class="mt-2 text-ink-soft leading-relaxed">{proposal.reviewStatus}</p>
             </div>
 
-            <div class="mt-6">
+            <div class="mt-6" data-vision-related={proposal.slug}>
               <h3 class="text-lg font-bold text-ink">関連する活動報告</h3>
-              {relatedActivities.length > 0 ? (
-                <ul class="mt-2 space-y-1">
-                  {relatedActivities.map((a) => (
-                    <li>
-                      <a href={`/activities/${a.slug}/`} class="text-ink font-bold hover:underline">{a.data.title}</a>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p class="mt-2 text-ink-soft">関連する活動報告は準備中です。</p>
-              )}
+              <ul class:list={["mt-2 space-y-1", relatedActivities.length === 0 && "hidden"]} data-vision-related-list>
+                {relatedActivities.map((item) => (
+                  <li>
+                    <a
+                      href={item.href}
+                      class="text-ink font-bold hover:underline"
+                      target={item.external ? "_blank" : undefined}
+                      rel={item.external ? "noopener noreferrer" : undefined}
+                    >
+                      {item.title}
+                    </a>
+                    {item.external && <span class="sr-only">（新しいタブで開く・外部サイト）</span>}
+                  </li>
+                ))}
+              </ul>
+              <p class:list={["mt-2 text-ink-soft", relatedActivities.length > 0 && "hidden"]} data-vision-related-empty>
+                このテーマに関する活動報告は、今後掲載予定です。
+              </p>
             </div>
+
+            {voiceTheme && (
+              <div class="mt-6 rounded-xl bg-brand-orange-light/40 ring-1 ring-black/5 p-5">
+                <p class="text-ink-soft leading-relaxed">
+                  延岡で感じている「{voiceTheme.title}」に関する困りごとやご意見をお聞かせください。
+                </p>
+                <a
+                  href={`/voices/themes/${voiceTheme.slug}/`}
+                  class="btn-secondary mt-4 inline-flex"
+                >
+                  このテーマについて意見を送る
+                  <Icon name="arrow-right" class="w-4 h-4" ariaHidden={true} />
+                </a>
+              </div>
+            )}
 
             {proposal.officialLinks.length > 0 && (
               <div class="mt-6">
@@ -173,3 +235,58 @@ const schemas = [
     />
   </div>
 </BaseLayout>
+
+<script>
+  // ビルド時点のスナップショットに無い最新のFacebook投稿を/api/social-feedから取得し、
+  // 各提言のキーワードに一致するものだけを「関連する活動報告」へ追加する
+  // （Facebook投稿の取得・表示そのものの仕組みは変更せず、既存のfetchSocialPostsを読むだけ）。
+  import { fetchSocialPosts } from "../services/socialPosts";
+  import { visionProposals } from "../data/vision";
+  import { textMatchesKeywords } from "../utils/visionRelated";
+
+  const MAX_RELATED_ACTIVITIES = 3;
+
+  (async () => {
+    const { posts } = await fetchSocialPosts();
+    if (posts.length === 0) return;
+
+    for (const proposal of visionProposals) {
+      const container = document.querySelector<HTMLElement>(`[data-vision-related="${proposal.slug}"]`);
+      const list = container?.querySelector<HTMLUListElement>("[data-vision-related-list]");
+      const empty = container?.querySelector<HTMLElement>("[data-vision-related-empty]");
+      if (!list) continue;
+
+      const remaining = Math.max(0, MAX_RELATED_ACTIVITIES - list.children.length);
+      if (remaining === 0) continue;
+
+      const known = new Set<string>();
+      list.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((a) => known.add(a.href));
+
+      const matches = posts
+        .filter((post) => textMatchesKeywords(`${post.title} ${post.description}`, proposal.relatedKeywords))
+        .filter((post) => !known.has(post.permalink))
+        .slice(0, remaining);
+
+      if (matches.length === 0) continue;
+
+      for (const post of matches) {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = post.permalink;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.className = "text-ink font-bold hover:underline";
+        a.textContent = post.title;
+        li.append(a);
+        const sr = document.createElement("span");
+        sr.className = "sr-only";
+        sr.textContent = "（新しいタブで開く・外部サイト）";
+        li.append(sr);
+        list.append(li);
+      }
+
+      list.classList.remove("hidden");
+      empty?.classList.add("hidden");
+    }
+  })();
+</script>

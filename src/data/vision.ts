@@ -2,11 +2,29 @@
 // 予算額・開始時期・財源・達成率など確認できていない情報は含めていません。
 // 最終更新日は本人確認後に設定する（未設定の間はLastUpdatedコンポーネント側で自動的に非表示になる）。
 
+/**
+ * 提言の検討状況ステータス。実施が決まっていない段階のため「実施決定」「実現予定」等は
+ * 使わず、現在の取り組み段階（声を集めている／調べている等）だけを示す。
+ */
+export type VisionStatus =
+  | "意見募集中"
+  | "現状調査中"
+  | "制度調査中"
+  | "提言案作成中"
+  | "内容整理中"
+  | "提言公開";
+
 export type VisionProposal = {
   slug: "welfare" | "childcare" | "disaster-prevention";
   title: string;
   shortTitle: string;
   accentColor: "welfare" | "childcare" | "disaster";
+  /** 現在の検討状況（バッジ表示用）。根拠のない前倒しの状態にしない。 */
+  status: VisionStatus;
+  /** 関連する活動報告を見つけるためのキーワード（投稿タイトル・本文に部分一致するかで判定） */
+  relatedKeywords: string[];
+  /** 「みんなの声」でこの提言に対応するテーマのslug（src/data/voiceThemes.ts参照） */
+  relatedVoiceThemeSlug: string;
   background: string[];
   currentIssues: string[];
   /** 主にどなたに関わる提言か（背景・現状の課題から自然に読み取れる範囲のみ記載） */
@@ -38,6 +56,9 @@ export const visionProposals: VisionProposal[] = [
     title: "支える人も\n支えられる人も\n安心できるまち",
     shortTitle: "福祉・介護について",
     accentColor: "welfare",
+    status: "意見募集中",
+    relatedKeywords: ["福祉", "障がい福祉", "介護", "高齢者", "就労支援", "とまりぎ荘"],
+    relatedVoiceThemeSlug: "welfare-care",
     background: [
       "福富千恵は障がい福祉事業所の運営や特定非営利活動法人 とまりぎ荘 理事長としての活動を通じて、介護する家族の負担の大きさを日々感じてきました。",
       "生きている限り、サポートを必要とするのはお互い様です。支え合いが当たり前になる延岡を目指しています。",
@@ -71,6 +92,9 @@ export const visionProposals: VisionProposal[] = [
     title: "安心して\n子育てできるまち",
     shortTitle: "子育てについて",
     accentColor: "childcare",
+    status: "意見募集中",
+    relatedKeywords: ["子ども", "子育て", "教育", "保育", "発達支援"],
+    relatedVoiceThemeSlug: "childcare-education",
     background: [
       "福富千恵は保育園・企業内託児所での勤務経験と、3人の子どもを育てたシングルマザーとしての経験を持っています。",
       "制度や手続きの複雑さ、支援を求める難しさを当事者として経験してきました。",
@@ -102,6 +126,9 @@ export const visionProposals: VisionProposal[] = [
     title: "災害時に\n命を守れるまち",
     shortTitle: "防災・避難について",
     accentColor: "disaster",
+    status: "意見募集中",
+    relatedKeywords: ["防災", "避難", "災害", "地域防災"],
+    relatedVoiceThemeSlug: "disaster-prevention",
     background: [
       "延岡は自然災害への備えが暮らしの安心に直結する地域です。",
       "福祉の現場に携わってきた立場から、災害時に配慮が必要な方々への備えの重要性を感じています。",

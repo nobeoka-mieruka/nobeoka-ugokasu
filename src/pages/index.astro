@@ -55,6 +55,11 @@ const news = (await getCollection("news", ({ data }) => data.published))
 
 const featuredVideos = videos.filter((v) => v.featured).slice(0, 3);
 
+// 動画（YouTube）コンテンツが未公開の間はトップページから非表示にする設定値。
+// YouTube等の動画を公開したら true に変更するだけで、このセクションと
+// 下の取得スクリプトが再表示される（コード自体は削除していない）。
+const SHOW_VIDEO_SECTION = false;
+
 const schemas = [
   websiteSchema(),
   organizationSchema(),
@@ -421,81 +426,85 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
     </div>
   </section>
 
-  <!-- 8-8b 最新の動画 -->
-  <section class="py-14 sm:py-16">
-    <div class="section-wrap">
-      <SectionTitle title="最新の動画" align="left" />
-      <div
-        data-home-video-grid
-        class:list={["grid gap-8 sm:grid-cols-2 lg:grid-cols-3", featuredVideos.length === 0 && "hidden"]}
-      >
-        {featuredVideos.map((video) => (
-          <VideoCard video={video} />
-        ))}
-      </div>
-      <div
-        data-home-videos-empty
-        class:list={[
-          "rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft",
-          featuredVideos.length > 0 && "hidden",
-        ]}
-      >
-        <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
-        <p>動画は準備中です。</p>
-      </div>
-      <div class="mt-8 text-center">
-        <a
-          href="/videos/"
-          data-home-videos-cta
-          class:list={["btn-secondary", featuredVideos.length === 0 && "hidden"]}
-        >
-          動画をもっと見る
-        </a>
-        <span
-          data-home-videos-cta-disabled
-          class:list={[
-            "inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed",
-            featuredVideos.length > 0 && "hidden",
-          ]}
-          aria-disabled="true"
-        >
-          動画をもっと見る（準備中）
-        </span>
-      </div>
-    </div>
-  </section>
+  {SHOW_VIDEO_SECTION && (
+    <>
+      <!-- 8-8b 最新の動画（SHOW_VIDEO_SECTIONがtrueの間だけ表示） -->
+      <section class="py-14 sm:py-16">
+        <div class="section-wrap">
+          <SectionTitle title="最新の動画" align="left" />
+          <div
+            data-home-video-grid
+            class:list={["grid gap-8 sm:grid-cols-2 lg:grid-cols-3", featuredVideos.length === 0 && "hidden"]}
+          >
+            {featuredVideos.map((video) => (
+              <VideoCard video={video} />
+            ))}
+          </div>
+          <div
+            data-home-videos-empty
+            class:list={[
+              "rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft",
+              featuredVideos.length > 0 && "hidden",
+            ]}
+          >
+            <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
+            <p>動画は準備中です。</p>
+          </div>
+          <div class="mt-8 text-center">
+            <a
+              href="/videos/"
+              data-home-videos-cta
+              class:list={["btn-secondary", featuredVideos.length === 0 && "hidden"]}
+            >
+              動画をもっと見る
+            </a>
+            <span
+              data-home-videos-cta-disabled
+              class:list={[
+                "inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed",
+                featuredVideos.length > 0 && "hidden",
+              ]}
+              aria-disabled="true"
+            >
+              動画をもっと見る（準備中）
+            </span>
+          </div>
+        </div>
+      </section>
 
-  <script>
-    // ビルド時点の注目動画（videos.ts、任意）に加えて、YouTubeチャンネルの最新動画を
-    // /api/youtube-feed（Cloudflare KVでキャッシュ済み）から取得し、このセクションへ
-    // 差し込む。YouTube Data APIキーはブラウザから直接呼び出さない。
-    import { fetchYoutubeFeed } from "../services/youtubeFeed";
-    import { createYoutubeVideoCardElement } from "../scripts/youtubeVideoCard";
+      <script>
+        // ビルド時点の注目動画（videos.ts、任意）に加えて、YouTubeチャンネルの最新動画を
+        // /api/youtube-feed（Cloudflare KVでキャッシュ済み）から取得し、このセクションへ
+        // 差し込む。YouTube Data APIキーはブラウザから直接呼び出さない。
+        import { fetchYoutubeFeed } from "../services/youtubeFeed";
+        import { createYoutubeVideoCardElement } from "../scripts/youtubeVideoCard";
 
-    const MAX_HOME_VIDEO_CARDS = 3;
+        const MAX_HOME_VIDEO_CARDS = 3;
 
-    (async () => {
-      const grid = document.querySelector<HTMLElement>("[data-home-video-grid]");
-      const emptyState = document.querySelector<HTMLElement>("[data-home-videos-empty]");
-      const ctaLink = document.querySelector<HTMLElement>("[data-home-videos-cta]");
-      const ctaDisabled = document.querySelector<HTMLElement>("[data-home-videos-cta-disabled]");
+        (async () => {
+          const grid = document.querySelector<HTMLElement>("[data-home-video-grid]");
+          const emptyState = document.querySelector<HTMLElement>("[data-home-videos-empty]");
+          const ctaLink = document.querySelector<HTMLElement>("[data-home-videos-cta]");
+          const ctaDisabled = document.querySelector<HTMLElement>("[data-home-videos-cta-disabled]");
 
-      const { videos: fetchedVideos } = await fetchYoutubeFeed();
+          const { videos: fetchedVideos } = await fetchYoutubeFeed();
 
-      if (grid && fetchedVideos.length > 0) {
-        const remaining = Math.max(0, MAX_HOME_VIDEO_CARDS - grid.children.length);
-        for (const video of fetchedVideos.slice(0, remaining)) {
-          grid.append(createYoutubeVideoCardElement(video));
-        }
-      }
+          if (grid && fetchedVideos.length > 0) {
+            const remaining = Math.max(0, MAX_HOME_VIDEO_CARDS - grid.children.length);
+            for (const video of fetchedVideos.slice(0, remaining)) {
+              grid.append(createYoutubeVideoCardElement(video));
+            }
+          }
 
-      const hasContent = (grid?.children.length ?? 0) > 0;
-      grid?.classList.toggle("hidden", !hasContent);
-      emptyState?.classList.toggle("hidden", hasContent);
-      ctaLink?.classList.toggle("hidden", !hasContent);
-      ctaDisabled?.classList.toggle("hidden", hasContent);
-    })();
-  </script>
+          const hasContent = (grid?.children.length ?? 0) > 0;
+          grid?.classList.toggle("hidden", !hasContent);
+          emptyState?.classList.toggle("hidden", hasContent);
+          ctaLink?.classList.toggle("hidden", !hasContent);
+          ctaDisabled?.classList.toggle("hidden", hasContent);
+        })();
+      </script>
+    </>
+  )}
 
   <!-- 8-9 後援会案内 -->
   <section class="py-14 sm:py-16 bg-brand-ivory">

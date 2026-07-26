@@ -1,0 +1,24 @@
+---
+import type { VisionStatus } from "../data/vision";
+
+interface Props {
+  status: VisionStatus;
+}
+
+const { status } = Astro.props;
+
+// VoiceStatusBadge.astro と同じ配色方針。文字色は常にコントラストを確保できる
+// text-ink系に統一し、背景色の違いだけで段階を表現する（派手な配色は避ける）。
+const colorMap: Record<VisionStatus, string> = {
+  "意見募集中": "bg-accent-welfare/15 text-ink ring-1 ring-inset ring-accent-welfare/50",
+  "現状調査中": "bg-brand-orange-light text-ink",
+  "制度調査中": "bg-brand-orange-light text-ink",
+  "提言案作成中": "bg-accent-disaster/10 text-ink",
+  "内容整理中": "bg-brand-orange-light text-ink",
+  "提言公開": "bg-accent-welfare/10 text-ink",
+};
+---
+
+<span class:list={["inline-flex items-center rounded-full px-3 py-1 text-xs font-bold", colorMap[status]]}>
+  {status}
+</span>
