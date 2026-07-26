@@ -15,7 +15,7 @@ import {
 } from "../data/profile";
 import { visionProposals } from "../data/vision";
 import { siteConfig } from "../config/siteConfig";
-import { personSchema, webPageSchema } from "../utils/structuredData";
+import { personSchema, webPageSchema, personId } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
 
@@ -27,7 +27,7 @@ const breadcrumbItems = [{ name: "福富千恵について", path: "/profile" }]
 
 const schemas = [
   personSchema({ image: "/images/profile/fukutomi-chie-800.jpg" }),
-  webPageSchema({ type: "ProfilePage", path: "/profile", name: title, description }),
+  webPageSchema({ type: "ProfilePage", path: "/profile", name: title, description, mainEntityId: personId }),
   buildBreadcrumbList(breadcrumbItems),
 ];
 

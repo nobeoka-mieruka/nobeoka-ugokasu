@@ -33,12 +33,20 @@ export function websiteSchema() {
   };
 }
 
+/**
+ * Person（福富千恵本人）の@id。
+ * ページをまたいで同一人物として認識できるよう、Personを出力する全ページで
+ * このURLに統一する（ProfilePage.mainEntityからの参照にも使用：SEO 20章）。
+ */
+export const personId = `${siteConfig.siteUrl}/#person`;
+
 /** Person構造化データ（確認済み情報のみ含める：19章） */
 export function personSchema(options?: { image?: string }) {
   const sameAs = getConfirmedSocialLinks();
   return {
     "@context": "https://schema.org",
     "@type": "Person",
+    "@id": personId,
     name: siteConfig.personName,
     alternateName: siteConfig.personNameKana,
     url: absoluteUrl("/profile"),
@@ -60,6 +68,12 @@ export function webPageSchema(options: {
   description: string;
   /** 画面に実際に表示している画像のパス（例：OGP画像）。省略時は共通OGP画像を使用 */
   image?: string;
+  /**
+   * mainEntityとして参照する既存ノードの@id（例：personId）。
+   * ProfilePageではGoogleがmainEntityを必須項目として扱うため、
+   * 同一ページに出力済みのPersonなどを@id参照で指定する（Personを二重定義しないこと）。
+   */
+  mainEntityId?: string;
 }) {
   const imagePath = options.image ?? siteConfig.defaultOgpImage;
   return {
@@ -69,6 +83,7 @@ export function webPageSchema(options: {
     description: options.description,
     url: absoluteUrl(options.path),
     inLanguage: "ja",
+    ...(options.mainEntityId ? { mainEntity: { "@id": options.mainEntityId } } : {}),
     primaryImageOfPage: {
       "@type": "ImageObject",
       url: absoluteUrl(imagePath),

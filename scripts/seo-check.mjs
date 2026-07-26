@@ -161,10 +161,17 @@ for (const file of htmlFiles) {
 
   // JSON-LDの妥当性チェック
   for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+    let schema;
     try {
-      JSON.parse(m[1]);
+      schema = JSON.parse(m[1]);
     } catch (e) {
       fail(`[${route}] JSON-LDが妥当なJSONではありません: ${e.message}`);
+      continue;
+    }
+
+    // ProfilePageにはmainEntity（例：Personの@id参照）が必須（Google Search Console要件）
+    if (schema["@type"] === "ProfilePage" && !schema.mainEntity) {
+      fail(`[${route}] ProfilePageにmainEntityがありません。`);
     }
   }
 
