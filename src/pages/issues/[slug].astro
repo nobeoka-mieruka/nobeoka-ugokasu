@@ -4,11 +4,20 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import RelatedContent from "../../components/RelatedContent.astro";
+import InlineRelatedLinks from "../../components/InlineRelatedLinks.astro";
 import Icon from "../../components/Icon.astro";
 import LastUpdated from "../../components/LastUpdated.astro";
+import VisionStatusBadge from "../../components/VisionStatusBadge.astro";
+import VisionStatusSteps from "../../components/VisionStatusSteps.astro";
+import VisionEvidenceCard from "../../components/VisionEvidenceCard.astro";
 import { getVisionProposal } from "../../data/vision";
+import { profileChapters } from "../../data/profile";
+import { getSortedSnsActivities } from "../../data/snsActivities";
+import { buildRelatedActivities } from "../../utils/relatedActivities";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
+import socialPostsSnapshot from "../../data/socialPostsSnapshot.json";
+import type { BuildSocialPost } from "../../types/social";
 
 export async function getStaticPaths() {
   const entries = await getCollection("issues");
@@ -21,6 +30,20 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 const proposal = getVisionProposal(entry.slug);
+
+const relatedActivities = proposal
+  ? buildRelatedActivities(proposal, {
+      activities: await getCollection("activities", ({ data }) => data.published),
+      buildSocialPosts: socialPostsSnapshot.posts as unknown as BuildSocialPost[],
+      snsActivities: getSortedSnsActivities(),
+    })
+  : [];
+
+const relatedChapters = proposal
+  ? proposal.relatedProfileChapterIds
+      .map((id) => profileChapters.find((c) => c.id === id))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+  : [];
 
 const title = `${entry.data.title}｜福富千恵と延岡を動かす会`;
 const description = entry.data.description;
@@ -57,7 +80,12 @@ const schemas = [
 
       {proposal && (
         <div class:list={["border-l-4 pl-6 mb-10", accentClass.border]}>
-          <h2 class="font-bold text-ink">現状と課題</h2>
+          <VisionStatusBadge status={proposal.status} />
+          <div class="mt-4">
+            <VisionStatusSteps status={proposal.status} />
+          </div>
+
+          <h2 class="mt-6 font-bold text-ink">現状と課題</h2>
           <ul class="mt-2 space-y-1">
             {proposal.currentIssues.map((issue) => (
               <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
@@ -123,6 +151,36 @@ const schemas = [
                 ))}
               </ul>
             </>
+          )}
+
+          <VisionEvidenceCard evidenceItems={proposal.evidenceItems} relatedPlans={proposal.relatedPlans} />
+
+          {relatedChapters.length > 0 && (
+            <InlineRelatedLinks
+              heading="この提言につながる福富千恵の経験"
+              items={relatedChapters.map((c) => ({ title: c.title, href: `/profile/#${c.id}` }))}
+            />
+          )}
+
+          {relatedActivities.length > 0 && (
+            <div class="mt-6">
+              <h2 class="font-bold text-ink">関連する活動報告</h2>
+              <ul class="mt-2 space-y-1">
+                {relatedActivities.map((item) => (
+                  <li>
+                    <a
+                      href={item.href}
+                      class="text-ink font-bold hover:underline"
+                      target={item.external ? "_blank" : undefined}
+                      rel={item.external ? "noopener noreferrer" : undefined}
+                    >
+                      {item.title}
+                    </a>
+                    {item.external && <span class="sr-only">（新しいタブで開く・外部サイト）</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           <div class="mt-6">

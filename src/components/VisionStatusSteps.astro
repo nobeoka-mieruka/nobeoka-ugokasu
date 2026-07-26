@@ -1,0 +1,47 @@
+---
+// 提言の検討状況を6段階のステップで見える化する。
+// VoiceEngagementFlow.astroと同じカード型グリッドを採用し、スマートフォンでも
+// 横スクロールが発生しないようにする（縦積み→2列→3列と自動的に折り返す）。
+import { VISION_STATUS_ORDER, type VisionStatus } from "../data/vision";
+
+interface Props {
+  status: VisionStatus;
+}
+
+const { status } = Astro.props;
+const currentIndex = VISION_STATUS_ORDER.indexOf(status);
+---
+
+<div>
+  <p class="text-sm text-ink-soft">
+    現在の状況：<span class="font-bold text-ink">{status}</span>
+  </p>
+  <ol class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {VISION_STATUS_ORDER.map((step, index) => {
+      const isCurrent = index === currentIndex;
+      const isDone = currentIndex >= 0 && index < currentIndex;
+      return (
+        <li
+          class:list={[
+            "card flex items-center gap-3 min-w-0 py-3",
+            isCurrent && "ring-2 ring-brand-orange-dark",
+          ]}
+        >
+          <span
+            class:list={[
+              "flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold",
+              isCurrent || isDone ? "bg-brand-orange text-white" : "border-2 border-ink-soft/40 text-ink-soft",
+            ]}
+            aria-hidden="true"
+          >
+            {isCurrent || isDone ? "●" : "○"}
+          </span>
+          <span class:list={["min-w-0 flex-1 text-sm leading-snug [overflow-wrap:break-word]", isCurrent ? "font-bold text-ink" : "text-ink-soft"]}>
+            {step}
+            {isCurrent && <span class="ml-1 text-xs font-bold text-brand-orange-dark">（現在）</span>}
+          </span>
+        </li>
+      );
+    })}
+  </ol>
+</div>

@@ -6,13 +6,17 @@ import Breadcrumb from "../components/Breadcrumb.astro";
 import LastUpdated from "../components/LastUpdated.astro";
 import RelatedContent from "../components/RelatedContent.astro";
 import VisionStatusBadge from "../components/VisionStatusBadge.astro";
+import VisionStatusSteps from "../components/VisionStatusSteps.astro";
+import VisionEvidenceCard from "../components/VisionEvidenceCard.astro";
+import InlineRelatedLinks from "../components/InlineRelatedLinks.astro";
 import Icon from "../components/Icon.astro";
 import { visionHeading, visionSubtitle, visionProposals, type VisionProposal } from "../data/vision";
+import { profileChapters } from "../data/profile";
 import { getSortedSnsActivities } from "../data/snsActivities";
 import { getVoiceTheme } from "../data/voiceThemes";
 import { webPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
-import { textMatchesKeywords } from "../utils/visionRelated";
+import { buildRelatedActivities } from "../utils/relatedActivities";
 import socialPostsSnapshot from "../data/socialPostsSnapshot.json";
 import type { BuildSocialPost } from "../types/social";
 
@@ -30,39 +34,22 @@ const activities = await getCollection("activities", ({ data }) => data.publishe
 const buildSocialPosts = socialPostsSnapshot.posts as unknown as BuildSocialPost[];
 const snsActivities = getSortedSnsActivities();
 
-type RelatedActivityItem = { title: string; href: string; date: Date; external: boolean };
-
-const MAX_RELATED_ACTIVITIES = 3;
-
-/**
- * 提言ごとに関連する活動報告を集める。公式サイトの活動報告コレクション（relatedIssues）に
- * 加えて、実際の活動報告の中心であるFacebook投稿・手動登録SNS投稿もキーワードで
- * 絞り込む。ビルド時点で見つからない場合も、ページ側の<script>が/api/social-feedの
- * 最新投稿から同じ条件で補って表示する。
- */
-function buildRelatedActivities(proposal: VisionProposal): RelatedActivityItem[] {
-  const website: RelatedActivityItem[] = activities
-    .filter((a) => a.data.relatedIssues.includes(proposal.slug))
-    .map((a) => ({ title: a.data.title, href: `/activities/${a.slug}/`, date: a.data.date, external: false }));
-
-  const social: RelatedActivityItem[] = buildSocialPosts
-    .filter((p) => textMatchesKeywords(`${p.title} ${p.description}`, proposal.relatedKeywords))
-    .map((p) => ({ title: p.title, href: p.permalink, date: new Date(p.publishedAt), external: true }));
-
-  const sns: RelatedActivityItem[] = snsActivities
-    .filter((s) => textMatchesKeywords(`${s.title} ${s.description}`, proposal.relatedKeywords))
-    .map((s) => ({ title: s.title, href: s.postUrl, date: new Date(s.date), external: true }));
-
-  return [...website, ...social, ...sns]
-    .sort((a, b) => b.date.getTime() - a.date.getTime())
-    .slice(0, MAX_RELATED_ACTIVITIES);
-}
-
 const accentClassMap = {
   welfare: { text: "text-accent-welfare", border: "border-accent-welfare" },
   childcare: { text: "text-accent-childcare", border: "border-accent-childcare" },
   disaster: { text: "text-accent-disaster", border: "border-accent-disaster" },
 };
+
+/**
+ * 提言の背景となるプロフィール章を取得する。
+ * 型ガード付きのfilterはテンプレート内の{}式に直接書くとAstroのTSXパーサーで
+ * 構文エラーになるため、frontmatter側の関数として切り出している。
+ */
+function getRelatedProfileChapters(proposal: VisionProposal) {
+  return proposal.relatedProfileChapterIds
+    .map((chapterId) => profileChapters.find((chapter) => chapter.id === chapterId))
+    .filter((chapter): chapter is NonNullable<typeof chapter> => Boolean(chapter));
+}
 
 const schemas = [
   webPageSchema({ path: "/vision", name: title, description }),
@@ -78,12 +65,17 @@ const schemas = [
     <div class="section-wrap max-w-4xl space-y-16">
       {visionProposals.map((proposal) => {
         const accent = accentClassMap[proposal.accentColor];
-        const relatedActivities = buildRelatedActivities(proposal);
+        const relatedActivities = buildRelatedActivities(proposal, { activities, buildSocialPosts, snsActivities });
         const voiceTheme = getVoiceTheme(proposal.relatedVoiceThemeSlug);
+        const relatedChapters = getRelatedProfileChapters(proposal);
         return (
           <article id={proposal.slug} class:list={["border-l-4 pl-6 scroll-mt-24", accent.border]}>
             <VisionStatusBadge status={proposal.status} />
             <h2 class="mt-3 text-2xl sm:text-3xl font-bold text-ink whitespace-pre-line">{proposal.title}</h2>
+
+            <div class="mt-6">
+              <VisionStatusSteps status={proposal.status} />
+            </div>
 
             <div class="mt-6">
               <h3 class="text-lg font-bold text-ink">現状と課題</h3>
@@ -154,6 +146,15 @@ const schemas = [
               <h3 class="text-lg font-bold text-ink">現在の検討状況</h3>
               <p class="mt-2 text-ink-soft leading-relaxed">{proposal.reviewStatus}</p>
             </div>
+
+            <VisionEvidenceCard evidenceItems={proposal.evidenceItems} relatedPlans={proposal.relatedPlans} />
+
+            {relatedChapters.length > 0 && (
+              <InlineRelatedLinks
+                heading="この提言につながる福富千恵の経験"
+                items={relatedChapters.map((c) => ({ title: c.title, href: `/profile/#${c.id}` }))}
+              />
+            )}
 
             <div class="mt-6" data-vision-related={proposal.slug}>
               <h3 class="text-lg font-bold text-ink">関連する活動報告</h3>

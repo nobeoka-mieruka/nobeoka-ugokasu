@@ -5,6 +5,15 @@
 // 実際の数値に置き換えてください。数値を入力していない項目（total が
 // undefined、categories/status が空配列）は、自動的に「現在集計中です」
 // などの自然な案内表示に切り替わります。架空の数値を入力しないでください。
+//
+// 【categories のラベル例】（src/data/voiceThemes.ts の category と揃えると分かりやすい）
+// 福祉、介護 / 障がい福祉 / 子育て、教育 / 高齢者支援 / 防災、避難 /
+// 地域交通 / 買い物、生活環境 / 仕事、地域経済 / 行政手続き /
+// 地域コミュニティ / 延岡の将来 / その他
+//
+// 【status のラベル例】（src/config/voicesConfig.ts の responseStatusLabels と揃える）
+// 受け付けました / 内容を整理しています / 詳しく調査しています /
+// 提言への反映を検討しています / 提言に反映しました
 
 export interface VoicesCategoryCount {
   label: string;

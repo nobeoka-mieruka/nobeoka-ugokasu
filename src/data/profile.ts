@@ -40,7 +40,12 @@ export type ProfileChapter = {
   id: string;
   title: string;
   paragraphs: string[];
+  /** この経験に自然に対応する提言のslug（src/data/vision.ts参照）。無理にこじつけない */
+  relatedVisionSlugs?: ("welfare" | "childcare" | "disaster-prevention")[];
 };
+
+/** プロフィールページ全体の最終更新日（本人確認後に設定。未設定の間は非表示） */
+export const profileLastUpdated = "";
 
 export const profileChapters: ProfileChapter[] = [
   {
@@ -58,6 +63,7 @@ export const profileChapters: ProfileChapter[] = [
       "宮崎県立延岡商業高等学校を卒業したのち、聖心ウルスラ学園短期大学 幼児教育学科で学びました。",
       "その後、市内保育園や市内企業内託児所で勤務し、子どもたちや保護者の方々と向き合う日々を過ごしました。",
     ],
+    relatedVisionSlugs: ["childcare"],
   },
   {
     id: "marriage-and-childcare",
@@ -66,6 +72,7 @@ export const profileChapters: ProfileChapter[] = [
       "結婚を機に仕事を退き、長男、長女、次男の3人の子どもを授かりました。",
       "10年の結婚生活を経て婚姻関係を解消し、その後は女手ひとつで3人の子どもを育てることになりました。子育てをする中で、延岡の制度や地域の支え合いについて、当事者として感じることが数多くありました。",
     ],
+    relatedVisionSlugs: ["childcare"],
   },
   {
     id: "raising-three-children",
@@ -74,6 +81,7 @@ export const profileChapters: ProfileChapter[] = [
       "3人の子どもを育てる中では、なりふり構わず、昼夜を問わず働く日々を過ごしました。生活も気持ちも、決して平坦な道のりではありませんでした。",
       "シングルマザーとして3人を育てた経験は、私が地域の子育て支援を考えるうえでの土台になっています。3人の子どもは、現在は成人しました。",
     ],
+    relatedVisionSlugs: ["childcare"],
   },
   {
     id: "child-illness",
@@ -82,6 +90,7 @@ export const profileChapters: ProfileChapter[] = [
       "子育ての中では、子どもが病気になり、手術のために入院することもありました。",
       "そのときも長期で仕事を休むことができず、子どもにも寂しい思いをさせてしまいました。そうした経験を通じて、医療や福祉の制度がどれだけ家族の支えになるかを実感しました。",
     ],
+    relatedVisionSlugs: ["childcare"],
   },
   {
     id: "complex-procedures",
@@ -90,6 +99,7 @@ export const profileChapters: ProfileChapter[] = [
       "自分の住むまちにどのような支援制度があるのか、支援を受けるにはどのような手続きが必要なのか、どのような条件が必要なのか、知る余地もなく、たどり着くことが難しいと感じる経験もしました。",
       "この経験が、スマートフォンでの行政手続きの推進など、私の提言の背景になっています。",
     ],
+    relatedVisionSlugs: ["childcare"],
   },
   {
     id: "difficulty-seeking-support",
@@ -98,6 +108,7 @@ export const profileChapters: ProfileChapter[] = [
       "困っているときほど「助けてほしい」と声を上げることが難しいと感じる場面がありました。",
       "だからこそ、支えてほしいときに支えてと言える延岡を目指したいと考えています。",
     ],
+    relatedVisionSlugs: ["welfare"],
   },
   {
     id: "encounter-with-disability-welfare",
@@ -106,6 +117,7 @@ export const profileChapters: ProfileChapter[] = [
       "様々な経験を経て、障がい福祉の分野と出会い、市内の障がい福祉事業所で多くを学びました。",
       "その後、独立して障がい福祉事業所の運営に携わるようになりました。",
     ],
+    relatedVisionSlugs: ["welfare"],
   },
   {
     id: "operating-welfare-office",
@@ -114,6 +126,7 @@ export const profileChapters: ProfileChapter[] = [
       "現在は障がい福祉事業所の運営に携わり、特定非営利活動法人 とまりぎ荘の理事長を務めています。現場の実態や経営について、さまざまな問題や課題に直面してきました。",
       "また、保護司としても地域に関わっています。",
     ],
+    relatedVisionSlugs: ["welfare"],
   },
   {
     id: "family-caregiving-burden",
@@ -122,6 +135,7 @@ export const profileChapters: ProfileChapter[] = [
       "福祉の現場に身を置く中で、介護をする家族の負担の大きさを日々感じています。",
       "支える側にも支えが必要だということを、現場から伝えていきたいと考えています。",
     ],
+    relatedVisionSlugs: ["welfare"],
   },
   {
     id: "need-for-mutual-support",
@@ -131,5 +145,6 @@ export const profileChapters: ProfileChapter[] = [
       "支え合い、助け合い、協力することが、特別なことではなく、当たり前になる延岡を目指します。",
       "子育て、介護、福祉、生活の中で、一人で悩み、声を上げられずにいる方に届く仕組みをつくりたいと考えています。",
     ],
+    relatedVisionSlugs: ["welfare"],
   },
 ];

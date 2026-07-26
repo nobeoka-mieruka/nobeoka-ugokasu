@@ -1,0 +1,34 @@
+---
+// 本文中に自然に差し込む、控えめな内部リンクボックス。
+// ページ末尾の大きなカード一覧（RelatedContent.astro）とは異なり、読者が今読んでいる
+// 内容の背景・関連をその場で確認できるようにするための小さな案内。
+import Icon from "./Icon.astro";
+
+interface RelatedLink {
+  title: string;
+  href: string;
+}
+
+interface Props {
+  heading: string;
+  items: RelatedLink[];
+}
+
+const { heading, items } = Astro.props;
+---
+
+{items.length > 0 && (
+  <div class="mt-4 rounded-xl bg-brand-orange-light/40 ring-1 ring-black/5 p-4">
+    <p class="text-sm font-bold text-ink">{heading}</p>
+    <ul class="mt-2 space-y-1">
+      {items.map((item) => (
+        <li>
+          <a href={item.href} class="inline-flex items-center gap-1 text-sm font-bold text-ink hover:underline">
+            <Icon name="arrow-right" class="w-4 h-4 flex-shrink-0 text-brand-orange-dark" />
+            <span class="min-w-0 [overflow-wrap:break-word]">{item.title}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}

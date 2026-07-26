@@ -4,12 +4,16 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import HeroSection from "../components/HeroSection.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import RelatedContent from "../components/RelatedContent.astro";
+import InlineRelatedLinks from "../components/InlineRelatedLinks.astro";
+import LastUpdated from "../components/LastUpdated.astro";
 import Icon from "../components/Icon.astro";
 import {
   profilePageHeroHeading,
   profileChapters,
   profileClosingMessage,
+  profileLastUpdated,
 } from "../data/profile";
+import { visionProposals } from "../data/vision";
 import { siteConfig } from "../config/siteConfig";
 import { personSchema, webPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
@@ -26,6 +30,17 @@ const schemas = [
   webPageSchema({ type: "ProfilePage", path: "/profile", name: title, description }),
   buildBreadcrumbList(breadcrumbItems),
 ];
+
+/**
+ * 章に対応する提言を取得する。
+ * 型ガード付きのfilterはテンプレート内の{}式に直接書くとAstroのTSXパーサーで
+ * 構文エラーになるため、frontmatter側の関数として切り出している。
+ */
+function getRelatedVisionProposals(chapter: (typeof profileChapters)[number]) {
+  return (chapter.relatedVisionSlugs ?? [])
+    .map((slug) => visionProposals.find((p) => p.slug === slug))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+}
 ---
 
 <BaseLayout title={title} description={description} path="/profile" ogType="profile" schemas={schemas}>
@@ -53,20 +68,31 @@ const schemas = [
         </div>
       </div>
 
-      {profileChapters.map((chapter) => (
-        <div id={chapter.id} class="mb-10 scroll-mt-24">
-          <h2 class="text-xl sm:text-2xl font-bold text-ink border-l-4 border-brand-orange pl-4">
-            {chapter.title}
-          </h2>
-          <div class="mt-4 space-y-3 text-ink-soft leading-loose">
-            {chapter.paragraphs.map((paragraph) => (
-              <p>{paragraph}</p>
-            ))}
+      {profileChapters.map((chapter) => {
+        const relatedProposals = getRelatedVisionProposals(chapter);
+        return (
+          <div id={chapter.id} class="mb-10 scroll-mt-24">
+            <h2 class="text-xl sm:text-2xl font-bold text-ink border-l-4 border-brand-orange pl-4">
+              {chapter.title}
+            </h2>
+            <div class="mt-4 space-y-3 text-ink-soft leading-loose">
+              {chapter.paragraphs.map((paragraph) => (
+                <p>{paragraph}</p>
+              ))}
+            </div>
+            <InlineRelatedLinks
+              heading="この経験に関連する提言"
+              items={relatedProposals.map((p) => ({ title: p.shortTitle, href: `/vision/#${p.slug}` }))}
+            />
           </div>
-        </div>
-      ))}
+        );
+      })}
 
-      <div class="mt-14 card bg-ink text-white text-center py-10">
+      <div class="mt-4">
+        <LastUpdated date={profileLastUpdated || undefined} />
+      </div>
+
+      <div class="mt-10 card bg-ink text-white text-center py-10">
         <p class="text-xl sm:text-2xl font-bold whitespace-pre-line">{profileClosingMessage.heading}</p>
         <p class="mt-4 text-white/85 whitespace-pre-line leading-relaxed">{profileClosingMessage.body}</p>
       </div>

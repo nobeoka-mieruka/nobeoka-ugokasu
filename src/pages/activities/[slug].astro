@@ -5,7 +5,9 @@ import Breadcrumb from "../../components/Breadcrumb.astro";
 import LastUpdated from "../../components/LastUpdated.astro";
 import ShareButtons from "../../components/ShareButtons.astro";
 import RelatedContent from "../../components/RelatedContent.astro";
+import Icon from "../../components/Icon.astro";
 import { getVisionProposal } from "../../data/vision";
+import { getVoiceTheme } from "../../data/voiceThemes";
 import { articleSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
 
@@ -31,6 +33,8 @@ const breadcrumbItems = [
 const relatedProposals = entry.data.relatedIssues
   .map((slug) => getVisionProposal(slug))
   .filter((p): p is NonNullable<typeof p> => Boolean(p));
+
+const relatedVoiceTheme = entry.data.relatedVoiceTheme ? getVoiceTheme(entry.data.relatedVoiceTheme) : undefined;
 
 const dateLabel = entry.data.date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 
@@ -70,6 +74,24 @@ const schemas = [
     <div class="mt-8 prose-content text-ink-soft leading-loose space-y-4">
       <Content />
     </div>
+
+    {(relatedVoiceTheme || entry.data.snsPostUrl) && (
+      <div class="mt-8 flex flex-wrap gap-3">
+        {relatedVoiceTheme && (
+          <a href={`/voices/themes/${relatedVoiceTheme.slug}/`} class="btn-secondary">
+            <Icon name="megaphone" class="w-4 h-4" ariaHidden={true} />
+            関連する「みんなの声」：{relatedVoiceTheme.title}
+          </a>
+        )}
+        {entry.data.snsPostUrl && (
+          <a href={entry.data.snsPostUrl} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+            この活動のSNS投稿を見る
+            <Icon name="external-link" class="w-4 h-4" ariaHidden={true} />
+            <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+          </a>
+        )}
+      </div>
+    )}
 
     <div class="mt-10 flex flex-wrap items-center justify-between gap-4">
       <LastUpdated date={entry.data.updatedDate ?? entry.data.date} />

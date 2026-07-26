@@ -1,0 +1,76 @@
+---
+// 提言の「現状データ・参考資料」カード。
+// 事実確認できたデータ・関連計画のみを表示し、未登録の場合は架空の数値を出さず
+// 「公的資料を確認しながら整理しています」という案内文だけを表示する（15章準拠）。
+import Icon from "./Icon.astro";
+import type { VisionEvidenceItem } from "../data/vision";
+
+interface Props {
+  evidenceItems: VisionEvidenceItem[];
+  relatedPlans: { label: string; href?: string }[];
+}
+
+const { evidenceItems, relatedPlans } = Astro.props;
+const hasContent = evidenceItems.length > 0 || relatedPlans.length > 0;
+
+function formatConfirmedDate(value: string): string | null {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+}
+---
+
+<div class="mt-6">
+  <h3 class="text-lg font-bold text-ink">現状データ・参考資料</h3>
+
+  {!hasContent && (
+    <p class="mt-2 text-ink-soft leading-relaxed">公的資料を確認しながら整理しています。</p>
+  )}
+
+  {evidenceItems.length > 0 && (
+    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+      {evidenceItems.map((item) => {
+        const confirmedLabel = formatConfirmedDate(item.confirmedDate);
+        return (
+          <div class="card min-w-0 py-4">
+            <p class="text-sm font-bold text-ink-soft [overflow-wrap:break-word]">{item.label}</p>
+            <p class="mt-1 text-xl font-bold text-ink [overflow-wrap:break-word]">{item.value}</p>
+            <p class="mt-2 text-xs text-ink-soft [overflow-wrap:break-word]">
+              出典：
+              {item.sourceUrl ? (
+                <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
+                  {item.source}
+                  <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+                </a>
+              ) : (
+                item.source
+              )}
+            </p>
+            {confirmedLabel && <p class="mt-1 text-xs text-ink-soft">データ確認日：{confirmedLabel}</p>}
+          </div>
+        );
+      })}
+    </div>
+  )}
+
+  {relatedPlans.length > 0 && (
+    <div class="mt-4">
+      <p class="text-sm font-bold text-ink-soft">関連する延岡市・宮崎県・国の計画や制度</p>
+      <ul class="mt-2 space-y-1">
+        {relatedPlans.map((plan) => (
+          <li>
+            {plan.href ? (
+              <a href={plan.href} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-ink font-bold hover:underline">
+                {plan.label}
+                <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+                <Icon name="external-link" class="w-4 h-4" />
+              </a>
+            ) : (
+              <span class="text-ink-soft">{plan.label}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+</div>

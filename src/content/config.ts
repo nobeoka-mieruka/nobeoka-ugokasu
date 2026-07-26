@@ -28,6 +28,8 @@ const activities = defineCollection({
     published: z.boolean().default(false),
     relatedIssues: z.array(z.enum(["welfare", "childcare", "disaster-prevention"])).default([]),
     relatedVoiceTheme: z.string().optional(),
+    /** SNS投稿へのリンク（Facebook・Instagramなど、実在する投稿URLのみ設定） */
+    snsPostUrl: z.string().url().optional(),
   }),
 });
 

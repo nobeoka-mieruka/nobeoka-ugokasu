@@ -14,6 +14,34 @@ export type VisionStatus =
   | "内容整理中"
   | "提言公開";
 
+/**
+ * ステータス表示（VisionStatusSteps）用の進行順。
+ * VisionStatus型の宣言順とは独立して、UI上の見せ方だけをここで定義する
+ * （文言そのものは変更しない）。
+ */
+export const VISION_STATUS_ORDER: VisionStatus[] = [
+  "意見募集中",
+  "現状調査中",
+  "制度調査中",
+  "内容整理中",
+  "提言案作成中",
+  "提言公開",
+];
+
+/** 現状データ・参考資料カードの1項目（数値は事実確認できたものだけを登録すること。推測禁止） */
+export type VisionEvidenceItem = {
+  /** 何のデータか（例："延岡市の高齢化率"） */
+  label: string;
+  /** 数値・内容（例："38.2%（2025年時点）"） */
+  value: string;
+  /** 出典（例：延岡市「高齢者福祉計画」） */
+  source: string;
+  /** 出典URL（確認できる場合のみ） */
+  sourceUrl?: string;
+  /** データを確認した日（"YYYY-MM-DD"） */
+  confirmedDate: string;
+};
+
 export type VisionProposal = {
   slug: "welfare" | "childcare" | "disaster-prevention";
   title: string;
@@ -43,6 +71,16 @@ export type VisionProposal = {
   reviewStatus: string;
   /** 関連する公的資料・延岡市公式ページ（確認できたものだけを追加する） */
   officialLinks: { label: string; href: string }[];
+  /**
+   * 現状データ・参考資料カードに表示する統計・データ。
+   * 事実確認できたものだけを登録すること（推測での入力は禁止）。
+   * 未登録の間はVisionEvidenceCard側で「公的資料を確認しながら整理しています」と表示される。
+   */
+  evidenceItems: VisionEvidenceItem[];
+  /** 関連する延岡市・宮崎県・国の計画や制度（確認できたものだけを追加する） */
+  relatedPlans: { label: string; href?: string }[];
+  /** この提言の背景となる、福富千恵プロフィールページの章id（src/data/profile.ts参照）。自然に対応する章がない場合は空配列のままにする */
+  relatedProfileChapterIds: string[];
   /** 最終更新日（本人確認後に設定。未設定の間はLastUpdated側で非表示になる） */
   lastUpdated: string;
 };
@@ -85,6 +123,15 @@ export const visionProposals: VisionProposal[] = [
       "「みんなの声」を通じて、福祉・介護に関するご意見を募集しています。寄せられた声はこのページへ順次反映していきます。",
     reviewStatus: "現在検討中です。皆さまのご意見を伺いながら具体化します。",
     officialLinks: [],
+    evidenceItems: [],
+    relatedPlans: [],
+    relatedProfileChapterIds: [
+      "encounter-with-disability-welfare",
+      "operating-welfare-office",
+      "family-caregiving-burden",
+      "need-for-mutual-support",
+      "difficulty-seeking-support",
+    ],
     lastUpdated: "",
   },
   {
@@ -119,6 +166,15 @@ export const visionProposals: VisionProposal[] = [
       "「みんなの声」を通じて、子育てに関するご意見を募集しています。寄せられた声はこのページへ順次反映していきます。",
     reviewStatus: "現在検討中です。皆さまのご意見を伺いながら具体化します。",
     officialLinks: [],
+    evidenceItems: [],
+    relatedPlans: [],
+    relatedProfileChapterIds: [
+      "complex-procedures",
+      "childcare-work",
+      "marriage-and-childcare",
+      "raising-three-children",
+      "child-illness",
+    ],
     lastUpdated: "",
   },
   {
@@ -154,6 +210,9 @@ export const visionProposals: VisionProposal[] = [
       "「みんなの声」を通じて、防災・避難に関するご意見を募集しています。寄せられた声はこのページへ順次反映していきます。",
     reviewStatus: "現在検討中です。皆さまのご意見を伺いながら具体化します。",
     officialLinks: [],
+    evidenceItems: [],
+    relatedPlans: [],
+    relatedProfileChapterIds: [],
     lastUpdated: "",
   },
 ];
