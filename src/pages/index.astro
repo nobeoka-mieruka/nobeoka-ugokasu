@@ -257,43 +257,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
     </div>
   </section>
 
-  <!-- 8-5 3つの提言 -->
-  <section class="py-14 sm:py-16 bg-brand-ivory">
-    <div class="section-wrap">
-      <SectionTitle title={visionHeading} subtitle={visionSubtitle} />
-      <div class="grid gap-8 sm:grid-cols-3">
-        {visionProposals.map((proposal) => (
-          <VisionCard proposal={proposal} />
-        ))}
-      </div>
-      <div class="mt-8 text-center">
-        <a href="/vision/" class="btn-secondary">私たちの提言をもっと見る</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- 8-6 みんなの声 -->
-  <section class="py-14 sm:py-16">
-    <div class="section-wrap">
-      <SectionTitle title={"あなたの声から、\n延岡のこれからを考えます。"} />
-      <div class="max-w-2xl mx-auto text-center text-lg text-ink-soft leading-relaxed">
-        <p>
-          福富千恵と延岡を動かす会では、地域の皆さまの声を幅広く集め、共通する課題や異なる考え方を整理し、今後の活動や提言に生かします。
-        </p>
-        <p class="mt-4">
-          小さな困りごと、制度について感じていること、地域を良くするためのアイデアをお寄せください。
-        </p>
-      </div>
-      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <a href="/voices/submit/" class="btn-primary">声を届ける</a>
-        <a href="/voices/themes/" class="btn-secondary">現在募集中のテーマ</a>
-        <a href="/voices/" class="btn-secondary">みんなの声を見る</a>
-        <a href="/voices/method/" class="btn-secondary">整理方法を見る</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- 8-7 最新の活動報告 -->
+  <!-- 8-5 現在の活動（最新の活動報告） -->
   <section class="py-14 sm:py-16 bg-brand-ivory">
     <div class="section-wrap">
       <SectionTitle title="最新の活動報告" align="left" />
@@ -391,6 +355,42 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
       ctaDisabled?.classList.toggle("hidden", hasContent);
     })();
   </script>
+
+  <!-- 8-6 提言 -->
+  <section class="py-14 sm:py-16">
+    <div class="section-wrap">
+      <SectionTitle title={visionHeading} subtitle={visionSubtitle} />
+      <div class="grid gap-8 sm:grid-cols-3">
+        {visionProposals.map((proposal) => (
+          <VisionCard proposal={proposal} />
+        ))}
+      </div>
+      <div class="mt-8 text-center">
+        <a href="/vision/" class="btn-secondary">私たちの提言をもっと見る</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8-7 みんなの声 -->
+  <section class="py-14 sm:py-16 bg-brand-ivory">
+    <div class="section-wrap">
+      <SectionTitle title={"あなたの声から、\n延岡のこれからを考えます。"} />
+      <div class="max-w-2xl mx-auto text-center text-lg text-ink-soft leading-relaxed">
+        <p>
+          福富千恵と延岡を動かす会では、地域の皆さまの声を幅広く集め、共通する課題や異なる考え方を整理し、今後の活動や提言に生かします。
+        </p>
+        <p class="mt-4">
+          小さな困りごと、制度について感じていること、地域を良くするためのアイデアをお寄せください。
+        </p>
+      </div>
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <a href="/voices/submit/" class="btn-primary">声を届ける</a>
+        <a href="/voices/themes/" class="btn-secondary">現在募集中のテーマ</a>
+        <a href="/voices/" class="btn-secondary">みんなの声を見る</a>
+        <a href="/voices/method/" class="btn-secondary">整理方法を見る</a>
+      </div>
+    </div>
+  </section>
 
   <!-- 8-8 最新のお知らせ -->
   <section class="py-14 sm:py-16">

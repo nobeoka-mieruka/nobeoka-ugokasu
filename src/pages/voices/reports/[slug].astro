@@ -7,6 +7,9 @@ import MinorityVoiceCard from "../../../components/MinorityVoiceCard.astro";
 import DifferentViewsCard from "../../../components/DifferentViewsCard.astro";
 import OfficialResponseCard from "../../../components/OfficialResponseCard.astro";
 import RelatedContent from "../../../components/RelatedContent.astro";
+import InlineRelatedLinks from "../../../components/InlineRelatedLinks.astro";
+import { voiceThemes } from "../../../data/voiceThemes";
+import { visionProposals } from "../../../data/vision";
 import { webPageSchema } from "../../../utils/structuredData";
 import { buildBreadcrumbList } from "../../../utils/seo";
 
@@ -30,6 +33,13 @@ const breadcrumbItems = [
   { name: "分析結果一覧", path: "/voices/reports" },
   { name: data.title, path },
 ];
+
+// 声→課題→提言のつながりを示すため、この分析結果のテーマ（data.theme＝テーマ名）に対応する
+// 提言があれば直接リンクする（テーマ名からslugを引き、slug一致する提言を探す）。
+const matchingTheme = voiceThemes.find((t) => t.title === data.theme);
+const relatedProposal = matchingTheme
+  ? visionProposals.find((p) => p.relatedVoiceThemeSlug === matchingTheme.slug)
+  : undefined;
 
 const schemas = [
   webPageSchema({ path, name: title, description }),
@@ -112,6 +122,13 @@ const schemas = [
       <h2 class="font-bold text-ink text-lg mb-3">活動または提言への反映</h2>
       <p class="text-ink-soft leading-relaxed">{data.reflectionInActivities}</p>
     </div>
+
+    {relatedProposal && (
+      <InlineRelatedLinks
+        heading="この分析結果に関連する提言"
+        items={[{ title: relatedProposal.shortTitle, href: `/vision/#${relatedProposal.slug}` }]}
+      />
+    )}
 
     <OfficialResponseCard response={data.officialResponse} />
 
