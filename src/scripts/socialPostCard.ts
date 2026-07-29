@@ -8,7 +8,7 @@ import type { SocialPost } from "../types/social";
 import { socialPlatformMeta } from "../config/socialPlatformMeta";
 import { resolveActivityImage, buildActivityImageAlt } from "../utils/activityImage";
 
-const ICONS = {
+export const ICONS = {
   facebook: '<path d="M15 8h2V4.5h-2.5A4 4 0 0 0 10 8.5V11H8v3.5h2V21h3.5v-6.5H16l.5-3.5h-3V8.8c0-.5.2-.8.7-.8z"/>',
   instagram:
     '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><line x1="17.5" y1="6.5" x2="17.5" y2="6.51"/>',
@@ -24,7 +24,7 @@ const ICONS = {
 };
 
 /** 固定の自作SVGアイコンのみを描画する（利用者データは一切含めない） */
-function svgIcon(name: keyof typeof ICONS, className: string): SVGSVGElement {
+export function svgIcon(name: keyof typeof ICONS, className: string): SVGSVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("fill", "none");
@@ -38,7 +38,7 @@ function svgIcon(name: keyof typeof ICONS, className: string): SVGSVGElement {
   return svg;
 }
 
-function formatDateLabel(iso: string): string {
+export function formatDateLabel(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });

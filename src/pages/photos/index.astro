@@ -4,8 +4,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import Icon from "../../components/Icon.astro";
-import { getActivityPhotos, getPresentCategories } from "../../data/activityPhotos";
+import { getActivityPhotos, getPresentSources, type ActivityPhotoSource } from "../../data/activityPhotos";
 import { socialLinks } from "../../data/socialLinks";
+import { socialPlatformMeta } from "../../config/socialPlatformMeta";
 import { webPageSchema, imageGallerySchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
 
@@ -14,12 +15,20 @@ const description =
   "福富千恵と延岡を動かす会の活動写真一覧です。延岡市内での意見交換会、地域活動、後援会活動の様子をご紹介します。";
 const breadcrumbItems = [{ name: "活動写真", path: "/photos" }];
 
-// 個別の写真データを手動管理せず、公開済みの活動報告（src/content/activities/）に登録された
-// mainImage / images を自動集約する（src/data/activityPhotos.ts）。新しい活動報告を公開すれば
-// このページへも自動的に反映される。
+// 個別の写真データを手動管理せず、公開済みの活動報告（mainImage / images）と、
+// SNS投稿（手動登録・ビルド時同期スナップショット）のうち画像がある投稿を自動集約する
+// （src/data/activityPhotos.ts）。ページ読み込み後は /api/social-feed から取得した
+// 最新投稿もクライアント側で追加される（下部のscript参照）。
 const photos = await getActivityPhotos();
-const presentCategories = getPresentCategories(photos);
-const showCategoryFilter = presentCategories.length >= 2;
+const presentSources = getPresentSources(photos);
+const showSourceFilter = presentSources.length >= 2;
+
+const SOURCE_LABELS: Record<ActivityPhotoSource, string> = {
+  website: "公式サイト",
+  facebook: socialPlatformMeta.facebook.label,
+  instagram: socialPlatformMeta.instagram.label,
+  threads: socialPlatformMeta.threads.label,
+};
 
 const officialSnsLinks = [
   { key: "facebook" as const, label: "Facebookを見る" },
@@ -27,21 +36,26 @@ const officialSnsLinks = [
   { key: "threads" as const, label: "Threadsを見る" },
 ].filter((link) => socialLinks[link.key]);
 
+// 構造化データ（ImageGallery）は、絶対URLの生成が確実な活動報告記事の画像だけを対象にする。
+// SNS投稿の画像URLは同一オリジンプロキシ（/api/social-image）や外部投稿リンクを含み、
+// schema.orgのImageObjectとして無理に整形すると不正確になりうるため含めない。
+const websitePhotos = photos.filter((photo) => photo.kind === "website");
+
 const schemas = [
   webPageSchema({ path: "/photos", name: title, description }),
   buildBreadcrumbList(breadcrumbItems),
-  ...(photos.length > 0
+  ...(websitePhotos.length > 0
     ? [
         imageGallerySchema({
           path: "/photos",
           name: title,
           description,
-          images: photos.map((photo) => ({
+          images: websitePhotos.map((photo) => ({
             contentUrl: photo.src.src,
             width: photo.src.width,
             height: photo.src.height,
             caption: photo.alt,
-            activityPath: `/activities/${photo.activitySlug}`,
+            activityPath: photo.href,
           })),
         }),
       ]
@@ -65,108 +79,159 @@ function formatDateLabel(date: Date): string {
     <div class="section-wrap">
       <h2 class="sr-only">活動写真一覧</h2>
 
-      {photos.length > 0 ? (
-        <>
-          <p class="max-w-2xl text-ink-soft">写真を選択すると、活動報告の詳細をご覧いただけます。</p>
+      <p class:list={["max-w-2xl text-ink-soft", photos.length === 0 && "hidden"]} data-photo-intro>
+        写真を選択すると、元の投稿や活動報告の詳細をご覧いただけます。
+      </p>
 
-          {showCategoryFilter && (
-            <div
-              role="group"
-              aria-label="活動写真の絞り込み"
-              class="mt-6 mb-8 flex flex-wrap gap-2"
-              data-photo-filter-bar
+      {showSourceFilter && (
+        <div
+          role="group"
+          aria-label="活動写真の絞り込み"
+          class="mt-6 mb-8 flex flex-wrap gap-2"
+          data-photo-filter-bar
+        >
+          <button
+            type="button"
+            data-photo-filter="all"
+            aria-pressed="true"
+            class="rounded-full border-2 border-brand-orange-dark bg-brand-orange-light px-5 py-2.5 text-sm font-bold text-ink transition-colors"
+          >
+            すべて
+          </button>
+          {presentSources.map((source) => (
+            <button
+              type="button"
+              data-photo-filter={source}
+              aria-pressed="false"
+              class="rounded-full border-2 border-black/10 bg-white px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-brand-orange-light"
             >
-              <button
-                type="button"
-                data-photo-filter="all"
-                aria-pressed="true"
-                class="rounded-full border-2 border-brand-orange-dark bg-brand-orange-light px-5 py-2.5 text-sm font-bold text-ink transition-colors"
-              >
-                すべて
-              </button>
-              {presentCategories.map((category) => (
-                <button
-                  type="button"
-                  data-photo-filter={category}
-                  aria-pressed="false"
-                  class="rounded-full border-2 border-black/10 bg-white px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-brand-orange-light"
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div id="photo-grid" class:list={["grid gap-6 sm:grid-cols-2 lg:grid-cols-3", !showCategoryFilter && "mt-6"]} data-photo-grid>
-            {photos.map((photo, index) => (
-              <a
-                href={`/activities/${photo.activitySlug}/`}
-                class="card p-0 overflow-hidden flex flex-col h-full min-w-0 hover:shadow-md transition-shadow"
-                data-photo-card
-                data-photo-category={photo.category}
-                aria-label={`${photo.activityTitle}の活動報告を見る`}
-              >
-                <div class="aspect-[4/3] w-full overflow-hidden bg-brand-orange-light">
-                  <Picture
-                    src={photo.src}
-                    formats={["avif", "webp"]}
-                    widths={[320, 480, 640, 960]}
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                    alt={photo.alt}
-                    class="w-full h-full object-cover"
-                    loading={index === 0 ? "eager" : "lazy"}
-                  />
-                </div>
-                <div class="p-5 flex flex-col gap-2 flex-1">
-                  <div class="flex items-center gap-2 text-sm text-ink-soft">
-                    <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{photo.category}</span>
-                    <time datetime={photo.activityDate.toISOString()}>{formatDateLabel(photo.activityDate)}</time>
-                  </div>
-                  <h3 class="text-lg font-bold text-ink leading-snug line-clamp-2">{photo.activityTitle}</h3>
-                  <span class="mt-auto inline-flex items-center gap-1 text-sm font-bold text-brand-orange-dark">
-                    活動報告を見る
-                    <Icon name="arrow-right" class="w-4 h-4" ariaHidden={true} />
-                  </span>
-                </div>
-              </a>
-            ))}
-          </div>
-
-          <div class="mt-8 flex justify-center">
-            <button type="button" data-photo-load-more aria-controls="photo-grid" class="hidden btn-secondary">
-              もっと見る
+              {SOURCE_LABELS[source]}
             </button>
-          </div>
-        </>
-      ) : (
-        <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-4">
-          <Icon name="document" class="w-10 h-10 text-brand-orange" />
-          <div>
-            <p class="text-lg font-bold text-ink">活動写真は準備中です</p>
-            <p class="mt-2">活動の様子は、活動報告や公式SNSでもご覧いただけます。</p>
-          </div>
-          <div class="flex flex-wrap justify-center gap-3">
-            <a href="/activities/" class="btn-secondary">
-              活動報告を見る
-            </a>
-            {officialSnsLinks.map((link) => (
-              <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
-                {link.label}
-                <span class="sr-only">（新しいタブで開く）</span>
-              </a>
-            ))}
-          </div>
+          ))}
         </div>
       )}
+
+      <div
+        id="photo-grid"
+        class:list={["grid gap-6 sm:grid-cols-2 lg:grid-cols-3", !showSourceFilter && "mt-6", photos.length === 0 && "hidden"]}
+        data-photo-grid
+      >
+        {photos.map((photo, index) =>
+          photo.kind === "website" ? (
+            <a
+              href={photo.href}
+              class="card p-0 overflow-hidden flex flex-col h-full min-w-0 hover:shadow-md transition-shadow"
+              data-photo-card
+              data-photo-source="website"
+              aria-label={`${photo.title}の活動報告を見る`}
+            >
+              <div class="aspect-[4/3] w-full overflow-hidden bg-brand-orange-light">
+                <Picture
+                  src={photo.src}
+                  formats={["avif", "webp"]}
+                  widths={[320, 480, 640, 960]}
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  alt={photo.alt}
+                  class="w-full h-full object-cover"
+                  loading={index === 0 ? "eager" : "lazy"}
+                />
+              </div>
+              <div class="p-5 flex flex-col gap-2 flex-1">
+                <div class="flex items-center gap-2 text-sm text-ink-soft">
+                  <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{photo.category}</span>
+                  <time datetime={photo.date.toISOString()}>{formatDateLabel(photo.date)}</time>
+                </div>
+                <h3 class="text-lg font-bold text-ink leading-snug line-clamp-2">{photo.title}</h3>
+                <span class="mt-auto inline-flex items-center gap-1 text-sm font-bold text-brand-orange-dark">
+                  活動報告を見る
+                  <Icon name="arrow-right" class="w-4 h-4" ariaHidden={true} />
+                </span>
+              </div>
+            </a>
+          ) : (
+            <a
+              href={photo.permalink}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="card p-0 overflow-hidden flex flex-col h-full min-w-0 hover:shadow-md transition-shadow"
+              data-photo-card
+              data-photo-source={photo.source}
+              data-photo-permalink={photo.permalink}
+              data-photo-date={photo.date.toISOString()}
+              aria-label={`${SOURCE_LABELS[photo.source]}の元の投稿を見る`}
+            >
+              <div class="aspect-[4/3] w-full overflow-hidden bg-brand-orange-light">
+                <img
+                  src={photo.imageUrl}
+                  alt={photo.alt}
+                  width="640"
+                  height="480"
+                  loading={index < 3 ? "eager" : "lazy"}
+                  decoding="async"
+                  class="h-full w-full object-cover"
+                  data-social-photo
+                />
+              </div>
+              <div class="p-5 flex flex-col gap-2 flex-1">
+                <div class="flex items-center gap-2 text-sm text-ink-soft">
+                  <span class:list={["inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold", socialPlatformMeta[photo.source].badgeClass]}>
+                    <Icon name={socialPlatformMeta[photo.source].icon} class="w-3.5 h-3.5" />
+                    {socialPlatformMeta[photo.source].badgeLabel}
+                  </span>
+                  <time datetime={photo.date.toISOString()}>{formatDateLabel(photo.date)}</time>
+                </div>
+                <p class="text-sm text-ink-soft line-clamp-3">{photo.description}</p>
+                <span class="mt-auto inline-flex items-center gap-1 text-sm font-bold text-brand-orange-dark">
+                  {SOURCE_LABELS[photo.source]}で投稿を見る
+                  <Icon name="external-link" class="w-3.5 h-3.5" ariaHidden={true} />
+                  <span class="sr-only">（新しいタブで開く）</span>
+                </span>
+              </div>
+            </a>
+          ),
+        )}
+      </div>
+
+      <div class="mt-8 flex justify-center" data-photo-load-more-wrap class:list={[photos.length === 0 && "hidden"]}>
+        <button type="button" data-photo-load-more aria-controls="photo-grid" class="hidden btn-secondary">
+          もっと見る
+        </button>
+      </div>
+
+      <div class:list={["card text-center py-16 text-ink-soft flex flex-col items-center gap-4", photos.length > 0 && "hidden"]} data-photo-empty>
+        <Icon name="document" class="w-10 h-10 text-brand-orange" />
+        <div>
+          <p class="text-lg font-bold text-ink">活動写真は準備中です</p>
+          <p class="mt-2">活動の様子は、活動報告や公式SNSでもご覧いただけます。</p>
+        </div>
+        <div class="flex flex-wrap justify-center gap-3">
+          <a href="/activities/" class="btn-secondary">
+            活動報告を見る
+          </a>
+          {officialSnsLinks.map((link) => (
+            <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+              {link.label}
+              <span class="sr-only">（新しいタブで開く）</span>
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
   </section>
 </BaseLayout>
 
 <script>
-  // 表示中の絞り込み・件数だけをクライアント側で管理する。写真自体はビルド時に全件が
-  // HTMLへ出力済みのため、JavaScriptが無効な環境でも「もっと見る」を押した状態と
-  // 同じ、すべての写真が最初から表示された状態になる（CSSのhiddenクラスが一切
-  // 付与されないため）。
+  // 表示中の絞り込み・件数の管理と、ページ読み込み後の最新SNS投稿の差し込みを行う。
+  // 写真自体はビルド時に全件がHTMLへ出力済みのため、JavaScriptが無効な環境でも
+  // 「もっと見る」を押した状態と同じ、すべての写真が最初から表示された状態になる。
+  import { fetchSocialPosts } from "../../services/socialPosts";
+  import {
+    getExistingPhotoPermalinks,
+    insertPhotoCardSorted,
+    createSocialPhotoCardElement,
+    registerSocialPhotoFallback,
+  } from "../../scripts/activityPhotoGrid";
+
   const PAGE_SIZE = 12;
   let visibleLimit = PAGE_SIZE;
   let currentFilter = "all";
@@ -175,11 +240,27 @@ function formatDateLabel(date: Date): string {
   const filterBar = document.querySelector<HTMLElement>("[data-photo-filter-bar]");
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-photo-filter]"));
   const loadMoreButton = document.querySelector<HTMLButtonElement>("[data-photo-load-more]");
+  const loadMoreWrap = document.querySelector<HTMLElement>("[data-photo-load-more-wrap]");
+  const introText = document.querySelector<HTMLElement>("[data-photo-intro]");
+  const emptyState = document.querySelector<HTMLElement>("[data-photo-empty]");
+
+  registerSocialPhotoFallback();
+
+  // 画像読み込み失敗でカードが非表示になった直後にも、表示件数・空状態の判定を
+  // 再評価する（registerSocialPhotoFallback()はカード自体の非表示のみを行うため）。
+  document.addEventListener(
+    "error",
+    (event) => {
+      const img = event.target;
+      if (img instanceof HTMLImageElement && img.matches("[data-social-photo]")) applyFilter();
+    },
+    true,
+  );
 
   function applyFilter() {
     if (!grid) return;
     const cards = Array.from(grid.querySelectorAll<HTMLElement>("[data-photo-card]"));
-    const matching = cards.filter((card) => currentFilter === "all" || card.dataset.photoCategory === currentFilter);
+    const matching = cards.filter((card) => currentFilter === "all" || card.dataset.photoSource === currentFilter);
 
     matching.forEach((card, index) => {
       card.classList.toggle("hidden", index >= visibleLimit);
@@ -189,6 +270,14 @@ function formatDateLabel(date: Date): string {
     });
 
     loadMoreButton?.classList.toggle("hidden", matching.length <= visibleLimit);
+
+    // 画像読み込み失敗でカードが非表示になった場合を含め、実際に表示できる写真が
+    // 1件も無ければ空状態を表示する（すでにHTML上にある写真は数に含める）。
+    const hasVisiblePhotos = cards.some((card) => !card.classList.contains("hidden"));
+    grid?.classList.toggle("hidden", !hasVisiblePhotos);
+    loadMoreWrap?.classList.toggle("hidden", !hasVisiblePhotos);
+    introText?.classList.toggle("hidden", !hasVisiblePhotos);
+    emptyState?.classList.toggle("hidden", hasVisiblePhotos);
   }
 
   filterBar?.addEventListener("click", (event) => {
@@ -215,4 +304,27 @@ function formatDateLabel(date: Date): string {
   });
 
   applyFilter();
+
+  // ビルド時点のSNSスナップショットに加えて、/api/social-feed（Cloudflare KVでキャッシュ済み）
+  // から最新投稿を取得し、まだ無い画像付き投稿だけを日付の新しい順の位置へ差し込む。
+  // Meta/Threads APIへ直接アクセスすることはしない。アクセストークンはこのスクリプトには
+  // 一切含まれない（/api/social-feedがサーバー側で安全に取得・キャッシュ済みの結果を読むだけ）。
+  (async () => {
+    if (!grid) return;
+    const { posts } = await fetchSocialPosts();
+    if (posts.length === 0) return;
+
+    const known = getExistingPhotoPermalinks(grid);
+    let inserted = false;
+    for (const post of posts) {
+      if (known.has(post.permalink)) continue;
+      const card = createSocialPhotoCardElement(post);
+      if (!card) continue; // 画像URLが確認できない投稿は追加しない
+      insertPhotoCardSorted(grid, card, post.publishedAt);
+      known.add(post.permalink);
+      inserted = true;
+    }
+
+    if (inserted) applyFilter();
+  })();
 </script>
