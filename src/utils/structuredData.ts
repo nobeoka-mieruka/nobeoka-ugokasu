@@ -2,15 +2,28 @@ import { siteConfig } from "../config/siteConfig";
 import { getConfirmedSocialLinks } from "../data/socialLinks";
 import { absoluteUrl } from "./seo";
 
+/** サイト全体で使い回す@id（WebSiteとOrganizationを相互参照させるため） */
+export const organizationId = `${siteConfig.siteUrl}/#organization`;
+export const websiteId = `${siteConfig.siteUrl}/#website`;
+
+/** ロゴの実寸法（public/images/logo/kouenkainamaeirilogo.png） */
+const logoImageObject = {
+  "@type": "ImageObject" as const,
+  url: absoluteUrl(siteConfig.logo),
+  width: 2172,
+  height: 724,
+};
+
 /** Organization構造化データ（確認済み情報のみ含める：19章） */
 export function organizationSchema() {
   const sameAs = getConfirmedSocialLinks();
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": organizationId,
     name: siteConfig.organizationName,
     url: siteConfig.siteUrl,
-    ...(siteConfig.logo ? { logo: absoluteUrl(siteConfig.logo) } : {}),
+    ...(siteConfig.logo ? { logo: logoImageObject } : {}),
     address: {
       "@type": "PostalAddress",
       postalCode: siteConfig.postalCode.replace("〒", ""),
@@ -22,14 +35,16 @@ export function organizationSchema() {
   };
 }
 
-/** WebSite構造化データ */
+/** WebSite構造化データ（publisherはOrganizationの@id参照） */
 export function websiteSchema() {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": websiteId,
     name: siteConfig.siteName,
     url: siteConfig.siteUrl,
     inLanguage: "ja",
+    publisher: { "@id": organizationId },
   };
 }
 
@@ -41,7 +56,7 @@ export function websiteSchema() {
 export const personId = `${siteConfig.siteUrl}/#person`;
 
 /** Person構造化データ（確認済み情報のみ含める：19章） */
-export function personSchema(options?: { image?: string }) {
+export function personSchema(options?: { image?: string; imageWidth?: number; imageHeight?: number }) {
   const sameAs = getConfirmedSocialLinks();
   return {
     "@context": "https://schema.org",
@@ -52,10 +67,20 @@ export function personSchema(options?: { image?: string }) {
     url: absoluteUrl("/profile"),
     memberOf: {
       "@type": "Organization",
+      "@id": organizationId,
       name: siteConfig.organizationName,
       url: siteConfig.siteUrl,
     },
-    ...(options?.image ? { image: absoluteUrl(options.image) } : {}),
+    ...(options?.image
+      ? {
+          image: {
+            "@type": "ImageObject",
+            url: absoluteUrl(options.image),
+            ...(options.imageWidth ? { width: options.imageWidth } : {}),
+            ...(options.imageHeight ? { height: options.imageHeight } : {}),
+          },
+        }
+      : {}),
     ...(sameAs.length > 0 ? { sameAs } : {}),
   };
 }
@@ -68,6 +93,9 @@ export function webPageSchema(options: {
   description: string;
   /** 画面に実際に表示している画像のパス（例：OGP画像）。省略時は共通OGP画像を使用 */
   image?: string;
+  /** imageの実寸法。省略時は共通OGP画像の寸法（1200×630）を使用 */
+  imageWidth?: number;
+  imageHeight?: number;
   /**
    * mainEntityとして参照する既存ノードの@id（例：personId）。
    * ProfilePageではGoogleがmainEntityを必須項目として扱うため、
@@ -76,6 +104,7 @@ export function webPageSchema(options: {
   mainEntityId?: string;
 }) {
   const imagePath = options.image ?? siteConfig.defaultOgpImage;
+  const hasCustomImage = options.image !== undefined;
   return {
     "@context": "https://schema.org",
     "@type": options.type ?? "WebPage",
@@ -83,12 +112,13 @@ export function webPageSchema(options: {
     description: options.description,
     url: absoluteUrl(options.path),
     inLanguage: "ja",
+    isPartOf: { "@id": websiteId },
     ...(options.mainEntityId ? { mainEntity: { "@id": options.mainEntityId } } : {}),
     primaryImageOfPage: {
       "@type": "ImageObject",
       url: absoluteUrl(imagePath),
-      width: 1200,
-      height: 630,
+      width: hasCustomImage ? (options.imageWidth ?? 1200) : 1200,
+      height: hasCustomImage ? (options.imageHeight ?? 630) : 630,
     },
   };
 }
@@ -102,6 +132,9 @@ export function articleSchema(options: {
   datePublished: Date;
   dateModified?: Date;
   image?: string;
+  /** imageの実寸法（画面に表示している実画像の寸法と一致させること） */
+  imageWidth?: number;
+  imageHeight?: number;
 }) {
   return {
     "@context": "https://schema.org",
@@ -114,14 +147,25 @@ export function articleSchema(options: {
     inLanguage: "ja",
     author: {
       "@type": "Organization",
+      "@id": organizationId,
       name: siteConfig.organizationName,
     },
     publisher: {
       "@type": "Organization",
+      "@id": organizationId,
       name: siteConfig.organizationName,
-      ...(siteConfig.logo ? { logo: { "@type": "ImageObject", url: absoluteUrl(siteConfig.logo) } } : {}),
+      ...(siteConfig.logo ? { logo: logoImageObject } : {}),
     },
-    ...(options.image ? { image: absoluteUrl(options.image) } : {}),
+    ...(options.image
+      ? {
+          image: {
+            "@type": "ImageObject",
+            url: absoluteUrl(options.image),
+            ...(options.imageWidth ? { width: options.imageWidth } : {}),
+            ...(options.imageHeight ? { height: options.imageHeight } : {}),
+          },
+        }
+      : {}),
   };
 }
 

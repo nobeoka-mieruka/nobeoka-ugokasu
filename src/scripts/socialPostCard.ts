@@ -12,6 +12,10 @@ const ICONS = {
   facebook: '<path d="M15 8h2V4.5h-2.5A4 4 0 0 0 10 8.5V11H8v3.5h2V21h3.5v-6.5H16l.5-3.5h-3V8.8c0-.5.2-.8.7-.8z"/>',
   instagram:
     '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><line x1="17.5" y1="6.5" x2="17.5" y2="6.51"/>',
+  // 現状のSNS自動取得（/api/social-feed）はFacebook/Instagramのみが対象のため実際には使われないが、
+  // socialPlatformMeta.icon の型（"facebook" | "instagram" | "threads"）に合わせて用意しておく。
+  threads:
+    '<path d="M12 3c-5 0-8 3.4-8 9s3 9 8 9c4 0 6.5-2.1 6.5-5.2 0-2.5-1.9-4-4.3-4-2 0-3.4 1-3.4 2.4 0 1 .8 1.8 2.1 1.8 1.5 0 2.6-1 2.7-2.6"/>',
   externalLink:
     '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
   document:

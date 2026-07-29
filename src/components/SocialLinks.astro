@@ -10,8 +10,13 @@ const links = [
     icon: "facebook" as const,
   },
   { key: "instagram", label: "福富千恵さんのInstagramを開く", icon: "instagram" as const },
+  {
+    key: "threads",
+    label: "福富千恵と延岡を動かす会のThreadsを開く",
+    icon: "threads" as const,
+  },
   { key: "youtube", label: "YouTubeチャンネルを開く", icon: "youtube" as const },
-] satisfies { key: keyof typeof socialLinks; label: string; icon: "line" | "instagram" | "facebook" | "youtube" }[];
+] satisfies { key: keyof typeof socialLinks; label: string; icon: "line" | "instagram" | "facebook" | "threads" | "youtube" }[];
 
 const active = links.filter((l) => socialLinks[l.key]);
 ---
@@ -25,6 +30,7 @@ const active = links.filter((l) => socialLinks[l.key]);
           target="_blank"
           rel="noopener noreferrer"
           aria-label={link.label}
+          title={link.key === "threads" ? "Threads" : undefined}
           class="inline-flex items-center justify-center rounded-full bg-brand-orange-light p-2 text-brand-orange-dark hover:bg-brand-orange hover:text-white transition-colors"
         >
           <Icon name={link.icon} class="w-5 h-5" />

@@ -55,6 +55,8 @@ const schemas = [
     datePublished: entry.data.date,
     dateModified: entry.data.updatedDate,
     image: entry.data.mainImage?.src.src,
+    imageWidth: entry.data.mainImage?.src.width,
+    imageHeight: entry.data.mainImage?.src.height,
   }),
   buildBreadcrumbList(breadcrumbItems),
 ];

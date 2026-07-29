@@ -26,7 +26,7 @@ const description =
 const breadcrumbItems = [{ name: "福富千恵について", path: "/profile" }];
 
 const schemas = [
-  personSchema({ image: "/images/profile/fukutomi-chie-800.jpg" }),
+  personSchema({ image: "/images/profile/fukutomi-chie-800.jpg", imageWidth: 800, imageHeight: 800 }),
   webPageSchema({ type: "ProfilePage", path: "/profile", name: title, description, mainEntityId: personId }),
   buildBreadcrumbList(breadcrumbItems),
 ];

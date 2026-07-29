@@ -20,6 +20,7 @@ export type IconName =
   | "line"
   | "instagram"
   | "facebook"
+  | "threads"
   | "megaphone"
   | "document"
   | "users"

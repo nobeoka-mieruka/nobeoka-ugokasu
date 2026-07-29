@@ -1,5 +1,4 @@
 ---
-import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
@@ -10,48 +9,31 @@ import ActivityFilterBar from "../../components/ActivityFilterBar.astro";
 import Icon from "../../components/Icon.astro";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
-import { getSortedSnsActivities, hasSnsActivityFor } from "../../data/snsActivities";
+import { getUnifiedActivities, hasWebsiteActivity, hasPlatformActivity } from "../../data/activities";
 import { socialLinks } from "../../data/socialLinks";
 import { socialConfig } from "../../config/socialConfig";
-import socialPostsSnapshot from "../../data/socialPostsSnapshot.json";
-import type { BuildSocialPost } from "../../types/social";
 
 const title = "活動報告｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会が延岡市内で行った活動の報告一覧です。実施の目的や参加者の声、今後の対応をお伝えします。";
 const breadcrumbItems = [{ name: "活動報告", path: "/activities" }];
 
-const websiteActivities = (await getCollection("activities", ({ data }) => data.published)).sort(
-  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
-);
-const snsActivities = getSortedSnsActivities();
-
-// scripts/sync-facebook-posts.mjs が prebuild/predev で生成する、ビルド時点で取得できた
-// Facebook投稿のスナップショット。JS実行前の初期HTMLにも実際の投稿カードを出力するために使う
-//（未設定・取得失敗時は空配列になるだけで、ビルド自体は失敗しない）。
-const buildSocialPosts = socialPostsSnapshot.posts as unknown as BuildSocialPost[];
-
-type UnifiedActivity =
-  | { kind: "website"; date: Date; entry: (typeof websiteActivities)[number] }
-  | { kind: "sns"; date: Date; entry: (typeof snsActivities)[number] }
-  | { kind: "social"; date: Date; entry: BuildSocialPost };
-
-const unifiedActivities: UnifiedActivity[] = [
-  ...websiteActivities.map((entry): UnifiedActivity => ({ kind: "website", date: entry.data.date, entry })),
-  ...snsActivities.map((entry): UnifiedActivity => ({ kind: "sns", date: new Date(entry.date), entry })),
-  ...buildSocialPosts.map((entry): UnifiedActivity => ({ kind: "social", date: new Date(entry.publishedAt), entry })),
-].sort((a, b) => b.date.getTime() - a.date.getTime());
+// トップページと共通のデータ取得口（src/data/activities.ts）を使い、常に同じ並び順・
+// 同じ絞り込み結果になるようにする。
+const unifiedActivities = await getUnifiedActivities();
 
 // ページ読み込み後にAPI（/api/social-feed）からも最新の投稿を取得し、ここでSSRされた分に
 // 無い投稿（ビルド後に新規投稿された分）だけを差し込む。そのため0件表示になっていても
 // クライアント側スクリプトが投稿を見つけ次第、自動的に一覧・絞り込みへ反映される。
-const hasWebsite = websiteActivities.length > 0;
-const hasFacebook = hasSnsActivityFor("facebook") || buildSocialPosts.some((p) => p.platform === "facebook");
-const hasInstagram = hasSnsActivityFor("instagram") || buildSocialPosts.some((p) => p.platform === "instagram");
+const hasWebsite = hasWebsiteActivity(unifiedActivities);
+const hasFacebook = hasPlatformActivity(unifiedActivities, "facebook");
+const hasInstagram = hasPlatformActivity(unifiedActivities, "instagram");
+const hasThreads = hasPlatformActivity(unifiedActivities, "threads");
 const hasAnyActivity = unifiedActivities.length > 0;
 
 const officialSnsLinks = [
   { key: "facebook" as const, label: "Facebookを見る" },
   { key: "instagram" as const, label: "Instagramを見る" },
+  { key: "threads" as const, label: "Threadsを見る" },
 ].filter((link) => socialLinks[link.key]);
 
 const snsInviteHeading = "SNSでも活動を発信しています";
@@ -205,6 +187,28 @@ const schemas = [
           </div>
         </div>
       )}
+
+      {!hasThreads && (
+        <div data-empty-for="threads" class="mt-6">
+          <div class="card text-center py-10 flex flex-col items-center gap-4">
+            <Icon name="threads" class="w-8 h-8 text-ink" />
+            <div data-sns-invite>
+              <p class="font-bold text-ink">{snsInviteHeading}</p>
+              <p class="mt-1 text-ink-soft">{snsInviteDescription}</p>
+            </div>
+            {officialSnsLinks.length > 0 && (
+              <div data-sns-invite class="flex flex-wrap justify-center gap-3">
+                {officialSnsLinks.map((link) => (
+                  <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+                    {link.label}
+                    <span class="sr-only">（新しいタブで開く）</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   </section>
 </BaseLayout>
@@ -213,34 +217,12 @@ const schemas = [
   import { fetchSocialPosts } from "../../services/socialPosts";
   import { createSocialPostCardElement } from "../../scripts/socialPostCard";
   import { registerActivityImageFallback } from "../../scripts/activityImageFallback";
+  import { getExistingActivityLinks, insertActivityCardSorted } from "../../scripts/activityGrid";
 
   const grid = document.querySelector<HTMLElement>("[data-activity-grid]");
 
   // ビルド時に出力された投稿カードの画像読み込み失敗フォールバックを有効化する
   registerActivityImageFallback();
-
-  function existingPermalinks(): Set<string> {
-    const set = new Set<string>();
-    document.querySelectorAll<HTMLAnchorElement>("[data-activity-card] a[href]").forEach((a) => {
-      set.add(a.href);
-    });
-    return set;
-  }
-
-  function insertSorted(card: HTMLElement, dateIso: string) {
-    if (!grid) return;
-    const time = new Date(dateIso).getTime();
-    const children = Array.from(grid.children) as HTMLElement[];
-    const before = children.find((child) => {
-      const childTime = child.dataset.date ? new Date(child.dataset.date).getTime() : 0;
-      return childTime < time;
-    });
-    if (before) {
-      grid.insertBefore(card, before);
-    } else {
-      grid.append(card);
-    }
-  }
 
   /**
    * Meta APIへの取得自体が失敗した場合にだけ表示する案内バナー。
@@ -329,13 +311,13 @@ const schemas = [
     const instagramUsername = grid?.dataset.instagramUsername;
 
     if (grid && posts.length > 0) {
-      const known = existingPermalinks();
+      const known = getExistingActivityLinks(grid);
       for (const post of posts) {
         // 手動登録済みの投稿（src/data/snsActivities.ts）と同じURLの場合は重複させない
         if (known.has(post.permalink)) continue;
         const card = createSocialPostCardElement(post, instagramUsername);
         card.dataset.date = post.publishedAt;
-        insertSorted(card, post.publishedAt);
+        insertActivityCardSorted(grid, card, post.publishedAt);
         known.add(post.permalink);
       }
     }

@@ -24,12 +24,17 @@ export type BreadcrumbItem = {
   path: string;
 };
 
-/** パンくずリスト用のJSON-LD（BreadcrumbList）データを生成する */
+/**
+ * パンくずリスト用のJSON-LD（BreadcrumbList）データを生成する。
+ * 画面上の<Breadcrumb>コンポーネントと同じく、先頭に「ホーム」を自動で補う
+ * （視覚表示とJSON-LDのitemListElementを1:1で一致させるため）。
+ */
 export function buildBreadcrumbList(items: BreadcrumbItem[]) {
+  const allItems: BreadcrumbItem[] = [{ name: "ホーム", path: "/" }, ...items];
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: items.map((item, index) => ({
+    itemListElement: allItems.map((item, index) => ({
       "@type": "ListItem",
       position: index + 1,
       name: item.name,

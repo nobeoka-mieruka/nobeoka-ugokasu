@@ -5,7 +5,7 @@
 
 import { socialConfig } from "../config/socialConfig";
 
-export const socialLinks: Record<"line" | "instagram" | "x" | "facebook" | "youtube", string> = {
+export const socialLinks: Record<"line" | "instagram" | "x" | "facebook" | "threads" | "youtube", string> = {
   /** LINE公式アカウントURL（未設定） */
   line: "",
 
@@ -17,6 +17,12 @@ export const socialLinks: Record<"line" | "instagram" | "x" | "facebook" | "yout
 
   /** Facebook URL（src/config/socialConfig.ts で管理） */
   facebook: socialConfig.facebookPageUrl,
+
+  /**
+   * Threads URL（未設定）。値を設定すると、ヘッダー・フッター・スマートフォンメニューの
+   * アイコンや、構造化データのsameAsへ自動的に反映されます。
+   */
+  threads: "",
 
   /** YouTube URL（未設定） */
   youtube: "",

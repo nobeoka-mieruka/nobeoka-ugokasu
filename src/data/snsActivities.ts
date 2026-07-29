@@ -10,7 +10,7 @@
 //    - date: 投稿日（"YYYY-MM-DD"形式）
 //    - title: 活動報告の見出し
 //    - description: 短い説明文
-//    - platform: "facebook" または "instagram"
+//    - platform: "facebook" または "instagram" または "threads"
 //    - postUrl: 投稿の公開URL
 //    - image: サムネイル画像（省略可）。facebook・instagramどちらの投稿でも指定できる。
 //      省略時・読み込み失敗時はコンパクトなアイコン表示になる。画像ファイルは
@@ -21,7 +21,7 @@
 // 3. 同じ内容をFacebookとInstagramの両方に投稿した場合は、crossPostPlatform と
 //    crossPostUrl にもう一方のURLを設定すると、カードを2枚に分けず1枚にまとめられます。
 
-export type SnsPlatform = "facebook" | "instagram";
+export type SnsPlatform = "facebook" | "instagram" | "threads";
 
 export interface SnsActivity {
   /** 他の投稿と重複しない識別子 */
