@@ -18,11 +18,8 @@ export const socialLinks: Record<"line" | "instagram" | "x" | "facebook" | "thre
   /** Facebook URL（src/config/socialConfig.ts で管理） */
   facebook: socialConfig.facebookPageUrl,
 
-  /**
-   * Threads URL（未設定）。値を設定すると、ヘッダー・フッター・スマートフォンメニューの
-   * アイコンや、構造化データのsameAsへ自動的に反映されます。
-   */
-  threads: "",
+  /** Threads URL（公式アカウント: @chie_smily4） */
+  threads: "https://www.threads.net/@chie_smily4",
 
   /** YouTube URL（未設定） */
   youtube: "",
