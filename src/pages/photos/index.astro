@@ -1,28 +1,54 @@
 ---
+import { Picture } from "astro:assets";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import Icon from "../../components/Icon.astro";
-import { getSortedPhotos, photoCategoryLabels } from "../../data/photos";
-import { webPageSchema } from "../../utils/structuredData";
+import { getActivityPhotos, getPresentCategories } from "../../data/activityPhotos";
+import { socialLinks } from "../../data/socialLinks";
+import { webPageSchema, imageGallerySchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
 
 const title = "活動写真｜福富千恵と延岡を動かす会";
 const description =
-  "福富千恵と延岡を動かす会の活動や地域との関わりを、写真でご紹介します。地域活動、市民との対話、福祉、子育てなど、現場の様子をお伝えします。";
+  "福富千恵と延岡を動かす会の活動写真一覧です。延岡市内での意見交換会、地域活動、後援会活動の様子をご紹介します。";
 const breadcrumbItems = [{ name: "活動写真", path: "/photos" }];
 
-const photos = getSortedPhotos();
+// 個別の写真データを手動管理せず、公開済みの活動報告（src/content/activities/）に登録された
+// mainImage / images を自動集約する（src/data/activityPhotos.ts）。新しい活動報告を公開すれば
+// このページへも自動的に反映される。
+const photos = await getActivityPhotos();
+const presentCategories = getPresentCategories(photos);
+const showCategoryFilter = presentCategories.length >= 2;
+
+const officialSnsLinks = [
+  { key: "facebook" as const, label: "Facebookを見る" },
+  { key: "instagram" as const, label: "Instagramを見る" },
+  { key: "threads" as const, label: "Threadsを見る" },
+].filter((link) => socialLinks[link.key]);
 
 const schemas = [
   webPageSchema({ path: "/photos", name: title, description }),
   buildBreadcrumbList(breadcrumbItems),
+  ...(photos.length > 0
+    ? [
+        imageGallerySchema({
+          path: "/photos",
+          name: title,
+          description,
+          images: photos.map((photo) => ({
+            contentUrl: photo.src.src,
+            width: photo.src.width,
+            height: photo.src.height,
+            caption: photo.alt,
+            activityPath: `/activities/${photo.activitySlug}`,
+          })),
+        }),
+      ]
+    : []),
 ];
 
-function formatDateLabel(iso?: string): string | undefined {
-  if (!iso) return undefined;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return undefined;
+function formatDateLabel(date: Date): string {
   return date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 }
 ---
@@ -37,116 +63,156 @@ function formatDateLabel(iso?: string): string | undefined {
 
   <section class="py-14 sm:py-20">
     <div class="section-wrap">
+      <h2 class="sr-only">活動写真一覧</h2>
+
       {photos.length > 0 ? (
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4" data-photo-grid>
-          {photos.map((photo, index) => (
-            <button
-              type="button"
-              class="card p-0 overflow-hidden aspect-square min-w-0 group relative"
-              data-photo-trigger
-              data-photo-index={index}
-              aria-label={`拡大表示：${photo.title}`}
+        <>
+          <p class="max-w-2xl text-ink-soft">写真を選択すると、活動報告の詳細をご覧いただけます。</p>
+
+          {showCategoryFilter && (
+            <div
+              role="group"
+              aria-label="活動写真の絞り込み"
+              class="mt-6 mb-8 flex flex-wrap gap-2"
+              data-photo-filter-bar
             >
-              <img
-                src={photo.image}
-                alt={photo.alt ?? photo.title}
-                loading={index < 8 ? "eager" : "lazy"}
-                decoding="async"
-                width="480"
-                height="480"
-                class="w-full h-full object-cover transition-transform group-hover:scale-105"
-              />
-              <span class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
-                <span class="block text-xs font-bold text-white rounded-full bg-black/30 px-2 py-0.5 w-fit">
-                  {photoCategoryLabels[photo.category]}
-                </span>
-              </span>
+              <button
+                type="button"
+                data-photo-filter="all"
+                aria-pressed="true"
+                class="rounded-full border-2 border-brand-orange-dark bg-brand-orange-light px-5 py-2.5 text-sm font-bold text-ink transition-colors"
+              >
+                すべて
+              </button>
+              {presentCategories.map((category) => (
+                <button
+                  type="button"
+                  data-photo-filter={category}
+                  aria-pressed="false"
+                  class="rounded-full border-2 border-black/10 bg-white px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-brand-orange-light"
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div id="photo-grid" class:list={["grid gap-6 sm:grid-cols-2 lg:grid-cols-3", !showCategoryFilter && "mt-6"]} data-photo-grid>
+            {photos.map((photo, index) => (
+              <a
+                href={`/activities/${photo.activitySlug}/`}
+                class="card p-0 overflow-hidden flex flex-col h-full min-w-0 hover:shadow-md transition-shadow"
+                data-photo-card
+                data-photo-category={photo.category}
+                aria-label={`${photo.activityTitle}の活動報告を見る`}
+              >
+                <div class="aspect-[4/3] w-full overflow-hidden bg-brand-orange-light">
+                  <Picture
+                    src={photo.src}
+                    formats={["avif", "webp"]}
+                    widths={[320, 480, 640, 960]}
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    alt={photo.alt}
+                    class="w-full h-full object-cover"
+                    loading={index === 0 ? "eager" : "lazy"}
+                  />
+                </div>
+                <div class="p-5 flex flex-col gap-2 flex-1">
+                  <div class="flex items-center gap-2 text-sm text-ink-soft">
+                    <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{photo.category}</span>
+                    <time datetime={photo.activityDate.toISOString()}>{formatDateLabel(photo.activityDate)}</time>
+                  </div>
+                  <h3 class="text-lg font-bold text-ink leading-snug line-clamp-2">{photo.activityTitle}</h3>
+                  <span class="mt-auto inline-flex items-center gap-1 text-sm font-bold text-brand-orange-dark">
+                    活動報告を見る
+                    <Icon name="arrow-right" class="w-4 h-4" ariaHidden={true} />
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+
+          <div class="mt-8 flex justify-center">
+            <button type="button" data-photo-load-more aria-controls="photo-grid" class="hidden btn-secondary">
+              もっと見る
             </button>
-          ))}
-        </div>
+          </div>
+        </>
       ) : (
-        <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-3">
+        <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-4">
           <Icon name="document" class="w-10 h-10 text-brand-orange" />
-          <p class="text-lg">活動写真を順次掲載していきます。</p>
+          <div>
+            <p class="text-lg font-bold text-ink">活動写真は準備中です</p>
+            <p class="mt-2">活動の様子は、活動報告や公式SNSでもご覧いただけます。</p>
+          </div>
+          <div class="flex flex-wrap justify-center gap-3">
+            <a href="/activities/" class="btn-secondary">
+              活動報告を見る
+            </a>
+            {officialSnsLinks.map((link) => (
+              <a href={socialLinks[link.key]} target="_blank" rel="noopener noreferrer" class="btn-secondary">
+                {link.label}
+                <span class="sr-only">（新しいタブで開く）</span>
+              </a>
+            ))}
+          </div>
         </div>
       )}
     </div>
   </section>
-
-  {photos.length > 0 && (
-    <div
-      data-photo-lightbox
-      class="hidden fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 sm:p-8"
-      role="dialog"
-      aria-modal="true"
-      aria-label="写真の拡大表示"
-    >
-      <button
-        type="button"
-        data-photo-close
-        class="absolute top-4 right-4 inline-flex items-center justify-center w-11 h-11 rounded-full bg-white/10 text-white hover:bg-white/20"
-        aria-label="拡大表示を閉じる"
-      >
-        <Icon name="close" class="w-6 h-6" />
-      </button>
-      <div class="max-w-3xl w-full max-h-full flex flex-col items-center gap-4">
-        <img data-photo-lightbox-image src="" alt="" class="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-xl" />
-        <div class="text-center text-white px-2">
-          <p class="text-sm text-white/70" data-photo-lightbox-date></p>
-          <p class="mt-1 font-bold text-lg" data-photo-lightbox-title></p>
-          <p class="mt-1 text-sm text-white/85" data-photo-lightbox-description></p>
-        </div>
-      </div>
-    </div>
-  )}
 </BaseLayout>
 
-{photos.length > 0 && (
-  <script define:vars={{ photos: photos.map((p) => ({ ...p, dateLabel: formatDateLabel(p.date) })) }}>
-    const lightbox = document.querySelector("[data-photo-lightbox]");
-    const imageEl = document.querySelector("[data-photo-lightbox-image]");
-    const titleEl = document.querySelector("[data-photo-lightbox-title]");
-    const descEl = document.querySelector("[data-photo-lightbox-description]");
-    const dateEl = document.querySelector("[data-photo-lightbox-date]");
-    const closeButton = document.querySelector("[data-photo-close]");
-    let lastTrigger = null;
+<script>
+  // 表示中の絞り込み・件数だけをクライアント側で管理する。写真自体はビルド時に全件が
+  // HTMLへ出力済みのため、JavaScriptが無効な環境でも「もっと見る」を押した状態と
+  // 同じ、すべての写真が最初から表示された状態になる（CSSのhiddenクラスが一切
+  // 付与されないため）。
+  const PAGE_SIZE = 12;
+  let visibleLimit = PAGE_SIZE;
+  let currentFilter = "all";
 
-    function openLightbox(index) {
-      const photo = photos[index];
-      if (!photo || !lightbox) return;
-      lastTrigger = document.activeElement;
-      if (imageEl) {
-        imageEl.src = photo.image;
-        imageEl.alt = photo.alt || photo.title;
-      }
-      if (titleEl) titleEl.textContent = photo.title;
-      if (descEl) descEl.textContent = photo.description || "";
-      if (dateEl) dateEl.textContent = photo.dateLabel || "";
-      lightbox.classList.remove("hidden");
-      document.body.style.overflow = "hidden";
-      closeButton?.focus();
-    }
+  const grid = document.querySelector<HTMLElement>("[data-photo-grid]");
+  const filterBar = document.querySelector<HTMLElement>("[data-photo-filter-bar]");
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-photo-filter]"));
+  const loadMoreButton = document.querySelector<HTMLButtonElement>("[data-photo-load-more]");
 
-    function closeLightbox() {
-      if (!lightbox) return;
-      lightbox.classList.add("hidden");
-      document.body.style.overflow = "";
-      if (lastTrigger instanceof HTMLElement) lastTrigger.focus();
-    }
+  function applyFilter() {
+    if (!grid) return;
+    const cards = Array.from(grid.querySelectorAll<HTMLElement>("[data-photo-card]"));
+    const matching = cards.filter((card) => currentFilter === "all" || card.dataset.photoCategory === currentFilter);
 
-    document.querySelectorAll("[data-photo-trigger]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const index = Number(button.dataset.photoIndex);
-        openLightbox(index);
-      });
+    matching.forEach((card, index) => {
+      card.classList.toggle("hidden", index >= visibleLimit);
+    });
+    cards.forEach((card) => {
+      if (!matching.includes(card)) card.classList.add("hidden");
     });
 
-    closeButton?.addEventListener("click", closeLightbox);
-    lightbox?.addEventListener("click", (event) => {
-      if (event.target === lightbox) closeLightbox();
+    loadMoreButton?.classList.toggle("hidden", matching.length <= visibleLimit);
+  }
+
+  filterBar?.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-photo-filter]");
+    if (!button) return;
+
+    buttons.forEach((b) => {
+      const isActive = b === button;
+      b.setAttribute("aria-pressed", String(isActive));
+      b.classList.toggle("border-brand-orange-dark", isActive);
+      b.classList.toggle("bg-brand-orange-light", isActive);
+      b.classList.toggle("border-black/10", !isActive);
+      b.classList.toggle("bg-white", !isActive);
     });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !lightbox?.classList.contains("hidden")) closeLightbox();
-    });
-  </script>
-)}
+
+    currentFilter = button.dataset.photoFilter ?? "all";
+    visibleLimit = PAGE_SIZE;
+    applyFilter();
+  });
+
+  loadMoreButton?.addEventListener("click", () => {
+    visibleLimit += PAGE_SIZE;
+    applyFilter();
+  });
+
+  applyFilter();
+</script>

@@ -169,6 +169,45 @@ export function articleSchema(options: {
   };
 }
 
+/**
+ * 活動写真ページ（/photos）向けのCollectionPage + ImageGallery構造化データ。
+ * 画面に実際に表示している写真のみを渡すこと。画像1件ごとに、実ファイルのURL（contentUrl）と、
+ * その写真が掲載されている活動報告詳細ページのURL（url）の両方を含める。
+ */
+export function imageGallerySchema(options: {
+  path: string;
+  name: string;
+  description: string;
+  images: {
+    contentUrl: string;
+    width?: number;
+    height?: number;
+    caption: string;
+    activityPath: string;
+  }[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: options.name,
+    description: options.description,
+    url: absoluteUrl(options.path),
+    inLanguage: "ja",
+    isPartOf: { "@id": websiteId },
+    mainEntity: {
+      "@type": "ImageGallery",
+      image: options.images.map((image) => ({
+        "@type": "ImageObject",
+        contentUrl: absoluteUrl(image.contentUrl),
+        url: absoluteUrl(image.activityPath),
+        caption: image.caption,
+        ...(image.width ? { width: image.width } : {}),
+        ...(image.height ? { height: image.height } : {}),
+      })),
+    },
+  };
+}
+
 /** FAQPage構造化データ（画面に表示されているQ&Aのみ渡すこと：19章） */
 export function faqPageSchema(items: { question: string; answer: string }[]) {
   return {
