@@ -1,0 +1,199 @@
+---
+// 福祉・介護の重点テーマ（5テーマ）を、すべて同じ構造で表示するコンポーネントです。
+//
+//   1. 現状（公的資料で確認できた事実）
+//   2. 確認できたデータ（数値は src/data/vision.ts の evidenceItems を参照）
+//   3. 現在の延岡市の取り組み
+//   4. 今後の論点
+//   5. 検討している提言
+//   6. 出典
+//
+// 【事実と意見を分ける】
+// 「現状」「確認できたデータ」は事実、「今後の論点」「検討している提言」は意見です。
+// 画面上でも見出し・配色で区別し、混同されないようにしています。
+import Icon from "./Icon.astro";
+import type { WelfareTheme } from "../data/welfareThemes";
+import type { VisionEvidenceItem } from "../data/vision";
+
+interface Props {
+  themes: WelfareTheme[];
+  /** 数値の実体。label で突き合わせて表示する（数値の二重管理を避けるため） */
+  evidenceItems: VisionEvidenceItem[];
+}
+
+const { themes, evidenceItems } = Astro.props;
+
+function findEvidence(labels: string[]): VisionEvidenceItem[] {
+  return labels
+    .map((label) => evidenceItems.find((item) => item.label === label))
+    .filter((item): item is VisionEvidenceItem => Boolean(item));
+}
+
+/** 出典の重複を除いて、テーマごとの出典一覧を作る */
+function buildSources(theme: WelfareTheme, items: VisionEvidenceItem[]) {
+  const sources = new Map<string, { label: string; url?: string }>();
+  for (const item of items) {
+    if (!sources.has(item.source)) sources.set(item.source, { label: item.source, url: item.sourceUrl });
+  }
+  for (const effort of theme.currentEfforts) {
+    const label = `延岡市「${effort.name}」`;
+    if (!sources.has(label)) sources.set(label, { label, url: effort.sourceUrl });
+  }
+  return [...sources.values()];
+}
+---
+
+<div class="mt-8 space-y-8">
+  {themes.map((theme) => {
+    const items = findEvidence(theme.evidenceLabels);
+    const sources = buildSources(theme, items);
+    return (
+      <section id={theme.id} class="card scroll-mt-24 border-l-4 border-accent-welfare">
+        <h4 class="text-xl font-bold text-ink [overflow-wrap:break-word]">{theme.title}</h4>
+        <p class="mt-2 text-ink-soft leading-relaxed">{theme.summary}</p>
+
+        {/* 1. 現状（事実） */}
+        {theme.situation.length > 0 && (
+          <div class="mt-6">
+            <p class="text-sm font-bold text-ink">
+              <span class="mr-2 rounded bg-ink px-2 py-0.5 text-xs text-white">確認できた事実</span>
+              現状
+            </p>
+            <ul class="mt-2 space-y-1.5">
+              {theme.situation.map((line) => (
+                <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                  <span class="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-ink-soft"></span>
+                  <span class="min-w-0">{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 2. 確認できたデータ（事実） */}
+        {items.length > 0 && (
+          <div class="mt-6">
+            <p class="text-sm font-bold text-ink">
+              <span class="mr-2 rounded bg-ink px-2 py-0.5 text-xs text-white">確認できた事実</span>
+              このテーマに関するデータ
+            </p>
+            <ul class="mt-2 grid gap-2 sm:grid-cols-2">
+              {items.map((item) => (
+                <li class="min-w-0 rounded-xl bg-brand-orange-light/40 px-4 py-3">
+                  <span class="block text-sm text-ink-soft [overflow-wrap:break-word]">{item.label}</span>
+                  <span class="block text-lg font-bold text-ink [overflow-wrap:break-word]">{item.value}</span>
+                  <span class="block text-xs font-bold text-brand-orange-dark [overflow-wrap:break-word]">
+                    {item.year}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 3. 現在の延岡市の取り組み（事実） */}
+        {theme.currentEfforts.length > 0 && (
+          <div class="mt-6">
+            <p class="text-sm font-bold text-ink">
+              <span class="mr-2 rounded bg-ink px-2 py-0.5 text-xs text-white">確認できた事実</span>
+              現在の延岡市の取り組み
+            </p>
+            <ul class="mt-2 space-y-3">
+              {theme.currentEfforts.map((effort) => (
+                <li class="min-w-0 rounded-xl bg-white ring-1 ring-black/5 px-4 py-3">
+                  <a
+                    href={effort.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex min-h-[44px] items-center gap-1 font-bold text-ink hover:underline"
+                  >
+                    <span class="min-w-0 [overflow-wrap:anywhere]">{effort.name}</span>
+                    <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+                    <Icon name="external-link" class="h-4 w-4 flex-shrink-0" />
+                  </a>
+                  <p class="mt-1 text-sm text-ink-soft leading-relaxed">{effort.description}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 4. 今後の論点（意見） */}
+        {theme.discussionPoints.length > 0 && (
+          <div class="mt-6 rounded-xl bg-brand-ivory px-4 py-4">
+            <p class="text-sm font-bold text-ink">
+              <span class="mr-2 rounded bg-brand-orange-dark px-2 py-0.5 text-xs text-white">考えられる論点</span>
+              今後の論点
+            </p>
+            <ul class="mt-2 space-y-1.5">
+              {theme.discussionPoints.map((point) => (
+                <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                  <Icon name="chevron-right" class="mt-1 h-4 w-4 flex-shrink-0 text-brand-orange-dark" ariaHidden={true} />
+                  <span class="min-w-0">{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 5. 検討している提言（意見） */}
+        {theme.proposals.length > 0 && (
+          <div class="mt-4 rounded-xl bg-brand-orange-light/40 px-4 py-4">
+            <p class="text-sm font-bold text-ink">
+              <span class="mr-2 rounded bg-brand-orange-dark px-2 py-0.5 text-xs text-white">検討中</span>
+              検討している提言
+            </p>
+            <ul class="mt-2 space-y-1.5">
+              {theme.proposals.map((proposal) => (
+                <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+                  <Icon name="check" class="mt-1 h-4 w-4 flex-shrink-0 text-accent-welfare" ariaHidden={true} />
+                  <span class="min-w-0">{proposal}</span>
+                </li>
+              ))}
+            </ul>
+            <p class="mt-3 text-xs text-ink-soft">
+              いずれも検討中の内容です。市民の皆さまのご意見と公的資料の確認を踏まえて具体化します。
+            </p>
+          </div>
+        )}
+
+        {/* 6. 出典 */}
+        {sources.length > 0 && (
+          <details class="mt-4 rounded-xl bg-white ring-1 ring-black/5">
+            <summary class="cursor-pointer px-4 py-3 text-sm font-bold text-ink">
+              このテーマの出典を見る（{sources.length}件）
+            </summary>
+            <ul class="space-y-2 px-4 pb-4">
+              {sources.map((source) => (
+                <li class="min-w-0 text-sm">
+                  {source.url ? (
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex min-h-[44px] items-center gap-1 text-ink underline [overflow-wrap:anywhere]"
+                    >
+                      <span class="min-w-0">{source.label}</span>
+                      <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+                      <Icon name="external-link" class="h-3.5 w-3.5 flex-shrink-0" />
+                    </a>
+                  ) : (
+                    <span class="text-ink-soft [overflow-wrap:break-word]">{source.label}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
+        {/* このテーマについて意見を送る（既存のみんなの声フォームへ） */}
+        <div class="mt-5">
+          <a href="/voices/submit/" class="btn-secondary">
+            このテーマについて意見を送る
+            <Icon name="arrow-right" class="h-4 w-4" ariaHidden={true} />
+          </a>
+        </div>
+      </section>
+    );
+  })}
+</div>

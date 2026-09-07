@@ -15,6 +15,8 @@ import VisionStatusBadge from "./VisionStatusBadge.astro";
 import VisionStatusSteps from "./VisionStatusSteps.astro";
 import VisionEvidenceCard from "./VisionEvidenceCard.astro";
 import InlineRelatedLinks from "./InlineRelatedLinks.astro";
+import WelfareThemeSection from "./WelfareThemeSection.astro";
+import { welfareThemes, welfareGlossary } from "../data/welfareThemes";
 import type { VisionProposal } from "../data/vision";
 import type { VoiceTheme } from "../data/voiceThemes";
 import { resolveLastUpdated } from "../utils/lastUpdated";
@@ -57,6 +59,11 @@ function formatConfirmedDate(value: string): string {
 // 更新日：提言ごとの lastUpdated があればそれを、無ければ src/data/vision.ts を
 // 最後に変更したGitコミットの日付を使う（アクセス時刻は使わない）。
 const lastUpdated = resolveLastUpdated(proposal.lastUpdated, "vision");
+
+// 重点テーマ（指定がある提言だけ表示する）
+const themes = (proposal.themeIds ?? [])
+  .map((id) => welfareThemes.find((theme) => theme.id === id))
+  .filter((theme): theme is NonNullable<typeof theme> => Boolean(theme));
 ---
 
 <article id={proposal.slug} class:list={["border-l-4 pl-6 scroll-mt-24", accent.border]}>
@@ -146,8 +153,28 @@ const lastUpdated = resolveLastUpdated(proposal.lastUpdated, "vision");
     </div>
   )}
 
-  {/* 4. 根拠・参考資料 */}
-  <VisionEvidenceCard evidenceItems={proposal.evidenceItems} relatedPlans={proposal.relatedPlans} />
+  {/* 4. 根拠・参考資料（延岡市の現状をデータで見る） */}
+  <VisionEvidenceCard
+    evidenceItems={proposal.evidenceItems}
+    relatedPlans={proposal.relatedPlans}
+    primaryLabels={proposal.primaryEvidenceLabels}
+    heading={proposal.primaryEvidenceLabels ? "延岡市の現状をデータで見る" : "確認できたデータ・参考資料"}
+    glossary={themes.length > 0 ? welfareGlossary : []}
+  />
+
+  {/* 重点テーマ（現状 → データ → 市の取り組み → 論点 → 検討している提言 → 出典） */}
+  {themes.length > 0 && (
+    <div class="mt-8">
+      <h3 class="text-lg font-bold text-ink">重点テーマ</h3>
+      <p class="mt-2 text-ink-soft leading-relaxed">
+        確認できたデータをもとに、5つのテーマで現状と論点を整理しています。
+        <span class="font-bold text-ink">「確認できた事実」</span>と
+        <span class="font-bold text-ink">「考えられる論点・検討している提言」</span>は、
+        それぞれ見出しで区別しています。
+      </p>
+      <WelfareThemeSection themes={themes} evidenceItems={proposal.evidenceItems} />
+    </div>
+  )}
 
   {/*
     参考資料。実際にアクセスして存在を確認できたURLだけを掲載する（架空リンクは禁止）。

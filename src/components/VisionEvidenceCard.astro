@@ -16,9 +16,36 @@ interface Props {
   relatedPlans: { label: string; href?: string }[];
   /** 呼び出し元ページの見出し階層に合わせる（vision.astroはh3の並び、issues/[slug].astroはh2の並びのため） */
   headingLevel?: "h2" | "h3";
+  /**
+   * 上部に大きく表示する主要指標の label（6〜8件程度）。
+   * ここに指定した指標以外は「詳しいデータを見る」の中へ折りたたむ。
+   * 未指定の場合は、これまでどおり全指標を同じ強さで並べる。
+   */
+  primaryLabels?: string[];
+  /** 見出し文言（省略時は「確認できたデータ・参考資料」） */
+  heading?: string;
+  /** 専門用語のやさしい説明（省略可） */
+  glossary?: { term: string; description: string }[];
 }
 
-const { evidenceItems, relatedPlans, headingLevel = "h3" } = Astro.props;
+const {
+  evidenceItems,
+  relatedPlans,
+  headingLevel = "h3",
+  primaryLabels,
+  heading = "確認できたデータ・参考資料",
+  glossary = [],
+} = Astro.props;
+
+// 主要指標と、それ以外（折りたたみ）に分ける
+const primaryItems = primaryLabels
+  ? primaryLabels
+      .map((label) => evidenceItems.find((item) => item.label === label))
+      .filter((item): item is VisionEvidenceItem => Boolean(item))
+  : evidenceItems;
+const secondaryItems = primaryLabels
+  ? evidenceItems.filter((item) => !primaryLabels.includes(item.label))
+  : [];
 const Heading = headingLevel;
 // vision.astro側のh3見出しは "text-lg font-bold text-ink"、issues/[slug].astro側のh2見出しは
 // "font-bold text-ink"（サイズ指定なし）で統一されているため、それぞれに合わせる
@@ -33,7 +60,7 @@ function formatConfirmedDate(value: string): string | null {
 ---
 
 <div class="mt-6">
-  <Heading class={headingClass}>確認できたデータ・参考資料</Heading>
+  <Heading class={headingClass}>{heading}</Heading>
 
   {!hasContent && (
     <p class="mt-2 text-ink-soft leading-relaxed">公的資料を確認しながら整理しています。</p>
@@ -45,7 +72,7 @@ function formatConfirmedDate(value: string): string | null {
         延岡市の公式資料で確認できた数値のみを掲載しています。推計値は含みません。
       </p>
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
-        {evidenceItems.map((item) => {
+        {primaryItems.map((item) => {
           const confirmedLabel = formatConfirmedDate(item.confirmedDate);
           return (
             <div class="card flex min-w-0 flex-col py-4">
@@ -76,6 +103,61 @@ function formatConfirmedDate(value: string): string | null {
           );
         })}
       </div>
+
+      {/* 主要指標以外は折りたたみ。全データはここから確認できる */}
+      {secondaryItems.length > 0 && (
+        <details class="mt-4 rounded-xl bg-white ring-1 ring-black/5">
+          <summary class="cursor-pointer px-4 py-3 font-bold text-ink">
+            詳しいデータを見る（他{secondaryItems.length}件）
+          </summary>
+          <div class="grid gap-3 px-4 pb-4 sm:grid-cols-2">
+            {secondaryItems.map((item) => {
+              const confirmedLabel = formatConfirmedDate(item.confirmedDate);
+              return (
+                <div class="flex min-w-0 flex-col rounded-xl bg-brand-ivory px-4 py-3">
+                  <p class="text-sm font-bold text-ink-soft [overflow-wrap:break-word]">{item.label}</p>
+                  <p class="mt-1 text-lg font-bold text-ink [overflow-wrap:break-word]">{item.value}</p>
+                  <p class="mt-1 text-xs font-bold text-brand-orange-dark [overflow-wrap:break-word]">{item.year}</p>
+                  {item.note && (
+                    <p class="mt-1 text-xs text-ink-soft leading-relaxed [overflow-wrap:break-word]">{item.note}</p>
+                  )}
+                  <p class="mt-2 text-xs text-ink-soft leading-relaxed [overflow-wrap:break-word]">
+                    出典：{item.source}
+                  </p>
+                  {item.sourceUrl && (
+                    <a
+                      href={item.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="mt-1 inline-flex min-h-[44px] items-center gap-1 text-xs font-bold text-ink underline"
+                    >
+                      出典を見る
+                      <Icon name="external-link" class="h-3.5 w-3.5 flex-shrink-0" />
+                      <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+                    </a>
+                  )}
+                  {confirmedLabel && <p class="mt-auto pt-2 text-xs text-ink-soft">データ確認日：{confirmedLabel}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      )}
+
+      {/* 専門用語のやさしい説明 */}
+      {glossary.length > 0 && (
+        <details class="mt-3 rounded-xl bg-white ring-1 ring-black/5">
+          <summary class="cursor-pointer px-4 py-3 font-bold text-ink">言葉の説明</summary>
+          <dl class="space-y-2 px-4 pb-4 text-sm">
+            {glossary.map((entry) => (
+              <div class="min-w-0">
+                <dt class="font-bold text-ink [overflow-wrap:break-word]">{entry.term}</dt>
+                <dd class="text-ink-soft leading-relaxed [overflow-wrap:break-word]">{entry.description}</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
+      )}
     </>
   )}
 

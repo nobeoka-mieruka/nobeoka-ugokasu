@@ -112,6 +112,17 @@ export type VisionProposal = {
   relatedPlans: { label: string; href?: string }[];
   /** この提言の背景となる、福富千恵プロフィールページの章id（src/data/profile.ts参照）。自然に対応する章がない場合は空配列のままにする */
   relatedProfileChapterIds: string[];
+  /**
+   * 上部に大きく表示する主要指標の label（6〜8件程度）。
+   * 指定した場合、それ以外の指標は「詳しいデータを見る」へ折りたたまれる。
+   */
+  primaryEvidenceLabels?: string[];
+  /**
+   * 重点テーマのID（src/data/welfareThemes.ts）。
+   * 指定した提言では、テーマごとに
+   * 現状 → データ → 市の取り組み → 論点 → 検討している提言 → 出典 を表示する。
+   */
+  themeIds?: string[];
   /** 最終更新日（本人確認後に設定。未設定の間はLastUpdated側で非表示になる） */
   lastUpdated: string;
 };
@@ -368,6 +379,22 @@ export const visionProposals: VisionProposal[] = [
         label: "第7期延岡市障がい福祉計画及び第3期障がい児福祉計画（令和6〜8年度）",
         href: "https://www.city.nobeoka.miyazaki.jp/soshiki/31/33671.html",
       },
+    ],
+    primaryEvidenceLabels: [
+      "総人口",
+      "65歳以上人口（高齢者人口）",
+      "高齢化率",
+      "75歳以上人口（後期高齢者）",
+      "要支援・要介護認定者数",
+      "高齢者の一人暮らし世帯",
+      "介護保険 第1号被保険者数（65歳以上）",
+    ],
+    themeIds: [
+      "community-living",
+      "living-alone",
+      "care-workforce",
+      "disability-life-work",
+      "consultation",
     ],
     relatedProfileChapterIds: [
       "encounter-with-disability-welfare",
