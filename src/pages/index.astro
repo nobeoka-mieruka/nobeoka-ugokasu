@@ -1,5 +1,4 @@
 ---
-import { getCollection } from "astro:content";
 import { Picture, getImage } from "astro:assets";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SectionTitle from "../components/SectionTitle.astro";
@@ -23,6 +22,7 @@ import { videos } from "../data/videos";
 import { organizationSchema, personSchema, websiteSchema, webPageSchema } from "../utils/structuredData";
 import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
 import { getUnifiedActivities } from "../data/activities";
+import { getUnifiedNews } from "../data/news";
 
 const title = "福富千恵と延岡を動かす会｜あなたと、延岡を動かす！";
 const description =
@@ -37,9 +37,9 @@ const ogDescription =
 // を使い、トップページの最新3件が一覧ページの先頭3件と必ず一致するようにする。
 const homeActivities = (await getUnifiedActivities()).slice(0, 3);
 
-const news = (await getCollection("news", ({ data }) => data.published))
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
-  .slice(0, 3);
+// お知らせも活動報告と同じく共通の取得口（src/data/news.ts）を使い、
+// トップの最新3件が /news/ の先頭3件と必ず一致するようにする。
+const news = (await getUnifiedNews()).slice(0, 3);
 
 const featuredVideos = videos.filter((v) => v.featured).slice(0, 3);
 
@@ -373,15 +373,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
       <SectionTitle title="最新のお知らせ" align="left" />
       {news.length > 0 ? (
         <div class="grid gap-4 sm:grid-cols-3">
-          {news.map((entry) => (
-            <NewsCard
-              slug={entry.slug}
-              title={entry.data.title}
-              date={entry.data.date}
-              category={entry.data.category}
-              summary={entry.data.summary}
-            />
-          ))}
+          {news.map((entry) => <NewsCard entry={entry} />)}
         </div>
       ) : (
         <div class="rounded-xl bg-white ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft">

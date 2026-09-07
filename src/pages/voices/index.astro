@@ -43,8 +43,27 @@ const schemas = [
           いただいたご意見は、個人情報を取り除いたうえで整理し、今後の活動や提言に生かします。
         </p>
         <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
-          <a href="/voices/submit/" class="btn-primary">意見を送る</a>
+          <a href="/voices/submit/" class="btn-primary">延岡についてのご意見を送る</a>
           <a href="/voices/themes/" class="btn-secondary">募集中のテーマを見る</a>
+        </div>
+        {/*
+          「ご意見」と「お問い合わせ」は宛先も扱いも異なるため、違いを明示する。
+          ・ご意見     → Googleフォーム。匿名で送れ、整理・分析のうえ提言へ反映します
+          ・お問い合わせ → 事務局メール。個別のご質問・ご連絡に事務局がお返事します
+        */}
+        <div class="mt-6 border-t border-black/10 pt-5 text-left">
+          <p class="text-sm text-ink-soft leading-relaxed">
+            <span class="font-bold text-ink">ご意見を送る</span>（上のボタン）は、延岡の課題やお困りごとを
+            <span class="font-bold text-ink">フォーム</span>でお寄せいただくものです。
+            お名前の入力は必須ではなく、個人情報を取り除いたうえで整理し、政策・提言に生かします。
+          </p>
+          <p class="mt-3 text-sm text-ink-soft leading-relaxed">
+            <span class="font-bold text-ink">個別のご質問・ご連絡</span>（掲載内容、後援会、取材のご依頼など）は、
+            事務局あてのメールで承っています。
+          </p>
+          <div class="mt-4">
+            <a href="/contact/" class="btn-secondary">事務局へ問い合わせる</a>
+          </div>
         </div>
       </div>
     </div>
@@ -87,16 +106,18 @@ const schemas = [
 
   <section class="py-14 sm:py-20">
     <div class="section-wrap max-w-4xl">
-      <SectionTitle title="受付状況" align="left" />
+      <SectionTitle title="声が政策につながるまで" align="left" />
       <p class="text-ink-soft leading-relaxed mb-6">
-        お預かりしたご意見は、次の4つの段階で整理・公開しています。
+        お預かりしたご意見は、次の5つの段階を経て、政策・提言へ反映していきます。
+        各段階の件数は、集計がまとまった項目から順に公開します。
       </p>
       <VoiceStatusPipeline />
       <div class="mt-8">
         <VoiceSummaryPanel />
       </div>
-      <div class="mt-8">
-        <a href="/voices/submit/" class="btn-primary">意見を送る</a>
+      <div class="mt-8 flex flex-wrap items-center gap-4">
+        <a href="/voices/submit/" class="btn-primary">延岡についてのご意見を送る</a>
+        <a href="/vision/" class="btn-secondary">政策・提言を見る</a>
       </div>
     </div>
   </section>
@@ -120,7 +141,7 @@ const schemas = [
         ))}
       </ul>
       <div class="mt-6">
-        <a href="/voices/themes/" class="btn-secondary">テーマ一覧を見る</a>
+        <a href="/voices/themes/" class="btn-secondary">募集中のテーマを見る</a>
       </div>
     </div>
   </section>
@@ -139,9 +160,8 @@ const schemas = [
       <p class="mt-4 text-sm text-ink-soft">
         「現時点では対応が困難です」とする場合は、可能な範囲で理由もあわせて公開します。
       </p>
-      <div class="mt-8 flex flex-wrap items-center gap-4">
-        <a href="/voices/submit/" class="btn-primary">意見を送る</a>
-        <a href="/voices/method/" class="btn-secondary">整理方法を見る</a>
+      <div class="mt-8">
+        <a href="/voices/method/" class="btn-secondary">声の集め方・整理方法を見る</a>
       </div>
     </div>
   </section>

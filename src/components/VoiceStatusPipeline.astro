@@ -1,32 +1,47 @@
 ---
-// 「受付 → 整理中 → 確認中 → 提言反映」という、みんなの声の状態を視覚的に示す表示です。
+// 「寄せられた声が、政策・提言につながるまで」の5段階を視覚的に示す表示です（4章）。
 //
+//   ① ご意見受付 → ② 個人情報等を整理 → ③ 内容を確認 → ④ 課題・制度を調査 → ⑤ 政策・提言へ反映
+//
+// 【表示ルール】
 // ・件数（src/data/voicesSummary.ts）が入っている段階だけ、その実数を表示します。
-// ・実数が確認できていない段階は数字を出さず、その段階の説明だけを表示します
-//   （推測値は絶対に表示しません）。
-// ・スマートフォンでは縦並び、タブレット以上では横並びになります（横スクロールは発生しません）。
+// ・実数が確認できていない段階は数字を出さず、説明だけを表示します（推測値は表示しません）。
+//
+// 【レイアウト】
+// ・スマートフォン：縦1列（各段階の下に矢印）
+// ・タブレット以上：横並び（各段階の右に矢印）
+// 横スクロールが起きないよう、grid＋自動折り返しで組んでいます。
+//
+// 【アクセシビリティ】
+// ・順序に意味があるため <ol> を使用。
+// ・矢印は装飾のため aria-hidden。読み上げは「1.」「2.」の番号で順序が伝わります。
 import Icon from "./Icon.astro";
 import { voicesSummary, hasAnyVoicesCount } from "../data/voicesSummary";
 
 const steps = [
   {
-    label: "受付",
-    description: "フォーム・意見交換会・聞き取りなどでご意見をお預かりします。",
+    label: "ご意見受付",
+    description: "フォーム・意見交換会・地域での聞き取りなどでご意見をお預かりします。",
     count: voicesSummary.pipeline.received ?? voicesSummary.total,
   },
   {
-    label: "整理中",
-    description: "個人情報を取り除き、内容ごとに整理します。",
+    label: "個人情報等を整理",
+    description: "個人が特定される情報を取り除き、内容ごとに整理します。",
     count: voicesSummary.pipeline.organized,
   },
   {
-    label: "確認中",
-    description: "事務局が元の文章と照らし合わせて内容を確認します。",
+    label: "内容を確認",
+    description: "事務局が元の文章と照らし合わせ、趣旨がずれていないか確認します。",
     count: voicesSummary.pipeline.underReview,
   },
   {
-    label: "提言反映",
-    description: "確認できた内容を、今後の活動や提言へ反映します。",
+    label: "課題・制度を調査",
+    description: "関連する延岡市・県・国の制度や公的資料を調べ、背景を確認します。",
+    count: voicesSummary.pipeline.investigating,
+  },
+  {
+    label: "政策・提言へ反映",
+    description: "確認できた内容を、政策・提言ページや今後の活動へ反映します。",
     count: voicesSummary.pipeline.reflected,
   },
 ];
@@ -34,34 +49,34 @@ const steps = [
 const showCounts = hasAnyVoicesCount();
 ---
 
-<ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+<ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
   {steps.map((step, index) => (
-    <li class="card relative flex min-w-0 flex-col gap-2">
-      <div class="flex items-center gap-2">
-        <span class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-orange text-sm font-bold text-white">
-          {index + 1}
-        </span>
-        <span class="min-w-0 font-bold text-ink">{step.label}</span>
-        {index < steps.length - 1 && (
-          <Icon
-            name="chevron-right"
-            class="ml-auto hidden h-5 w-5 flex-shrink-0 text-brand-orange-dark lg:block"
-            ariaHidden={true}
-          />
+    <li class="relative flex min-w-0 flex-col">
+      <div class="card flex h-full min-w-0 flex-col gap-2">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-orange text-sm font-bold text-white">
+            {index + 1}
+          </span>
+          <span class="min-w-0 font-bold text-ink [overflow-wrap:break-word]">{step.label}</span>
+        </div>
+        {typeof step.count === "number" && (
+          <p class="text-2xl font-bold text-ink">
+            {step.count}<span class="ml-1 text-base font-bold text-ink-soft">件</span>
+          </p>
         )}
+        <p class="min-w-0 text-sm text-ink-soft leading-relaxed">{step.description}</p>
       </div>
-      {typeof step.count === "number" && (
-        <p class="text-2xl font-bold text-ink">
-          {step.count}<span class="ml-1 text-base font-bold text-ink-soft">件</span>
-        </p>
+      {index < steps.length - 1 && (
+        <span class="flex justify-center py-1 lg:hidden" aria-hidden="true">
+          <Icon name="chevron-down" class="h-5 w-5 text-brand-orange-dark" />
+        </span>
       )}
-      <p class="min-w-0 text-sm text-ink-soft leading-relaxed">{step.description}</p>
     </li>
   ))}
 </ol>
 
 {!showCounts && (
   <p class="mt-4 text-ink-soft leading-relaxed">
-    現在、寄せられたご意見を整理しています。件数の集計がまとまり次第、この画面でお知らせします。
+    現在、寄せられたご意見を整理しています。段階ごとの件数は、集計がまとまり次第この画面でお知らせします。
   </p>
 )}

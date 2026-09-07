@@ -5,6 +5,7 @@ import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import Icon from "../../components/Icon.astro";
 import { getActivityPhotos, getPresentSources, type ActivityPhotoSource } from "../../data/activityPhotos";
+import { getPresentCategories } from "../../config/activityPhotoCategories";
 import { socialLinks } from "../../data/socialLinks";
 import { socialPlatformMeta } from "../../config/socialPlatformMeta";
 import { webPageSchema, imageGallerySchema } from "../../utils/structuredData";
@@ -22,6 +23,12 @@ const breadcrumbItems = [{ name: "活動写真", path: "/photos" }];
 const photos = await getActivityPhotos();
 const presentSources = getPresentSources(photos);
 const showSourceFilter = presentSources.length >= 2;
+
+// 活動内容による分類（看板設置・地域活動・意見交換など）。
+// 写真が1枚も無いカテゴリは自動的に表示されない（src/config/activityPhotoCategories.ts）。
+// 分類が1種類しかない場合は、絞り込む意味がないためボタンを出さない。
+const presentCategories = getPresentCategories(photos.map((photo) => photo.photoCategory));
+const showCategoryFilter = presentCategories.length >= 2;
 
 const SOURCE_LABELS: Record<ActivityPhotoSource, string> = {
   website: "公式サイト",
@@ -83,37 +90,55 @@ function formatDateLabel(date: Date): string {
         写真を選択すると、元の投稿や活動報告の詳細をご覧いただけます。
       </p>
 
-      {showSourceFilter && (
-        <div
-          role="group"
-          aria-label="活動写真の絞り込み"
-          class="mt-6 mb-8 flex flex-wrap gap-2"
-          data-photo-filter-bar
-        >
-          <button
-            type="button"
-            data-photo-filter="all"
-            aria-pressed="true"
-            class="rounded-full border-2 border-brand-orange-dark bg-brand-orange-light px-5 py-2.5 text-sm font-bold text-ink transition-colors"
-          >
-            すべて
-          </button>
-          {presentSources.map((source) => (
-            <button
-              type="button"
-              data-photo-filter={source}
-              aria-pressed="false"
-              class="rounded-full border-2 border-black/10 bg-white px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-brand-orange-light"
-            >
-              {SOURCE_LABELS[source]}
-            </button>
-          ))}
+      {(showCategoryFilter || showSourceFilter) && (
+        <div class="mt-6 mb-8 space-y-4" data-photo-filter-bar>
+          {showCategoryFilter && (
+            <div role="group" aria-label="活動内容で絞り込む" class="flex flex-wrap items-center gap-2">
+              <span class="mr-1 text-sm font-bold text-ink-soft">活動内容</span>
+              <button
+                type="button"
+                data-photo-filter="all"
+                data-photo-filter-kind="category"
+                aria-pressed="true"
+                class="min-h-[44px] rounded-full border-2 border-brand-orange-dark bg-brand-orange-light px-5 py-2.5 text-sm font-bold text-ink transition-colors"
+              >
+                すべて
+              </button>
+              {presentCategories.map((category) => (
+                <button
+                  type="button"
+                  data-photo-filter={category}
+                  data-photo-filter-kind="category"
+                  aria-pressed="false"
+                  class="min-h-[44px] rounded-full border-2 border-black/10 bg-white px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-brand-orange-light"
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          )}
+          {showSourceFilter && (
+            <div role="group" aria-label="投稿元で絞り込む" class="flex flex-wrap items-center gap-2">
+              <span class="mr-1 text-sm font-bold text-ink-soft">投稿元</span>
+              {presentSources.map((source) => (
+                <button
+                  type="button"
+                  data-photo-filter={source}
+                  data-photo-filter-kind="source"
+                  aria-pressed="false"
+                  class="min-h-[44px] rounded-full border-2 border-black/10 bg-white px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-brand-orange-light"
+                >
+                  {SOURCE_LABELS[source]}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       <div
         id="photo-grid"
-        class:list={["grid gap-6 sm:grid-cols-2 lg:grid-cols-3", !showSourceFilter && "mt-6", photos.length === 0 && "hidden"]}
+        class:list={["grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3", !(showCategoryFilter || showSourceFilter) && "mt-6", photos.length === 0 && "hidden"]}
         data-photo-grid
       >
         {photos.map((photo, index) =>
@@ -123,6 +148,7 @@ function formatDateLabel(date: Date): string {
               class="card p-0 overflow-hidden flex flex-col h-full min-w-0 hover:shadow-md transition-shadow"
               data-photo-card
               data-photo-source="website"
+              data-photo-category={photo.photoCategory}
               aria-label={`${photo.title}の活動報告を見る`}
             >
               <div class="aspect-[4/3] w-full overflow-hidden bg-brand-orange-light">
@@ -137,8 +163,8 @@ function formatDateLabel(date: Date): string {
                 />
               </div>
               <div class="p-5 flex flex-col gap-2 flex-1">
-                <div class="flex items-center gap-2 text-sm text-ink-soft">
-                  <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{photo.category}</span>
+                <div class="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
+                  <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{photo.photoCategory}</span>
                   <time datetime={photo.date.toISOString()}>{formatDateLabel(photo.date)}</time>
                 </div>
                 <h3 class="text-lg font-bold text-ink leading-snug line-clamp-2">{photo.title}</h3>
@@ -156,6 +182,7 @@ function formatDateLabel(date: Date): string {
               class="card p-0 overflow-hidden flex flex-col h-full min-w-0 hover:shadow-md transition-shadow"
               data-photo-card
               data-photo-source={photo.source}
+              data-photo-category={photo.photoCategory}
               data-photo-permalink={photo.permalink}
               data-photo-date={photo.date.toISOString()}
               aria-label={`${SOURCE_LABELS[photo.source]}の元の投稿を見る`}
@@ -173,11 +200,12 @@ function formatDateLabel(date: Date): string {
                 />
               </div>
               <div class="p-5 flex flex-col gap-2 flex-1">
-                <div class="flex items-center gap-2 text-sm text-ink-soft">
+                <div class="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
                   <span class:list={["inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold", socialPlatformMeta[photo.source].badgeClass]}>
                     <Icon name={socialPlatformMeta[photo.source].icon} class="w-3.5 h-3.5" />
                     {socialPlatformMeta[photo.source].badgeLabel}
                   </span>
+                  <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{photo.photoCategory}</span>
                   <time datetime={photo.date.toISOString()}>{formatDateLabel(photo.date)}</time>
                 </div>
                 <p class="text-sm text-ink-soft line-clamp-3">{photo.description}</p>
@@ -235,6 +263,8 @@ function formatDateLabel(date: Date): string {
   const PAGE_SIZE = 12;
   let visibleLimit = PAGE_SIZE;
   let currentFilter = "all";
+  /** 現在の絞り込みが「活動内容」か「投稿元」か */
+  let currentFilterKind: "category" | "source" = "category";
 
   const grid = document.querySelector<HTMLElement>("[data-photo-grid]");
   const filterBar = document.querySelector<HTMLElement>("[data-photo-filter-bar]");
@@ -260,7 +290,13 @@ function formatDateLabel(date: Date): string {
   function applyFilter() {
     if (!grid) return;
     const cards = Array.from(grid.querySelectorAll<HTMLElement>("[data-photo-card]"));
-    const matching = cards.filter((card) => currentFilter === "all" || card.dataset.photoSource === currentFilter);
+    // 絞り込みは「活動内容（カテゴリ）」と「投稿元」の2種類。
+    // どちらのボタンも同じ currentFilter で扱い、カード側の該当するdata属性と照合する。
+    const matching = cards.filter((card) => {
+      if (currentFilter === "all") return true;
+      if (currentFilterKind === "category") return card.dataset.photoCategory === currentFilter;
+      return card.dataset.photoSource === currentFilter;
+    });
 
     matching.forEach((card, index) => {
       card.classList.toggle("hidden", index >= visibleLimit);
@@ -283,6 +319,8 @@ function formatDateLabel(date: Date): string {
   filterBar?.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-photo-filter]");
     if (!button) return;
+
+    currentFilterKind = button.dataset.photoFilterKind === "source" ? "source" : "category";
 
     buttons.forEach((b) => {
       const isActive = b === button;

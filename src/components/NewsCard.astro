@@ -1,21 +1,53 @@
 ---
+// お知らせ1件分のカードです。
+// トップページと /news/ の両方から、共通のデータ（src/data/news.ts の UnifiedNews）で描画します。
+//
+// リンク先は3種類あります。
+//   ・サイト内の記事ページ（src/content/news/ の記事）
+//   ・関連ページ・SNS投稿など外部URL（別タブで開く）
+//   ・リンク無し（情報のみのカード）
+import Icon from "./Icon.astro";
+import type { UnifiedNews } from "../data/news";
+
 interface Props {
-  slug: string;
-  title: string;
-  date: Date;
-  category: string;
-  summary: string;
+  entry: UnifiedNews;
 }
 
-const { slug, title, date, category, summary } = Astro.props;
-const dateLabel = date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+const { entry } = Astro.props;
+const dateLabel = entry.date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+
+const cardClass = "card flex flex-col gap-3 h-full";
+const linkClass = `${cardClass} hover:shadow-md transition-shadow`;
 ---
 
-<a href={`/news/${slug}/`} class="card flex flex-col gap-3 hover:shadow-md transition-shadow">
-  <div class="flex items-center gap-2 text-sm text-ink-soft">
-    <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{category}</span>
-    <time datetime={date.toISOString()}>{dateLabel}</time>
+{entry.href ? (
+  <a
+    href={entry.href}
+    class={linkClass}
+    target={entry.external ? "_blank" : undefined}
+    rel={entry.external ? "noopener noreferrer" : undefined}
+  >
+    <div class="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
+      <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{entry.category}</span>
+      <time datetime={entry.date.toISOString()}>{dateLabel}</time>
+    </div>
+    <h3 class="text-xl font-bold text-ink leading-snug">{entry.title}</h3>
+    <p class="text-base text-ink-soft">{entry.summary}</p>
+    {entry.external && (
+      <span class="mt-auto inline-flex items-center gap-1 pt-1 text-sm font-bold text-brand-orange-dark">
+        投稿を見る
+        <Icon name="external-link" class="w-4 h-4" ariaHidden={true} />
+        <span class="sr-only">（新しいタブで開く）</span>
+      </span>
+    )}
+  </a>
+) : (
+  <div class={cardClass}>
+    <div class="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
+      <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{entry.category}</span>
+      <time datetime={entry.date.toISOString()}>{dateLabel}</time>
+    </div>
+    <h3 class="text-xl font-bold text-ink leading-snug">{entry.title}</h3>
+    <p class="text-base text-ink-soft">{entry.summary}</p>
   </div>
-  <h3 class="text-xl font-bold text-ink leading-snug">{title}</h3>
-  <p class="text-base text-ink-soft">{summary}</p>
-</a>
+)}

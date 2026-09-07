@@ -6,6 +6,7 @@
 import type { SocialPost } from "../types/social";
 import { resolveActivityImage } from "../utils/activityImage";
 import { socialPlatformMeta } from "../config/socialPlatformMeta";
+import { resolvePhotoCategory } from "../config/activityPhotoCategories";
 import { buildSocialPhotoAlt, buildSocialPhotoDescription } from "../utils/socialPhotoText";
 import { svgIcon, formatDateLabel } from "./socialPostCard";
 
@@ -59,6 +60,9 @@ export function createSocialPhotoCardElement(post: SocialPost): HTMLElement | nu
   card.rel = "noopener noreferrer";
   card.dataset.photoCard = "";
   card.dataset.photoSource = post.platform;
+  // ビルド後に取得した投稿にも、ビルド時と同じ規則で活動内容の分類を付ける
+  // （/photos/ の「活動内容」絞り込みで、後から差し込まれた写真も正しく絞り込めるようにする）
+  card.dataset.photoCategory = resolvePhotoCategory(post.id, `${post.title} ${post.description}`);
   card.dataset.photoPermalink = post.permalink;
   card.dataset.photoDate = post.publishedAt;
   card.setAttribute("aria-label", `${meta.label}の元の投稿を見る`);

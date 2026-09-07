@@ -46,6 +46,11 @@ export type VisionProposal = {
   slug: "welfare" | "childcare" | "disaster-prevention";
   title: string;
   shortTitle: string;
+  /**
+   * 提言の概要（1〜2文）。一覧・カードの冒頭で「何についての提言か」を一言で伝える。
+   * 確認できている内容だけを書くこと（数値・実績の断定は禁止）。
+   */
+  summary: string;
   accentColor: "welfare" | "childcare" | "disaster";
   /** 現在の検討状況（バッジ表示用）。根拠のない前倒しの状態にしない。 */
   status: VisionStatus;
@@ -69,8 +74,17 @@ export type VisionProposal = {
   targetChange: string;
   citizenVoices: string;
   reviewStatus: string;
-  /** 関連する公的資料・延岡市公式ページ（確認できたものだけを追加する） */
-  officialLinks: { label: string; href: string }[];
+  /**
+   * 現在の調査状況。どこまで調べ終えていて、次に何を確認するのかを書く。
+   * 事実として確認できている範囲だけを書くこと（進捗を実際より進んで見せない）。
+   */
+  investigationStatus: string;
+  /**
+   * 関連する公的資料・延岡市公式ページ（確認できたものだけを追加する）。
+   * URLは必ず実際にアクセスして存在を確認してから追加すること（架空リンクは禁止）。
+   * confirmedDate には、そのURLを確認した日（"YYYY-MM-DD"）を記録する。
+   */
+  officialLinks: { label: string; href: string; confirmedDate?: string }[];
   /**
    * 現状データ・参考資料カードに表示する統計・データ。
    * 事実確認できたものだけを登録すること（推測での入力は禁止）。
@@ -93,6 +107,8 @@ export const visionProposals: VisionProposal[] = [
     slug: "welfare",
     title: "支える人も\n支えられる人も\n安心できるまち",
     shortTitle: "福祉・介護について",
+    summary:
+      "介護や障がい福祉の現場で働いてきた経験をもとに、支える家族の負担軽減と、福祉を担う人材の確保・定着に取り組みます。",
     accentColor: "welfare",
     status: "意見募集中",
     relatedKeywords: ["福祉", "障がい福祉", "介護", "高齢者", "就労支援", "とまりぎ荘"],
@@ -122,7 +138,30 @@ export const visionProposals: VisionProposal[] = [
     citizenVoices:
       "「みんなの声」を通じて、福祉・介護に関するご意見を募集しています。寄せられた声はこのページへ順次反映していきます。",
     reviewStatus: "現在検討中です。皆さまのご意見を伺いながら具体化します。",
-    officialLinks: [],
+    investigationStatus:
+      "延岡市で福祉・介護に関する相談を受け付けている窓口（介護保険課・障がい福祉課・健康長寿課・生活福祉課）を確認し、下の参考資料に整理しました。今後、各窓口が公開している制度や計画の内容を確認しながら、提言の具体化を進めます。市の統計や計画に基づく数値は、出典を確認できたものから順にこのページへ掲載します。",
+    officialLinks: [
+      {
+        label: "延岡市 介護保険課",
+        href: "https://www.city.nobeoka.miyazaki.jp/soshiki/28/",
+        confirmedDate: "2026-09-07",
+      },
+      {
+        label: "延岡市 障がい福祉課",
+        href: "https://www.city.nobeoka.miyazaki.jp/soshiki/31/",
+        confirmedDate: "2026-09-07",
+      },
+      {
+        label: "延岡市 健康長寿課",
+        href: "https://www.city.nobeoka.miyazaki.jp/soshiki/33/",
+        confirmedDate: "2026-09-07",
+      },
+      {
+        label: "延岡市 生活福祉課",
+        href: "https://www.city.nobeoka.miyazaki.jp/soshiki/29/",
+        confirmedDate: "2026-09-07",
+      },
+    ],
     evidenceItems: [],
     relatedPlans: [],
     relatedProfileChapterIds: [
@@ -138,6 +177,8 @@ export const visionProposals: VisionProposal[] = [
     slug: "childcare",
     title: "安心して\n子育てできるまち",
     shortTitle: "子育てについて",
+    summary:
+      "保育の現場での勤務と、3人の子どもを育てた経験をもとに、手続きの負担軽減と子育てを支える団体への支援に取り組みます。",
     accentColor: "childcare",
     status: "意見募集中",
     relatedKeywords: ["子ども", "子育て", "教育", "保育", "発達支援"],
@@ -165,7 +206,20 @@ export const visionProposals: VisionProposal[] = [
     citizenVoices:
       "「みんなの声」を通じて、子育てに関するご意見を募集しています。寄せられた声はこのページへ順次反映していきます。",
     reviewStatus: "現在検討中です。皆さまのご意見を伺いながら具体化します。",
-    officialLinks: [],
+    investigationStatus:
+      "延岡市で子育てに関する相談を受け付けている窓口（こども保育課・おやこ保健福祉課・こども家庭サポートセンター）を確認し、下の参考資料に整理しました。今後、各窓口が公開している制度や手続きの内容を確認しながら、提言の具体化を進めます。",
+    officialLinks: [
+      {
+        label: "延岡市 こども保育課",
+        href: "https://www.city.nobeoka.miyazaki.jp/soshiki/30/",
+        confirmedDate: "2026-09-07",
+      },
+      {
+        label: "延岡市 おやこ保健福祉課",
+        href: "https://www.city.nobeoka.miyazaki.jp/soshiki/32/",
+        confirmedDate: "2026-09-07",
+      },
+    ],
     evidenceItems: [],
     relatedPlans: [],
     relatedProfileChapterIds: [
@@ -181,6 +235,8 @@ export const visionProposals: VisionProposal[] = [
     slug: "disaster-prevention",
     title: "災害時に\n命を守れるまち",
     shortTitle: "防災・避難について",
+    summary:
+      "災害時に配慮が必要な方の避難と、避難所での医療・福祉面の備えについて、地域の声を聞きながら取り組みます。",
     accentColor: "disaster",
     status: "意見募集中",
     relatedKeywords: ["防災", "避難", "災害", "地域防災"],
@@ -209,7 +265,15 @@ export const visionProposals: VisionProposal[] = [
     citizenVoices:
       "「みんなの声」を通じて、防災・避難に関するご意見を募集しています。寄せられた声はこのページへ順次反映していきます。",
     reviewStatus: "現在検討中です。皆さまのご意見を伺いながら具体化します。",
-    officialLinks: [],
+    investigationStatus:
+      "延岡市で防災を担当している窓口（危機管理企画課）を確認し、下の参考資料に整理しました。今後、市が公開している避難に関する制度や計画の内容を確認しながら、提言の具体化を進めます。",
+    officialLinks: [
+      {
+        label: "延岡市 危機管理企画課",
+        href: "https://www.city.nobeoka.miyazaki.jp/soshiki/15/",
+        confirmedDate: "2026-09-07",
+      },
+    ],
     evidenceItems: [],
     relatedPlans: [],
     relatedProfileChapterIds: [],

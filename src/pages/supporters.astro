@@ -5,6 +5,7 @@ import Breadcrumb from "../components/Breadcrumb.astro";
 import ContactBanner from "../components/ContactBanner.astro";
 import RelatedContent from "../components/RelatedContent.astro";
 import MailLink from "../components/MailLink.astro";
+import Icon from "../components/Icon.astro";
 import { siteConfig } from "../config/siteConfig";
 import { webPageSchema, organizationSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
@@ -12,6 +13,46 @@ import { buildBreadcrumbList } from "../utils/seo";
 const title = "後援会のご案内｜福富千恵と延岡を動かす会";
 const description = "「福富千恵と延岡を動かす会」後援会のご案内です。福富千恵の活動を支え、延岡のこれからを市民の皆さまと一緒に考える政治団体の取り組みをご紹介します。";
 const breadcrumbItems = [{ name: "後援会について", path: "/supporters" }];
+
+/**
+ * 応援の方法。実際の活動方針に沿うものだけを掲載する。
+ * 新しい参加方法が決まった場合はここへ1件追加する（活動していないことは書かない）。
+ */
+const supportWays = [
+  {
+    icon: "megaphone" as const,
+    title: "SNSで活動をシェアする",
+    description:
+      "Facebook・Instagram・Threadsの投稿をシェアしていただくだけでも、活動を知っていただく大きな力になります。",
+  },
+  {
+    icon: "document-edit" as const,
+    title: "市政への意見を寄せる",
+    description:
+      "延岡で感じている困りごとやご提案をお寄せください。整理したうえで、政策・提言に生かします。",
+  },
+  {
+    icon: "users" as const,
+    title: "意見交換会に参加する",
+    description: "地域での意見交換会や活動の場に、お気軽にお越しください。聞くだけの参加も歓迎です。",
+  },
+  {
+    icon: "house" as const,
+    title: "看板・ポスターの設置に協力する",
+    description:
+      "看板やポスターを掲示できる場所をご提供いただける方は、事務局までご相談ください。",
+  },
+  {
+    icon: "handshake" as const,
+    title: "活動のお手伝いをする",
+    description: "準備や当日の運営など、できる範囲でのお手伝いをお願いできる方を募集しています。",
+  },
+  {
+    icon: "heart" as const,
+    title: "後援会に入会する",
+    description: "本会の理念・目的にご賛同いただける方は、後援会規約をご確認のうえご入会いただけます。",
+  },
+];
 
 const schemas = [
   webPageSchema({ path: "/supporters", name: title, description }),
@@ -56,10 +97,32 @@ const schemas = [
         </dl>
       </div>
 
+      {/*
+        応援の方法。既存の活動方針（地域の声を聞き、対話を重ねる）に沿う範囲のみを掲載し、
+        参加のハードルが高く見えないよう「できる範囲で」を明示する。
+      */}
       <div>
-        <h2 class="text-xl font-bold text-ink mb-3">活動への参加について</h2>
-        <p class="text-ink-soft leading-relaxed">
-          活動への参加やお手伝いにご関心をお持ちの方は、お問い合わせページよりご連絡ください。
+        <h2 class="text-xl font-bold text-ink mb-3">応援の方法</h2>
+        <p class="text-ink-soft leading-relaxed mb-5">
+          応援のかたちに決まりはありません。<span class="font-bold text-ink">できる範囲での応援も歓迎です。</span>
+          下記のうち、無理のないものからご参加いただけます。
+        </p>
+        <ul class="grid gap-4 sm:grid-cols-2">
+          {supportWays.map((way) => (
+            <li class="card flex min-w-0 items-start gap-3">
+              <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-orange-light text-brand-orange-dark">
+                <Icon name={way.icon} class="h-5 w-5" ariaHidden={true} />
+              </span>
+              <span class="min-w-0">
+                <span class="block font-bold text-ink">{way.title}</span>
+                <span class="mt-1 block text-sm text-ink-soft leading-relaxed">{way.description}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p class="mt-5 text-sm text-ink-soft leading-relaxed">
+          看板・ポスターの設置場所のご提供や、活動のお手伝いについては、事務局までお気軽にご相談ください。
+          内容をうかがったうえで、無理のない範囲でご相談させていただきます。
         </p>
       </div>
 
@@ -77,14 +140,18 @@ const schemas = [
 
   <section class="py-14 sm:py-20 bg-brand-ivory">
     <div class="section-wrap">
-      {/* 同じリンク先のボタンを重ねないよう、主要な行動（入会）と補助（問い合わせ）に分ける */}
+      {/*
+        CTAの重複整理（11章）：
+        「後援会に入会する」は上の入会カードで1回だけ案内しているため、ここでは繰り返さない。
+        このバナーは、入会以外の相談（参加・協力・ご質問）の受け口として役割を分ける。
+      */}
       <ContactBanner
         heading={"あなたと、延岡を動かす！"}
-        description={"活動への参加や、ご意見のお寄せをお待ちしています。"}
-        primaryLabel="後援会に入会する"
-        primaryHref="/supporters/join/"
-        secondaryLabel="お問い合わせ"
-        secondaryHref="/contact/"
+        description="活動への参加や、ご意見のお寄せをお待ちしています。できる範囲での応援も歓迎です。"
+        primaryLabel="事務局へ問い合わせる"
+        primaryHref="/contact/"
+        secondaryLabel="ご意見を送る"
+        secondaryHref="/voices/submit/"
       />
     </div>
   </section>
@@ -92,10 +159,9 @@ const schemas = [
   <div class="section-wrap">
     <RelatedContent
       items={[
-        { title: "後援会に入会する", href: "/supporters/join", description: "後援会規約の確認・同意のうえ、入会申込みができます。" },
         { title: "福富千恵について", href: "/profile", description: "福富千恵のプロフィールと歩みをご紹介します。" },
-        { title: "私たちの提言", href: "/vision", description: "私たちの提言をご覧いただけます。" },
-        { title: "お問い合わせ", href: "/contact", description: "ご意見・お問い合わせはこちらから。" },
+        { title: "政策・提言", href: "/vision", description: "現状・課題・提言と、その調査状況をご覧いただけます。" },
+        { title: "活動報告", href: "/activities", description: "延岡での地域活動の様子をお伝えします。" },
       ]}
     />
   </div>

@@ -1,5 +1,4 @@
 ---
-import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
@@ -7,14 +6,14 @@ import NewsCard from "../../components/NewsCard.astro";
 import Icon from "../../components/Icon.astro";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
+import { getUnifiedNews } from "../../data/news";
 
 const title = "お知らせ｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会からのお知らせ一覧です。活動予定、意見交換会、サイト更新情報などをお伝えします。";
 const breadcrumbItems = [{ name: "お知らせ", path: "/news" }];
 
-const news = (await getCollection("news", ({ data }) => data.published)).sort(
-  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
-);
+// トップページと共通の取得口（src/data/news.ts）を使う
+const news = await getUnifiedNews();
 
 const schemas = [
   webPageSchema({ path: "/news", name: title, description }),
@@ -32,15 +31,7 @@ const schemas = [
       <h2 class="sr-only">お知らせ一覧</h2>
       {news.length > 0 ? (
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {news.map((entry) => (
-            <NewsCard
-              slug={entry.slug}
-              title={entry.data.title}
-              date={entry.data.date}
-              category={entry.data.category}
-              summary={entry.data.summary}
-            />
-          ))}
+          {news.map((entry) => <NewsCard entry={entry} />)}
         </div>
       ) : (
         <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-3">

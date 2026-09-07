@@ -31,18 +31,23 @@ export interface VoicesStatusCount {
 }
 
 /**
- * 受付から提言反映までの各段階の件数。
- * 「受付 → 整理中 → 確認中 → 提言反映」という流れの表示に使います。
+ * 受付から政策・提言への反映までの各段階の件数。
+ * 「ご意見受付 → 個人情報等を整理 → 内容を確認 → 課題・制度を調査 → 政策・提言へ反映」
+ * という5段階の流れの表示に使います。
+ *
  * 集計できていない段階は undefined のままにしてください。
+ * undefined の段階は、数字を出さずに説明文だけを表示します（推測値は絶対に入れないこと）。
  */
 export interface VoicesPipelineCounts {
-  /** 受け付けた件数（累計） */
+  /** ① 受け付けた件数（累計） */
   received?: number;
-  /** 内容を整理し終えた件数 */
+  /** ② 個人情報等を取り除いて整理し終えた件数 */
   organized?: number;
-  /** 事務局で内容を確認している件数 */
+  /** ③ 事務局が元の文章と照らし合わせて内容を確認した件数 */
   underReview?: number;
-  /** 提言へ反映した件数 */
+  /** ④ 関連する課題・制度を調査している件数 */
+  investigating?: number;
+  /** ⑤ 政策・提言へ反映した件数 */
   reflected?: number;
 }
 
@@ -65,6 +70,7 @@ export const voicesSummary: VoicesSummary = {
     received: undefined,
     organized: undefined,
     underReview: undefined,
+    investigating: undefined,
     reflected: undefined,
   },
   categories: [],

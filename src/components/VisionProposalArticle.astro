@@ -47,6 +47,13 @@ const accentClassMap = {
 
 const accent = accentClassMap[proposal.accentColor];
 
+/** 参考資料の「リンク確認日」を日本語表記へ整える（不正な値は表示しない） */
+function formatConfirmedDate(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+}
+
 // 更新日：提言ごとの lastUpdated があればそれを、無ければ src/data/vision.ts を
 // 最後に変更したGitコミットの日付を使う（アクセス時刻は使わない）。
 const lastUpdated = resolveLastUpdated(proposal.lastUpdated, "vision");
@@ -55,6 +62,10 @@ const lastUpdated = resolveLastUpdated(proposal.lastUpdated, "vision");
 <article id={proposal.slug} class:list={["border-l-4 pl-6 scroll-mt-24", accent.border]}>
   <VisionStatusBadge status={proposal.status} />
   <h2 class="mt-3 text-2xl sm:text-3xl font-bold text-ink whitespace-pre-line">{proposal.title}</h2>
+
+  {proposal.summary && (
+    <p class="mt-4 text-lg text-ink-soft leading-relaxed">{proposal.summary}</p>
+  )}
 
   <div class="mt-6">
     <VisionStatusSteps status={proposal.status} />
@@ -138,17 +149,31 @@ const lastUpdated = resolveLastUpdated(proposal.lastUpdated, "vision");
   {/* 4. 根拠・参考資料 */}
   <VisionEvidenceCard evidenceItems={proposal.evidenceItems} relatedPlans={proposal.relatedPlans} />
 
+  {/*
+    参考資料。実際にアクセスして存在を確認できたURLだけを掲載する（架空リンクは禁止）。
+    外部リンクのため target="_blank" と rel="noopener noreferrer" を必ず付与する。
+  */}
   {proposal.officialLinks.length > 0 && (
     <div class="mt-6">
-      <h3 class="text-lg font-bold text-ink">関連資料（公的資料・延岡市公式ページ）</h3>
-      <ul class="mt-2 space-y-1">
+      <h3 class="text-lg font-bold text-ink">参考資料（公的資料・延岡市公式ページ）</h3>
+      <ul class="mt-2 space-y-2">
         {proposal.officialLinks.map((link) => (
-          <li>
-            <a href={link.href} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-ink font-bold hover:underline">
-              {link.label}
+          <li class="min-w-0">
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex min-h-[44px] items-center gap-1 text-ink font-bold hover:underline"
+            >
+              <span class="min-w-0 [overflow-wrap:anywhere]">{link.label}</span>
               <span class="sr-only">（新しいタブで開く・外部サイト）</span>
-              <Icon name="external-link" class="w-4 h-4" />
+              <Icon name="external-link" class="w-4 h-4 flex-shrink-0" />
             </a>
+            {link.confirmedDate && (
+              <span class="ml-1 block text-xs text-ink-soft sm:ml-2 sm:inline">
+                リンク確認日：{formatConfirmedDate(link.confirmedDate)}
+              </span>
+            )}
           </li>
         ))}
       </ul>
@@ -182,7 +207,14 @@ const lastUpdated = resolveLastUpdated(proposal.lastUpdated, "vision");
     </div>
   )}
 
-  {/* 6. 進捗 */}
+  {/* 6. 調査状況・進捗 */}
+  {proposal.investigationStatus && (
+    <div class="mt-6">
+      <h3 class="text-lg font-bold text-ink">調査状況</h3>
+      <p class="mt-2 text-ink-soft leading-relaxed">{proposal.investigationStatus}</p>
+    </div>
+  )}
+
   {proposal.reviewStatus && (
     <div class="mt-6">
       <h3 class="text-lg font-bold text-ink">進捗（現在の検討状況）</h3>

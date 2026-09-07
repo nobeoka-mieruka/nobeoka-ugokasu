@@ -16,6 +16,7 @@ import { getUnifiedActivities } from "./activities";
 import { resolveActivityImage } from "../utils/activityImage";
 import { buildSocialPhotoAlt, buildSocialPhotoDescription } from "../utils/socialPhotoText";
 import type { SocialPlatformKey } from "../config/socialPlatformMeta";
+import { resolvePhotoCategory, type PhotoCategory } from "../config/activityPhotoCategories";
 
 export type ActivityPhotoSource = "website" | SocialPlatformKey;
 
@@ -28,6 +29,8 @@ export type ActivityPhoto =
       title: string;
       date: Date;
       category: string;
+      /** 活動内容による分類（看板設置・地域活動など。src/config/activityPhotoCategories.ts） */
+      photoCategory: PhotoCategory;
       href: string;
     }
   | {
@@ -37,6 +40,8 @@ export type ActivityPhoto =
       alt: string;
       description: string;
       date: Date;
+      /** 活動内容による分類（看板設置・地域活動など。src/config/activityPhotoCategories.ts） */
+      photoCategory: PhotoCategory;
       permalink: string;
       id: string;
     };
@@ -79,6 +84,7 @@ export async function getActivityPhotos(): Promise<ActivityPhoto[]> {
           title: data.title,
           date: activity.date,
           category: data.category,
+          photoCategory: resolvePhotoCategory(slug, `${data.title} ${data.summary}`, data.category),
           href: `/activities/${slug}/`,
         });
       }
@@ -103,6 +109,7 @@ export async function getActivityPhotos(): Promise<ActivityPhoto[]> {
         alt: entry.image.alt?.trim() || buildSocialPhotoAlt(entry.summary, entry.platform),
         description: buildSocialPhotoDescription(entry.summary, entry.platform),
         date: activity.date,
+        photoCategory: resolvePhotoCategory(entry.id, `${entry.title} ${entry.summary}`, entry.category),
         permalink: entry.url,
         id: entry.id,
       });
@@ -124,6 +131,7 @@ export async function getActivityPhotos(): Promise<ActivityPhoto[]> {
         alt: entry.image.alt?.trim() || buildSocialPhotoAlt(entry.description, entry.platform),
         description: buildSocialPhotoDescription(entry.description, entry.platform),
         date: activity.date,
+        photoCategory: resolvePhotoCategory(entry.id, `${entry.title} ${entry.description}`),
         permalink: entry.postUrl,
         id: entry.id,
       });
@@ -146,6 +154,7 @@ export async function getActivityPhotos(): Promise<ActivityPhoto[]> {
       alt: buildSocialPhotoAlt(post.description, post.platform),
       description: buildSocialPhotoDescription(post.description, post.platform),
       date: activity.date,
+      photoCategory: resolvePhotoCategory(post.id, `${post.title} ${post.description}`),
       permalink: post.permalink,
       id: post.id,
     });
