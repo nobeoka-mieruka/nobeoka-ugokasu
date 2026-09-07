@@ -6,13 +6,15 @@
   Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com https://connect.facebook.net; font-src 'self'; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://connect.facebook.net https://graph.facebook.com; frame-src 'self' https://docs.google.com https://accounts.google.com https://www.facebook.com https://web.facebook.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://docs.google.com
 
 # サイトマップは必ずXMLとして配信する（Search Consoleが「型: 不明」で取得失敗しないため）。
-# sitemap-index.xml と、そこから参照される sitemap-N.xml（掲載URLが増えると
-# sitemap-1.xml 等が追加される）の両方をワイルドカードで確実に対象にする。
 # Googlebotの取得を妨げないよう、これらへ X-Robots-Tag は付与しない。
-/sitemap-index.xml
-  Content-Type: application/xml; charset=utf-8
-  Cache-Control: public, max-age=0, must-revalidate
-
+#
+# 【重要】ルールは1つだけにすること。
+# Cloudflare Pagesの_headersは、複数のルールに一致したパスへヘッダーを
+# 「重ねて」出力します。/sitemap-index.xml と /sitemap-*.xml を併記すると
+# Content-Type が2回出力され（"application/xml; charset=utf-8, application/xml; charset=utf-8"）、
+# 不正なヘッダーになります。
+# 下のワイルドカード1本で sitemap-index.xml と sitemap-0.xml（将来の
+# sitemap-1.xml 等も含む）のすべてを対象にできます。
 /sitemap-*.xml
   Content-Type: application/xml; charset=utf-8
   Cache-Control: public, max-age=0, must-revalidate
