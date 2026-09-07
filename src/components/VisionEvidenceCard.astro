@@ -1,7 +1,13 @@
 ---
 // 提言の「現状データ・参考資料」カード。
-// 事実確認できたデータ・関連計画のみを表示し、未登録の場合は架空の数値を出さず
-// 「公的資料を確認しながら整理しています」という案内文だけを表示する（15章準拠）。
+//
+// 【表示ルール（15章）】
+// ・事実確認できたデータ・関連計画のみを表示する。
+// ・未登録の場合は架空の数値を出さず、「公的資料を確認しながら整理しています」という
+//   案内文だけを表示する。
+// ・数値には必ず「対象年度・基準日」を併記し、古いデータを最新のように見せない。
+// ・出典（資料名）を数値のすぐ近くに置き、URLがある場合は「出典を見る」から
+//   公式資料へ移動できるようにする（外部リンクは別タブ＋rel="noopener noreferrer"）。
 import Icon from "./Icon.astro";
 import type { VisionEvidenceItem } from "../data/vision";
 
@@ -27,36 +33,50 @@ function formatConfirmedDate(value: string): string | null {
 ---
 
 <div class="mt-6">
-  <Heading class={headingClass}>現状データ・参考資料</Heading>
+  <Heading class={headingClass}>確認できたデータ・参考資料</Heading>
 
   {!hasContent && (
     <p class="mt-2 text-ink-soft leading-relaxed">公的資料を確認しながら整理しています。</p>
   )}
 
   {evidenceItems.length > 0 && (
-    <div class="mt-3 grid gap-3 sm:grid-cols-2">
-      {evidenceItems.map((item) => {
-        const confirmedLabel = formatConfirmedDate(item.confirmedDate);
-        return (
-          <div class="card min-w-0 py-4">
-            <p class="text-sm font-bold text-ink-soft [overflow-wrap:break-word]">{item.label}</p>
-            <p class="mt-1 text-xl font-bold text-ink [overflow-wrap:break-word]">{item.value}</p>
-            <p class="mt-2 text-xs text-ink-soft [overflow-wrap:break-word]">
-              出典：
-              {item.sourceUrl ? (
-                <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
-                  {item.source}
+    <>
+      <p class="mt-2 text-sm text-ink-soft leading-relaxed">
+        延岡市の公式資料で確認できた数値のみを掲載しています。推計値は含みません。
+      </p>
+      <div class="mt-3 grid gap-3 sm:grid-cols-2">
+        {evidenceItems.map((item) => {
+          const confirmedLabel = formatConfirmedDate(item.confirmedDate);
+          return (
+            <div class="card flex min-w-0 flex-col py-4">
+              <p class="text-sm font-bold text-ink-soft [overflow-wrap:break-word]">{item.label}</p>
+              <p class="mt-1 text-xl font-bold text-ink [overflow-wrap:break-word]">{item.value}</p>
+              {/* 対象年度・基準日は必ず数値のすぐ下に表示する */}
+              <p class="mt-1 text-sm font-bold text-brand-orange-dark [overflow-wrap:break-word]">{item.year}</p>
+              {item.note && (
+                <p class="mt-1 text-xs text-ink-soft leading-relaxed [overflow-wrap:break-word]">{item.note}</p>
+              )}
+              <p class="mt-3 text-xs text-ink-soft leading-relaxed [overflow-wrap:break-word]">
+                出典：{item.source}
+              </p>
+              {item.sourceUrl && (
+                <a
+                  href={item.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mt-1 inline-flex min-h-[44px] items-center gap-1 text-xs font-bold text-ink underline"
+                >
+                  出典を見る
+                  <Icon name="external-link" class="h-3.5 w-3.5 flex-shrink-0" />
                   <span class="sr-only">（新しいタブで開く・外部サイト）</span>
                 </a>
-              ) : (
-                item.source
               )}
-            </p>
-            {confirmedLabel && <p class="mt-1 text-xs text-ink-soft">データ確認日：{confirmedLabel}</p>}
-          </div>
-        );
-      })}
-    </div>
+              {confirmedLabel && <p class="mt-auto pt-2 text-xs text-ink-soft">データ確認日：{confirmedLabel}</p>}
+            </div>
+          );
+        })}
+      </div>
+    </>
   )}
 
   {relatedPlans.length > 0 && (
@@ -64,15 +84,20 @@ function formatConfirmedDate(value: string): string | null {
       <p class="text-sm font-bold text-ink-soft">関連する延岡市・宮崎県・国の計画や制度</p>
       <ul class="mt-2 space-y-1">
         {relatedPlans.map((plan) => (
-          <li>
+          <li class="min-w-0">
             {plan.href ? (
-              <a href={plan.href} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-ink font-bold hover:underline">
-                {plan.label}
+              <a
+                href={plan.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex min-h-[44px] items-center gap-1 text-ink font-bold hover:underline"
+              >
+                <span class="min-w-0 [overflow-wrap:anywhere]">{plan.label}</span>
                 <span class="sr-only">（新しいタブで開く・外部サイト）</span>
-                <Icon name="external-link" class="w-4 h-4" />
+                <Icon name="external-link" class="w-4 h-4 flex-shrink-0" />
               </a>
             ) : (
-              <span class="text-ink-soft">{plan.label}</span>
+              <span class="text-ink-soft [overflow-wrap:break-word]">{plan.label}</span>
             )}
           </li>
         ))}

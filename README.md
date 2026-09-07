@@ -293,10 +293,13 @@ Cloudflare Pages で再ビルド
 最新投稿を読み込み、ビルド後に増えた投稿をその場で差し込みます。
 つまり **ビルド時（最大1時間）と実行時（最大15分）の二重で反映される** 構成です。
 
-**⚠️ 定期実行の有効化には、GitHubリポジトリでの初回設定が1回だけ必要です。**
-手順は `.github/workflows/refresh-social-posts.yml` の冒頭コメントに記載しています
-（Cloudflareでデプロイフックを作成し、そのURLをGitHubのSecret `CLOUDFLARE_DEPLOY_HOOK_URL` へ登録）。
-未設定の間もサイトは正常に動作しますが、HTMLへ焼き込まれる活動報告が更新されなくなります。
+**✅ 定期実行はすでに有効化済みです（2026年9月7日 設定完了）。**
+Cloudflare Pagesのデプロイフックを作成し、GitHubのSecret `CLOUDFLARE_DEPLOY_HOOK_URL` への登録、
+GitHub Actionsの手動実行、デプロイフックの発火、Production再ビルドまで確認済みです。
+そのため、SNSへ投稿すれば追加の操作なしでサイトへ反映されます。
+
+（参考：この仕組みを別環境で新たに構築し直す場合の手順は、
+`.github/workflows/refresh-social-posts.yml` の冒頭コメントに残しています。）
 
 **必要な環境変数（Cloudflare Pagesの「Variables and Secrets」へ設定）**
 
