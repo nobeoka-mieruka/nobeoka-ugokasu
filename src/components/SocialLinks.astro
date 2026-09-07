@@ -21,8 +21,9 @@ const links = [
 const active = links.filter((l) => socialLinks[l.key]);
 ---
 
+{/* アイコンボタンは44px以上のタップ領域を確保する（13章） */}
 {active.length > 0 && (
-  <ul class="flex items-center gap-3">
+  <ul class="flex flex-wrap items-center gap-2">
     {active.map((link) => (
       <li>
         <a
@@ -31,7 +32,7 @@ const active = links.filter((l) => socialLinks[l.key]);
           rel="noopener noreferrer"
           aria-label={link.label}
           title={link.key === "threads" ? "Threads" : undefined}
-          class="inline-flex items-center justify-center rounded-full bg-brand-orange-light p-2 text-brand-orange-dark hover:bg-brand-orange hover:text-white transition-colors"
+          class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-brand-orange-light text-brand-orange-dark hover:bg-brand-orange hover:text-white transition-colors"
         >
           <Icon name={link.icon} class="w-5 h-5" />
         </a>

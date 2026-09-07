@@ -3,7 +3,7 @@
 //（server/, functions/, worker/）の両方から読み込まれます。
 // この型自体には秘密情報（アクセストークン等）は一切含まれません。
 
-export type SocialPlatform = "facebook" | "instagram";
+export type SocialPlatform = "facebook" | "instagram" | "threads";
 
 export type SocialMediaType = "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM" | "REELS" | "LINK" | "STATUS" | "UNKNOWN";
 
@@ -18,6 +18,7 @@ export type PlatformSyncStatus = "ok" | "error" | "not_configured";
 export interface SocialFeedStatus {
   facebook: PlatformSyncStatus;
   instagram: PlatformSyncStatus;
+  threads: PlatformSyncStatus;
 }
 
 /** ビルド時に画像をローカルへミラーした場合の参照情報（public/images/social/以下） */

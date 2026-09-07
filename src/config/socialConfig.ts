@@ -16,6 +16,7 @@
 const DEFAULT_FACEBOOK_PAGE_URL = "https://www.facebook.com/profile.php?id=61591967011155";
 const DEFAULT_INSTAGRAM_PROFILE_URL = "https://www.instagram.com/chie_smily4/";
 const DEFAULT_INSTAGRAM_USERNAME = "chie_smily4";
+const DEFAULT_THREADS_PROFILE_URL = "https://www.threads.net/@chie_smily4";
 
 export const socialConfig = {
   /** 公式FacebookページURL */
@@ -30,6 +31,9 @@ export const socialConfig = {
    * このユーザーネームからAPI用IDを推測することはできません。
    */
   instagramUsername: import.meta.env.INSTAGRAM_USERNAME || DEFAULT_INSTAGRAM_USERNAME,
+
+  /** 公式ThreadsプロフィールURL */
+  threadsProfileUrl: import.meta.env.THREADS_PROFILE_URL || DEFAULT_THREADS_PROFILE_URL,
 } as const;
 
 export type SocialConfig = typeof socialConfig;

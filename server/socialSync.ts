@@ -1,12 +1,13 @@
 import type { PlatformSyncStatus, SocialFeedStatus, SocialPost } from "../src/types/social";
 import type { SocialSyncEnv } from "./env";
 import { fetchFacebookPosts, fetchInstagramMedia } from "./metaClient";
-import { normalizeFacebookPost, normalizeInstagramMedia } from "./normalize";
+import { fetchThreadsPosts } from "./threadsClient";
+import { normalizeFacebookPost, normalizeInstagramMedia, normalizeThreadsPost } from "./normalize";
 import { readCache, writeCache } from "./kv";
 
 // プラットフォームごとの取得件数（既定6件）。SOCIAL_POST_LIMITで上書き可能。
-// FacebookとInstagramそれぞれ最大この件数まで取得するため、合算後の最大件数は
-// この2倍（既定12件）になる。
+// Facebook・Instagram・Threadsそれぞれ最大この件数まで取得するため、合算後の最大件数は
+// この3倍（既定18件）になる。
 const DEFAULT_POST_LIMIT = 6;
 
 function parseLimit(value: string | undefined): number {
@@ -36,21 +37,23 @@ export interface SocialSyncResult {
   updatedAt: string | null;
   facebookFetched: number;
   instagramFetched: number;
+  threadsFetched: number;
   savedCount: number;
   facebookError: string | null;
   instagramError: string | null;
+  threadsError: string | null;
   skippedReason?: string;
 }
 
 /**
- * Facebook・Instagramの投稿を取得し、KVキャッシュを更新する。
+ * Facebook・Instagram・Threadsの投稿を取得し、KVキャッシュを更新する。
  * 公開API（functions/api/social-feed.ts）がキャッシュを更新する際と、
  * 管理者向け手動同期エンドポイントの両方から呼び出される。
  *
  * 方針：
  * - 認証情報が未設定のプラットフォームは呼び出さずスキップする（エラーにしない）
- * - 一方のプラットフォームが失敗しても、もう一方の結果だけで同期を継続する
- * - 両方とも取得に失敗した場合は、既存のキャッシュを一切変更せず、そのまま返す
+ * - 1つのプラットフォームが失敗しても、他のプラットフォームの結果だけで同期を継続する
+ * - 全プラットフォームが取得に失敗した場合は、既存のキャッシュを一切変更せず、そのまま返す
  */
 export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResult> {
   const limit = parseLimit(env.SOCIAL_POST_LIMIT);
@@ -96,22 +99,46 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
     }
   }
 
+  // Threads APIはgraph.threads.netという別ホスト・別トークン（THREADS_ACCESS_TOKEN）のため、
+  // Facebook/Instagram用のMETA_ACCESS_TOKENとは独立して認証情報を確認する。
+  let threadsPosts: SocialPost[] = [];
+  let threadsError: string | null = null;
+  let threadsAttempted = false;
+
+  if (env.THREADS_USER_ID && env.THREADS_ACCESS_TOKEN) {
+    threadsAttempted = true;
+    try {
+      const raw = await fetchThreadsPosts({
+        userId: env.THREADS_USER_ID,
+        accessToken: env.THREADS_ACCESS_TOKEN,
+        limit,
+      });
+      threadsPosts = raw.map(normalizeThreadsPost).filter((p): p is SocialPost => p !== null);
+    } catch (err) {
+      threadsError = err instanceof Error ? err.message : "unknown_error";
+    }
+  }
+
   const facebookSucceeded = facebookAttempted && facebookError === null;
   const instagramSucceeded = instagramAttempted && instagramError === null;
+  const threadsSucceeded = threadsAttempted && threadsError === null;
 
   const status: SocialFeedStatus = {
     facebook: statusFor(facebookAttempted, facebookSucceeded),
     instagram: statusFor(instagramAttempted, instagramSucceeded),
+    threads: statusFor(threadsAttempted, threadsSucceeded),
   };
 
   const baseResult = {
     facebookFetched: facebookPosts.length,
     instagramFetched: instagramPosts.length,
+    threadsFetched: threadsPosts.length,
     facebookError,
     instagramError,
+    threadsError,
   };
 
-  if (!facebookAttempted && !instagramAttempted) {
+  if (!facebookAttempted && !instagramAttempted && !threadsAttempted) {
     return {
       ok: false,
       ...baseResult,
@@ -123,8 +150,8 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
     };
   }
 
-  if (!facebookSucceeded && !instagramSucceeded) {
-    // どちらも失敗（未設定ではなく実際にエラー）。既存キャッシュは変更せず、そのまま返す。
+  if (!facebookSucceeded && !instagramSucceeded && !threadsSucceeded) {
+    // 全プラットフォームが失敗（未設定ではなく実際にエラー）。既存キャッシュは変更せず、そのまま返す。
     return {
       ok: false,
       ...baseResult,
@@ -141,10 +168,18 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
   const previousPosts = previous?.posts ?? [];
   const carriedFacebook = facebookSucceeded ? [] : previousPosts.filter((p) => p.platform === "facebook");
   const carriedInstagram = instagramSucceeded ? [] : previousPosts.filter((p) => p.platform === "instagram");
+  const carriedThreads = threadsSucceeded ? [] : previousPosts.filter((p) => p.platform === "threads");
 
-  const merged = dedupeByPermalink([...facebookPosts, ...instagramPosts, ...carriedFacebook, ...carriedInstagram])
+  const merged = dedupeByPermalink([
+    ...facebookPosts,
+    ...instagramPosts,
+    ...threadsPosts,
+    ...carriedFacebook,
+    ...carriedInstagram,
+    ...carriedThreads,
+  ])
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .slice(0, limit * 2);
+    .slice(0, limit * 3);
 
   const cache = await writeCache(env, merged, status);
 
@@ -164,9 +199,11 @@ export function summarizeForLog(result: SocialSyncResult): Record<string, unknow
     ok: result.ok,
     facebookFetched: result.facebookFetched,
     instagramFetched: result.instagramFetched,
+    threadsFetched: result.threadsFetched,
     savedCount: result.savedCount,
     facebookError: result.facebookError,
     instagramError: result.instagramError,
+    threadsError: result.threadsError,
     skippedReason: result.skippedReason ?? null,
   };
 }

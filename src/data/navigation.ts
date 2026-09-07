@@ -1,12 +1,23 @@
 // ヘッダー・フッターのナビゲーション項目（7章・32章）
 
+import { videos } from "./videos";
+
 export type NavItem = {
   label: string;
   href: string;
 };
 
-// /videosページはYouTube連携が未設定の間も「動画は準備中です」を表示できるため、
-// 他のメニュー項目と同様、常にナビゲーションへ含める。
+/**
+ * 動画メニューの表示条件。
+ * 掲載できる動画が1本も無い間は、メニューから「動画」を一時的に外す
+ * （中身が準備中のページへ誘導しないため）。
+ *
+ * src/data/videos.ts へ動画を1本追加すれば、この判定によって
+ * ヘッダー・フッターの両方へ自動的に「動画」メニューが復活します。
+ * /videos/ ページ自体は常に存在し続けるため、URLは変わらず404にもなりません。
+ */
+const hasPublishedVideos = videos.length > 0;
+
 const videoNavItem: NavItem = { label: "動画", href: "/videos/" };
 
 const cityGuideNavItem: NavItem = { label: "市役所案内", href: "/city-guide/" };
@@ -18,7 +29,7 @@ export const headerNav: NavItem[] = [
   { label: "私たちの提言", href: "/vision/" },
   { label: "活動報告", href: "/activities/" },
   { label: "みんなの声", href: "/voices/" },
-  videoNavItem,
+  ...(hasPublishedVideos ? [videoNavItem] : []),
   cityGuideNavItem,
   { label: "後援会について", href: "/supporters/" },
   { label: "後援会に入会する", href: "/supporters/join/" },
@@ -32,7 +43,7 @@ export const footerNav: NavItem[] = [
   { label: "活動報告", href: "/activities/" },
   photosNavItem,
   { label: "みんなの声", href: "/voices/" },
-  videoNavItem,
+  ...(hasPublishedVideos ? [videoNavItem] : []),
   cityGuideNavItem,
   { label: "後援会について", href: "/supporters/" },
   { label: "後援会に入会する", href: "/supporters/join/" },

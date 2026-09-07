@@ -15,7 +15,7 @@ interface Props {
 const { heading = "声の集め方" } = Astro.props;
 
 const mailSubject = "延岡への意見・提案について";
-const mailHref = `mailto:${siteConfig.email}?subject=${encodeURIComponent(mailSubject)}`;
+const mailHref = `mailto:${siteConfig.contact.office.email}?subject=${encodeURIComponent(mailSubject)}`;
 
 interface VoiceMethodCard {
   label: string;

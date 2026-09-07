@@ -37,8 +37,12 @@ export interface FacebookPostRaw {
  * 注意：messageフィールドには、エラーの種類によってはアクセストークンの値そのものが
  * Meta側から含まれて返ってくることがある（例：「Malformed access token <トークン文字列>」）。
  * ログへ残す前に必ず redactSecrets() を通すこと。
+ *
+ * Threads API（graph.threads.net、server/threadsClient.ts）もMeta製で同じ形のerror
+ * オブジェクトを返すため、この型とヘルパー関数（redactSecrets/describeGraphApiError）は
+ * そちらからも re-export して共用している。
  */
-interface GraphApiError {
+export interface GraphApiError {
   message?: string;
   type?: string;
   code?: number;
@@ -55,12 +59,12 @@ interface FacebookPostsResponse {
  * 連続した文字列であるため、その形状に一致する部分をすべて伏せ字にする。
  * エラーメッセージにトークンの値がそのまま含まれるケースがあるための対策。
  */
-function redactSecrets(text: string): string {
+export function redactSecrets(text: string): string {
   return text.replace(/[A-Za-z0-9_-]{20,}/g, "[REDACTED]");
 }
 
 /** ログ出力用に、原因特定に必要な範囲だけを安全な文字列へまとめる（トークン等は伏せ字化する） */
-function describeGraphApiError(httpStatus: number, error: GraphApiError | undefined): string {
+export function describeGraphApiError(httpStatus: number, error: GraphApiError | undefined): string {
   const detail = {
     httpStatus,
     type: error?.type ?? null,

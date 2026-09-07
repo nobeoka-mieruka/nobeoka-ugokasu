@@ -1,7 +1,9 @@
 // 活動写真ページ（/photos）のデータ集約です。
-// 写真を個別に手動管理するのではなく、次の2種類の実在データから自動的に集約します。
+// 写真を個別に手動管理するのではなく、次の実在データから自動的に集約します。
 //   1. 公開済み活動報告（src/content/activities/）の mainImage / images
-//   2. SNS投稿（手動登録: src/data/snsActivities.ts、ビルド時同期スナップショット:
+//   2. サイト側で管理する活動報告（src/data/activityEntries.ts）のうち、画像とSNS投稿URLが
+//      そろっているもの
+//   3. SNS投稿（手動登録: src/data/snsActivities.ts、ビルド時同期スナップショット:
 //      src/data/socialPostsSnapshot.json）のうち、画像が確認できる投稿
 // いずれも活動報告一覧・トップページと共通のデータ取得口（src/data/activities.ts の
 // getUnifiedActivities）を経由するため、下書き・非公開・公開日が未来の記事や投稿は
@@ -80,6 +82,30 @@ export async function getActivityPhotos(): Promise<ActivityPhoto[]> {
           href: `/activities/${slug}/`,
         });
       }
+      continue;
+    }
+
+    if (activity.kind === "manual") {
+      // サイト側で管理する活動報告（src/data/activityEntries.ts）。
+      // 写真カードは「元の投稿を見る」リンクを前提としているため、画像・SNS投稿URL・
+      // SNS種別がそろっているものだけを写真一覧へ含める（それ以外は活動報告一覧で表示される）。
+      const entry = activity.entry;
+      if (!entry.image?.src || !entry.url || entry.platform === "website") continue;
+
+      const key = entry.url || entry.id || entry.image.src;
+      if (seenSocialKey.has(key)) continue;
+      seenSocialKey.add(key);
+
+      photos.push({
+        kind: "social",
+        source: entry.platform,
+        imageUrl: entry.image.src,
+        alt: entry.image.alt?.trim() || buildSocialPhotoAlt(entry.summary, entry.platform),
+        description: buildSocialPhotoDescription(entry.summary, entry.platform),
+        date: activity.date,
+        permalink: entry.url,
+        id: entry.id,
+      });
       continue;
     }
 

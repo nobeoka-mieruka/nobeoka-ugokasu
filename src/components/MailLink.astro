@@ -1,0 +1,72 @@
+---
+// メールアドレスのリンク表示を、サイト全体で同じルールに揃えるコンポーネントです。
+//
+// 【宛先の使い分け（3章）】
+// ・to="office"   … 後援会・入会・ホームページ・Googleフォーム・広報・その他事務局対応
+//                   → nobeoka.ugokasu.contact@gmail.com
+// ・to="personal" … 福富千恵本人への直接連絡
+//                   → fukutomichie1227@gmail.com
+//
+// アドレスは src/config/siteConfig.ts の contact で一元管理しています。
+// このコンポーネント以外の場所へメールアドレスを直接書かないでください。
+//
+// 【なぜ共通化しているか】
+// メールアドレスは空白を含まない長い文字列のため、そのまま表示すると
+// 320〜390px程度のスマートフォンで横方向にはみ出し、ページ全体に横スクロールが
+// 発生します（10章）。`overflow-wrap: anywhere` を指定して途中で折り返せるように
+// し、アイコンと文字が別々の行になっても崩れないよう flex-wrap を併用しています。
+import Icon from "./Icon.astro";
+import { siteConfig } from "../config/siteConfig";
+
+interface Props {
+  /** 宛先の役割。"office"＝事務局、"personal"＝福富千恵本人 */
+  to: "office" | "personal";
+  /** 宛先の表示名を添えるか（既定はtrue）。false にするとアドレスのみ表示します */
+  showLabel?: boolean;
+  /** 表示名に正式名称（「福富千恵と延岡を動かす会 事務局へのお問い合わせ」）を使うか */
+  useFullLabel?: boolean;
+  /** メールの件名（任意） */
+  subject?: string;
+  /** 封筒アイコンを表示するか */
+  showIcon?: boolean;
+  /** リンクの追加クラス（配色などを呼び出し側で指定する） */
+  class?: string;
+  /** アイコンの追加クラス */
+  iconClass?: string;
+  /** 表示名の追加クラス */
+  labelClass?: string;
+}
+
+const {
+  to,
+  showLabel = true,
+  useFullLabel = false,
+  subject,
+  showIcon = true,
+  class: className = "font-bold text-ink underline",
+  iconClass = "text-brand-orange",
+  labelClass = "text-sm font-bold text-ink-soft",
+} = Astro.props;
+
+const target = siteConfig.contact[to];
+const label = useFullLabel ? target.fullLabel : target.label;
+const href = subject ? `mailto:${target.email}?subject=${encodeURIComponent(subject)}` : `mailto:${target.email}`;
+
+// 読み上げ時に「どちら宛のアドレスか」が必ず伝わるようにする（13章）
+const ariaLabel = `${target.fullLabel}（${target.email}）`;
+---
+
+<span class="inline-block max-w-full">
+  {showLabel && <span class:list={["block", labelClass]}>{label}</span>}
+  <a
+    href={href}
+    aria-label={ariaLabel}
+    class:list={[
+      "inline-flex min-h-[44px] max-w-full flex-wrap items-center gap-2 py-1",
+      className,
+    ]}
+  >
+    {showIcon && <Icon name="mail" class:list={["w-5 h-5 flex-shrink-0", iconClass]} ariaHidden={true} />}
+    <span class="min-w-0 [overflow-wrap:anywhere]">{target.email}</span>
+  </a>
+</span>

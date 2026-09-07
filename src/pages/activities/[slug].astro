@@ -24,7 +24,7 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 
-const title = `${entry.data.title}｜福富千恵の活動報告`;
+const title = `${entry.data.title}｜活動報告｜福富千恵と延岡を動かす会`;
 const description = entry.data.summary;
 const path = `/activities/${entry.slug}`;
 const breadcrumbItems = [

@@ -1,19 +1,21 @@
-// GET /api/social-image?u=<エンコード済みのFacebook CDN画像URL>
+// GET /api/social-image?u=<エンコード済みのFacebook/Instagram/Threads CDN画像URL>
 //
-// Facebookの一時的なCDN画像URLを、ブラウザのimg要素へ直接設定（ホットリンク）しないための
-// 同一オリジン経由プロキシです。ビルド時同期（scripts/sync-facebook-posts.mjs）でローカル
-// ミラー保存できなかった画像（ビルド後に新規投稿された分）のみ、このプロキシ経由で表示します。
+// Facebook・Instagram・Threadsの一時的なCDN画像URLを、ブラウザのimg要素へ直接設定（ホットリンク）
+// しないための同一オリジン経由プロキシです。ビルド時同期（scripts/sync-social-posts.mjs）で
+// ローカルミラー保存できなかった画像（ビルド後に新規投稿された分）と、Instagram投稿の画像
+// （ビルド時スナップショットの対象外のため常にこのプロキシ経由）を、このプロキシ経由で表示します。
 //
 // 安全のため、次をすべて満たさない限り画像を返しません。
-//   - 許可されたFacebook画像配信ドメインのみ（任意URLを取得できる汎用プロキシにしない）
+//   - 許可されたMeta画像配信ドメインのみ（任意URLを取得できる汎用プロキシにしない）
 //   - https のみ
 //   - 応答のContent-Typeが image/* であること
 //   - 取得サイズが上限以下であること（メモリ枯渇・DoS対策）
 //   - 取得タイムアウトあり
-// 取得結果はCloudflareのCache APIでエッジキャッシュし、Facebook側への再取得を抑える。
+// 取得結果はCloudflareのCache APIでエッジキャッシュし、SNS側への再取得を抑える。
 // アクセストークン等の秘密情報はこのエンドポイントでは一切使用・送信しない。
 
-const ALLOWED_HOSTNAME_SUFFIXES = [".fbcdn.net", ".fbsbx.com"];
+// Threadsの投稿画像はMeta（Instagram系）のCDNから配信されるため .cdninstagram.com も許可する。
+const ALLOWED_HOSTNAME_SUFFIXES = [".fbcdn.net", ".fbsbx.com", ".cdninstagram.com"];
 const ALLOWED_EXACT_HOSTNAMES = ["fbcdn.net", "graph.facebook.com"];
 
 const FETCH_TIMEOUT_MS = 8000;

@@ -6,7 +6,7 @@ import Breadcrumb from "../components/Breadcrumb.astro";
 import RelatedContent from "../components/RelatedContent.astro";
 import InlineRelatedLinks from "../components/InlineRelatedLinks.astro";
 import LastUpdated from "../components/LastUpdated.astro";
-import Icon from "../components/Icon.astro";
+import MailLink from "../components/MailLink.astro";
 import {
   profilePageHeroHeading,
   profileChapters,
@@ -17,9 +17,10 @@ import { visionProposals } from "../data/vision";
 import { siteConfig } from "../config/siteConfig";
 import { personSchema, webPageSchema, personId } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
+import { resolveLastUpdated } from "../utils/lastUpdated";
 import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
 
-const title = "福富千恵プロフィール｜延岡で福祉と地域づくりに取り組む";
+const title = "福富千恵プロフィール｜福富千恵と延岡を動かす会";
 const description =
   "福富千恵のプロフィール、経歴、活動への想いをご紹介します。福祉現場での経験をもとに、延岡市の課題解決に取り組みます。";
 
@@ -89,7 +90,7 @@ function getRelatedVisionProposals(chapter: (typeof profileChapters)[number]) {
       })}
 
       <div class="mt-4">
-        <LastUpdated date={profileLastUpdated || undefined} />
+        <LastUpdated date={resolveLastUpdated(profileLastUpdated, "profile")} />
       </div>
 
       <div class="mt-10 card bg-ink text-white text-center py-10">
@@ -104,13 +105,10 @@ function getRelatedVisionProposals(chapter: (typeof profileChapters)[number]) {
           <a href="/contact/" class="underline font-bold text-ink">お問い合わせページ</a>
           をご利用ください。福富千恵本人へのご連絡は、以下のメールアドレスまでお願いします。
         </p>
-        <a
-          href={`mailto:${siteConfig.personalEmail}`}
-          class="inline-flex items-center gap-2 text-ink font-bold underline"
-        >
-          <Icon name="mail" class="w-5 h-5 text-brand-orange" ariaHidden={true} />
-          {siteConfig.personalEmail}
-        </a>
+        {/* 本人への直接連絡先。事務局・お問い合わせ用のアドレス（siteConfig.email）とは使い分ける（3章） */}
+        <div class="flex justify-center">
+          <MailLink to="personal" useFullLabel={true} />
+        </div>
       </div>
     </div>
   </section>

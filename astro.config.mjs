@@ -2,6 +2,11 @@ import { defineConfig } from "astro/config";
 import tailwind from "@astrojs/tailwind";
 import sitemap from "@astrojs/sitemap";
 import { siteConfig } from "./src/config/siteConfig.ts";
+import { videos } from "./src/data/videos.ts";
+
+// 掲載できる動画が1本も無い間は /videos/ をサイトマップから外す（ページ・URLは残す）。
+// src/data/videos.ts へ動画を追加すれば、自動的にサイトマップへ戻る（7章）。
+const hasPublishedVideos = videos.length > 0;
 
 // サイトの公開URLはsrc/config/siteConfig.tsで一元管理しています。
 // 独自ドメインへ移行する際はsiteConfig.tsのsiteUrlだけを変更してください。
@@ -21,7 +26,8 @@ export default defineConfig({
       filter: (page) =>
         !page.includes("/voices/submit") &&
         !page.includes("/issues/") &&
-        !page.includes("/404"),
+        !page.includes("/404") &&
+        (hasPublishedVideos || !page.includes("/videos")),
     }),
   ],
   image: {

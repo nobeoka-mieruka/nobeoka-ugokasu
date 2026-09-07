@@ -44,7 +44,12 @@ export type ProfileChapter = {
   relatedVisionSlugs?: ("welfare" | "childcare" | "disaster-prevention")[];
 };
 
-/** プロフィールページ全体の最終更新日（本人確認後に設定。未設定の間は非表示） */
+/**
+ * プロフィールページ全体の最終更新日（"YYYY-MM-DD"）。
+ * 明示的に日付を入れたい場合のみ設定します。空欄のままでも、このファイル
+ * （src/data/profile.ts）を最後に変更したGitコミットの日付が自動的に表示されます
+ *（src/utils/lastUpdated.ts参照）。
+ */
 export const profileLastUpdated = "";
 
 export const profileChapters: ProfileChapter[] = [

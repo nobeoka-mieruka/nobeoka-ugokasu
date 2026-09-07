@@ -9,7 +9,7 @@ import type { SocialFeedStatus, SocialPostsResponse } from "../../src/types/soci
 import type { SocialSyncEnv } from "../../server/env";
 import { getSocialFeed } from "../../server/socialFeed";
 
-const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured" };
+const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured", threads: "not_configured" };
 
 async function handleGet(context: Parameters<PagesFunction<SocialSyncEnv>>[0]): Promise<Response> {
   let body: SocialPostsResponse;

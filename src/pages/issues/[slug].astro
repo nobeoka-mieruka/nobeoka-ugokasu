@@ -13,6 +13,7 @@ import VisionEvidenceCard from "../../components/VisionEvidenceCard.astro";
 import { getVisionProposal } from "../../data/vision";
 import { profileChapters } from "../../data/profile";
 import { getSortedSnsActivities } from "../../data/snsActivities";
+import { getSortedActivityEntries } from "../../data/activityEntries";
 import { buildRelatedActivities } from "../../utils/relatedActivities";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
@@ -36,6 +37,7 @@ const relatedActivities = proposal
       activities: await getCollection("activities", ({ data }) => data.published),
       buildSocialPosts: socialPostsSnapshot.posts as unknown as BuildSocialPost[],
       snsActivities: getSortedSnsActivities(),
+      activityEntries: getSortedActivityEntries(),
     })
   : [];
 

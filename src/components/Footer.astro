@@ -3,6 +3,7 @@ import { siteConfig } from "../config/siteConfig";
 import { footerNav } from "../data/navigation";
 import SocialLinks from "./SocialLinks.astro";
 import Icon from "./Icon.astro";
+import MailLink from "./MailLink.astro";
 import SiteLastUpdated from "./SiteLastUpdated.astro";
 ---
 
@@ -19,11 +20,13 @@ import SiteLastUpdated from "./SiteLastUpdated.astro";
           <Icon name="location" class="w-5 h-5 flex-shrink-0 mt-0.5" />
           <span>{siteConfig.postalCode}<br />{siteConfig.address}</span>
         </p>
-        <p class="mt-2 text-sm text-white/70 flex items-center gap-2">
-          <Icon name="mail" class="w-5 h-5 flex-shrink-0" />
-          <a href={`mailto:${siteConfig.email}`} class="underline hover:text-brand-orange">
-            {siteConfig.email}
-          </a>
+        <p class="mt-2 text-sm text-white/70">
+          <MailLink
+            to="office"
+            showLabel={false}
+            class="text-white/70 underline hover:text-brand-orange"
+            iconClass="text-white/70"
+          />
         </p>
         <div class="mt-4">
           <SocialLinks />

@@ -25,7 +25,7 @@ const { entry } = Astro.props;
 const { Content } = await render(entry);
 const { data } = entry;
 
-const title = `${data.title}｜分析結果｜みんなの声`;
+const title = `${data.title}｜分析結果｜福富千恵と延岡を動かす会`;
 const description = `${data.theme}に関する意見の分析結果です。募集方法や主な論点、寄せられた声の傾向をまとめています。`;
 const path = `/voices/reports/${entry.slug}`;
 const breadcrumbItems = [

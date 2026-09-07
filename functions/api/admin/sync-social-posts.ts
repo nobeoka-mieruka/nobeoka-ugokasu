@@ -43,6 +43,7 @@ export const onRequestPost: PagesFunction<SocialSyncEnv> = async (context) => {
         ok: result.ok,
         facebookFetched: result.facebookFetched,
         instagramFetched: result.instagramFetched,
+        threadsFetched: result.threadsFetched,
         savedCount: result.savedCount,
         skippedReason: result.skippedReason ?? null,
       }),

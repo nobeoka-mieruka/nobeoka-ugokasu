@@ -20,10 +20,14 @@ const { heading, items } = Astro.props;
 {items.length > 0 && (
   <div class="mt-4 rounded-xl bg-brand-orange-light/40 ring-1 ring-black/5 p-4">
     <p class="text-sm font-bold text-ink">{heading}</p>
-    <ul class="mt-2 space-y-1">
+    {/* スマートフォンで押しやすいよう、リンクは高さ44px以上を確保する（13章） */}
+    <ul class="mt-1">
       {items.map((item) => (
         <li>
-          <a href={item.href} class="inline-flex items-center gap-1 text-sm font-bold text-ink hover:underline">
+          <a
+            href={item.href}
+            class="inline-flex min-h-[44px] items-center gap-1 py-1.5 text-sm font-bold text-ink hover:underline"
+          >
             <Icon name="arrow-right" class="w-4 h-4 flex-shrink-0 text-brand-orange-dark" />
             <span class="min-w-0 [overflow-wrap:break-word]">{item.title}</span>
           </a>

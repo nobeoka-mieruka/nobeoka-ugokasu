@@ -4,6 +4,7 @@ import HeroSection from "../components/HeroSection.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import SocialLinks from "../components/SocialLinks.astro";
 import Icon from "../components/Icon.astro";
+import MailLink from "../components/MailLink.astro";
 import { siteConfig } from "../config/siteConfig";
 import { voicesConfig } from "../config/voicesConfig";
 import { webPageSchema, organizationSchema } from "../utils/structuredData";
@@ -30,15 +31,16 @@ const schemas = [
         <h2 class="font-bold text-ink text-lg mb-4">{siteConfig.organizationName}</h2>
         <dl class="space-y-3 text-sm">
           <div class="flex items-start gap-2">
-            <Icon name="location" class="w-5 h-5 flex-shrink-0 text-brand-orange" />
-            <dd class="text-ink-soft">{siteConfig.postalCode}<br />{siteConfig.address}</dd>
+            <dt class="flex-shrink-0">
+              <span class="sr-only">所在地</span>
+              <Icon name="location" class="w-5 h-5 text-brand-orange" ariaHidden={true} />
+            </dt>
+            <dd class="min-w-0 text-ink-soft">{siteConfig.postalCode}<br />{siteConfig.address}</dd>
           </div>
-          <div class="flex items-center gap-2">
-            <Icon name="mail" class="w-5 h-5 flex-shrink-0 text-brand-orange" />
-            <dd>
-              <a href={`mailto:${siteConfig.email}`} class="text-ink underline font-bold">
-                {siteConfig.email}
-              </a>
+          <div class="min-w-0">
+            <dt class="sr-only">後援会事務局のメールアドレス</dt>
+            <dd class="min-w-0">
+              <MailLink to="office" useFullLabel={true} />
             </dd>
           </div>
         </dl>

@@ -28,6 +28,8 @@ const schemas = [
 
   <section class="py-14 sm:py-20">
     <div class="section-wrap">
+      {/* 見出し階層をh1→h2→h3の順に保つための、視覚的には表示しない見出し（13章） */}
+      <h2 class="sr-only">お知らせ一覧</h2>
       {news.length > 0 ? (
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {news.map((entry) => (
@@ -43,7 +45,7 @@ const schemas = [
       ) : (
         <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-3">
           <Icon name="document" class="w-10 h-10 text-brand-orange" />
-          <p class="text-lg">お知らせは準備中です。</p>
+          <p class="text-lg">新しいお知らせは、公開次第こちらに掲載します。</p>
         </div>
       )}
     </div>

@@ -50,11 +50,37 @@ if (isValidIsoDate(gitCommitDate)) {
 const privacyCommitDate = tryExec("git log -1 --format=%cI -- src/pages/privacy.astro");
 const privacyLastModified = isValidIsoDate(privacyCommitDate) ? new Date(privacyCommitDate).toISOString() : null;
 
+/**
+ * ページごとの「最終更新」表示（src/utils/lastUpdated.ts）に使う、
+ * コンテンツ単位の最終変更日時（そのファイル群を最後に変更したGitコミットの日時）。
+ *
+ * アクセス時刻・ビルド時刻ではなく、実際に内容が変わった日を表示するための値です。
+ * 取得できない場合はnullにし、画面側でサイト全体の最終更新日へ自動的に切り替えます。
+ *
+ * 対象ファイルを増やす場合は、ここへ1行追加してください（画面側の型も自動的に増えます）。
+ */
+const CONTENT_PATHS = {
+  activities: "src/data/activityEntries.ts src/data/snsActivities.ts src/content/activities",
+  vision: "src/data/vision.ts src/content/issues",
+  voices: "src/data/voicesSummary.ts src/data/voiceThemes.ts src/content/voice-reports",
+  profile: "src/data/profile.ts",
+  videos: "src/data/videos.ts",
+  terms: "src/pages/terms.astro",
+};
+
+const contentLastModified = Object.fromEntries(
+  Object.entries(CONTENT_PATHS).map(([key, paths]) => {
+    const commitDate = tryExec(`git log -1 --format=%cI -- ${paths}`);
+    return [key, isValidIsoDate(commitDate) ? new Date(commitDate).toISOString() : null];
+  }),
+);
+
 const buildInfo = {
   lastUpdated,
   commitSha: gitCommitSha ?? process.env.CF_PAGES_COMMIT_SHA ?? null,
   isCloudflarePages: Boolean(process.env.CF_PAGES),
   privacyLastModified,
+  contentLastModified,
   generatedAt: now,
 };
 
@@ -64,3 +90,4 @@ writeFileSync(outputPath, `${JSON.stringify(buildInfo, null, 2)}\n`, "utf8");
 console.log(`[generate-build-info] wrote ${outputPath}`);
 console.log(`[generate-build-info] lastUpdated=${buildInfo.lastUpdated} isCloudflarePages=${buildInfo.isCloudflarePages}`);
 console.log(`[generate-build-info] privacyLastModified=${buildInfo.privacyLastModified}`);
+console.log(`[generate-build-info] contentLastModified=${JSON.stringify(buildInfo.contentLastModified)}`);

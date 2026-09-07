@@ -1,7 +1,7 @@
 // 公式SNS・外部連携リンク（未確認のものは空欄のままにしてください）
 // 空欄の項目はボタン・アイコンが自動的に非表示になります。
-// Facebook・InstagramのURLはここへ直接書き込まず、src/config/socialConfig.ts で
-// 一元管理しています（環境変数 FACEBOOK_PAGE_URL / INSTAGRAM_PROFILE_URL で上書き可能）。
+// Facebook・Instagram・ThreadsのURLはここへ直接書き込まず、src/config/socialConfig.ts で
+// 一元管理しています（環境変数 FACEBOOK_PAGE_URL / INSTAGRAM_PROFILE_URL / THREADS_PROFILE_URL で上書き可能）。
 
 import { socialConfig } from "../config/socialConfig";
 
@@ -18,8 +18,8 @@ export const socialLinks: Record<"line" | "instagram" | "x" | "facebook" | "thre
   /** Facebook URL（src/config/socialConfig.ts で管理） */
   facebook: socialConfig.facebookPageUrl,
 
-  /** Threads URL（公式アカウント: @chie_smily4） */
-  threads: "https://www.threads.net/@chie_smily4",
+  /** Threads URL（src/config/socialConfig.ts で管理） */
+  threads: socialConfig.threadsProfileUrl,
 
   /** YouTube URL（未設定） */
   youtube: "",

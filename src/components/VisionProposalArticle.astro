@@ -1,0 +1,229 @@
+---
+// 提言1件分の「政策カード」です。
+//
+// 表示の並びは、提言としての読みやすさを優先して次の順に固定しています（6章）。
+//   タイトル → 現状 → 課題 → 提言 → 根拠・参考資料 → 市民の声 → 進捗 → 更新日
+//
+// 【今後データを追加するとき】
+// 内容そのものは src/data/vision.ts の VisionProposal に追加してください。
+// このコンポーネントは値が空のときに見出しごと自動で非表示になるため、
+// 確認できた項目から少しずつ埋めていくことができます
+//（根拠のない数値・政策データを新規に作らないでください）。
+import Icon from "./Icon.astro";
+import LastUpdated from "./LastUpdated.astro";
+import VisionStatusBadge from "./VisionStatusBadge.astro";
+import VisionStatusSteps from "./VisionStatusSteps.astro";
+import VisionEvidenceCard from "./VisionEvidenceCard.astro";
+import InlineRelatedLinks from "./InlineRelatedLinks.astro";
+import type { VisionProposal } from "../data/vision";
+import type { VoiceTheme } from "../data/voiceThemes";
+import { resolveLastUpdated } from "../utils/lastUpdated";
+
+export interface VisionRelatedActivity {
+  title: string;
+  href: string;
+  external?: boolean;
+}
+
+export interface VisionRelatedChapter {
+  id: string;
+  title: string;
+}
+
+interface Props {
+  proposal: VisionProposal;
+  relatedActivities: VisionRelatedActivity[];
+  relatedChapters: VisionRelatedChapter[];
+  voiceTheme?: VoiceTheme;
+}
+
+const { proposal, relatedActivities, relatedChapters, voiceTheme } = Astro.props;
+
+const accentClassMap = {
+  welfare: { text: "text-accent-welfare", border: "border-accent-welfare" },
+  childcare: { text: "text-accent-childcare", border: "border-accent-childcare" },
+  disaster: { text: "text-accent-disaster", border: "border-accent-disaster" },
+};
+
+const accent = accentClassMap[proposal.accentColor];
+
+// 更新日：提言ごとの lastUpdated があればそれを、無ければ src/data/vision.ts を
+// 最後に変更したGitコミットの日付を使う（アクセス時刻は使わない）。
+const lastUpdated = resolveLastUpdated(proposal.lastUpdated, "vision");
+---
+
+<article id={proposal.slug} class:list={["border-l-4 pl-6 scroll-mt-24", accent.border]}>
+  <VisionStatusBadge status={proposal.status} />
+  <h2 class="mt-3 text-2xl sm:text-3xl font-bold text-ink whitespace-pre-line">{proposal.title}</h2>
+
+  <div class="mt-6">
+    <VisionStatusSteps status={proposal.status} />
+  </div>
+
+  {/* 1. 現状 */}
+  {proposal.background.length > 0 && (
+    <div class="mt-6">
+      <h3 class="text-lg font-bold text-ink">現状</h3>
+      <div class="mt-2 space-y-2 text-ink-soft leading-relaxed">
+        {proposal.background.map((paragraph) => <p>{paragraph}</p>)}
+      </div>
+    </div>
+  )}
+
+  {proposal.targetAudience && (
+    <div class="mt-6">
+      <h3 class="text-lg font-bold text-ink">対象となる市民</h3>
+      <p class="mt-2 text-ink-soft leading-relaxed">{proposal.targetAudience}</p>
+    </div>
+  )}
+
+  {/* 2. 課題 */}
+  {proposal.currentIssues.length > 0 && (
+    <div class="mt-6">
+      <h3 class="text-lg font-bold text-ink">課題</h3>
+      <ul class="mt-2 space-y-1">
+        {proposal.currentIssues.map((issue) => (
+          <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+            <span class="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-ink-soft"></span>
+            <span class="min-w-0">{issue}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+
+  {/* 3. 提言 */}
+  {proposal.proposals.length > 0 && (
+    <div class="mt-6">
+      <h3 class="text-lg font-bold text-ink">提言</h3>
+      <ul class="mt-2 space-y-2">
+        {proposal.proposals.map((item) => (
+          <li class="flex items-start gap-2 font-bold text-ink">
+            <Icon name="check" class:list={["w-5 h-5 flex-shrink-0 mt-0.5", accent.text]} />
+            <span class="min-w-0 whitespace-pre-line">{item}</span>
+          </li>
+        ))}
+      </ul>
+      {proposal.administrativeAsk && (
+        <p class="mt-3 text-ink-soft leading-relaxed">{proposal.administrativeAsk}</p>
+      )}
+    </div>
+  )}
+
+  <div class="mt-6">
+    <h3 class="text-lg font-bold text-ink">実現へのステップ</h3>
+    <ul class="mt-2 space-y-2">
+      <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+        <span class="mt-0.5 flex-shrink-0 rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold text-ink">短期</span>
+        <span class="min-w-0">{proposal.implementationSteps.shortTerm}</span>
+      </li>
+      <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+        <span class="mt-0.5 flex-shrink-0 rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold text-ink">中期</span>
+        <span class="min-w-0">{proposal.implementationSteps.midTerm}</span>
+      </li>
+      <li class="flex items-start gap-2 text-ink-soft leading-relaxed">
+        <span class="mt-0.5 flex-shrink-0 rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold text-ink">長期</span>
+        <span class="min-w-0">{proposal.implementationSteps.longTerm}</span>
+      </li>
+    </ul>
+  </div>
+
+  {proposal.targetChange && (
+    <div class="mt-6">
+      <h3 class="text-lg font-bold text-ink">目指す変化</h3>
+      <p class="mt-2 text-ink-soft leading-relaxed">{proposal.targetChange}</p>
+    </div>
+  )}
+
+  {/* 4. 根拠・参考資料 */}
+  <VisionEvidenceCard evidenceItems={proposal.evidenceItems} relatedPlans={proposal.relatedPlans} />
+
+  {proposal.officialLinks.length > 0 && (
+    <div class="mt-6">
+      <h3 class="text-lg font-bold text-ink">関連資料（公的資料・延岡市公式ページ）</h3>
+      <ul class="mt-2 space-y-1">
+        {proposal.officialLinks.map((link) => (
+          <li>
+            <a href={link.href} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-ink font-bold hover:underline">
+              {link.label}
+              <span class="sr-only">（新しいタブで開く・外部サイト）</span>
+              <Icon name="external-link" class="w-4 h-4" />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+
+  {relatedChapters.length > 0 && (
+    <InlineRelatedLinks
+      heading="この提言につながる福富千恵の経験"
+      items={relatedChapters.map((chapter) => ({ title: chapter.title, href: `/profile/#${chapter.id}` }))}
+    />
+  )}
+
+  {/* 5. 市民の声 */}
+  {proposal.citizenVoices && (
+    <div class="mt-6">
+      <h3 class="text-lg font-bold text-ink">市民の声</h3>
+      <p class="mt-2 text-ink-soft leading-relaxed">{proposal.citizenVoices}</p>
+    </div>
+  )}
+
+  {voiceTheme && (
+    <div class="mt-4 rounded-xl bg-brand-orange-light/40 ring-1 ring-black/5 p-5">
+      <p class="text-ink-soft leading-relaxed">
+        延岡で感じている「{voiceTheme.title}」に関する困りごとやご意見をお聞かせください。
+      </p>
+      <a href={`/voices/themes/${voiceTheme.slug}/`} class="btn-secondary mt-4 inline-flex">
+        このテーマについて意見を送る
+        <Icon name="arrow-right" class="w-4 h-4" ariaHidden={true} />
+      </a>
+    </div>
+  )}
+
+  {/* 6. 進捗 */}
+  {proposal.reviewStatus && (
+    <div class="mt-6">
+      <h3 class="text-lg font-bold text-ink">進捗（現在の検討状況）</h3>
+      <p class="mt-2 text-ink-soft leading-relaxed">{proposal.reviewStatus}</p>
+    </div>
+  )}
+
+  <div class="mt-6" data-vision-related={proposal.slug}>
+    <h3 class="text-lg font-bold text-ink">関連する活動報告</h3>
+    <ul class:list={["mt-2 space-y-1", relatedActivities.length === 0 && "hidden"]} data-vision-related-list>
+      {relatedActivities.map((item) => (
+        <li>
+          <a
+            href={item.href}
+            class="text-ink font-bold hover:underline"
+            target={item.external ? "_blank" : undefined}
+            rel={item.external ? "noopener noreferrer" : undefined}
+          >
+            {item.title}
+          </a>
+          {item.external && <span class="sr-only">（新しいタブで開く・外部サイト）</span>}
+        </li>
+      ))}
+    </ul>
+    <p class:list={["mt-2 text-ink-soft", relatedActivities.length > 0 && "hidden"]} data-vision-related-empty>
+      このテーマに関する活動報告は、今後こちらへ掲載していきます。
+    </p>
+  </div>
+
+  {/* 7. 更新日 */}
+  <div class="mt-6">
+    <LastUpdated date={lastUpdated} />
+  </div>
+
+  <div class="mt-4">
+    <a
+      href={`/issues/${proposal.slug}/`}
+      class="inline-flex min-h-[44px] items-center gap-1 font-bold text-ink hover:underline"
+    >
+      {proposal.shortTitle}の詳細ページへ
+      <Icon name="arrow-right" class:list={["w-4 h-4", accent.text]} />
+    </a>
+  </div>
+</article>

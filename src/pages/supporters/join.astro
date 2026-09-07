@@ -3,6 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import Icon from "../../components/Icon.astro";
+import MailLink from "../../components/MailLink.astro";
 import { siteConfig } from "../../config/siteConfig";
 import { supportersConfig } from "../../config/supporters";
 import { webPageSchema, organizationSchema } from "../../utils/structuredData";
@@ -247,13 +248,9 @@ const ruleSummaries = [
         <p class="text-sm text-ink-soft leading-relaxed">
           入会申込みや後援会規約に関するご質問は、下記の事務局メールアドレスまでご連絡ください。
         </p>
-        <a
-          href={`mailto:${siteConfig.email}`}
-          class="mt-2 inline-flex items-center gap-2 font-bold text-ink underline"
-        >
-          <Icon name="mail" class="w-5 h-5 text-brand-orange" ariaHidden={true} />
-          {siteConfig.email}
-        </a>
+        <div class="mt-2">
+          <MailLink to="office" />
+        </div>
       </div>
     </div>
   </section>

@@ -1,0 +1,51 @@
+---
+// 活動報告が1件も表示できないときの案内です（15章の段階的フォールバックの最終段階）。
+//
+// 段階的フォールバック：
+//   1. SNS取得に成功 → 最新投稿を表示
+//   2. 取得に失敗   → サイト側に保存された活動データ（src/data/activityEntries.ts・
+//                     src/content/activities/・socialPostsSnapshot.json）を表示
+//   3. 保存データもない → この案内（SNSへの導線）を表示
+//
+// 【表示ルール】
+// ・「読み込めません」「準備中です」といった技術的・後ろ向きな文言は表示しません。
+// ・取得エラーそのものは console 側で扱い、一般の閲覧者には見せません。
+import Icon from "./Icon.astro";
+import SocialFollowCards from "./SocialFollowCards.astro";
+
+interface Props {
+  /** 見出し */
+  heading?: string;
+  /** 説明文 */
+  description?: string;
+  /** カードの外枠（card）を付けるか */
+  boxed?: boolean;
+  /** 絞り込みタブと連動させる場合のキー（"all" / "website" / "facebook" など） */
+  emptyFor?: string;
+  /** 初期表示で隠しておくか（絞り込みタブの切り替え前にちらつかせないため） */
+  initiallyHidden?: boolean;
+}
+
+const {
+  heading = "最新情報はSNSでも発信しています",
+  description = "福富千恵と延岡を動かす会の活動は、Facebook・Instagram・Threadsでも随時お知らせしています。",
+  boxed = true,
+  emptyFor,
+  initiallyHidden = false,
+} = Astro.props;
+---
+
+<div
+  data-empty-for={emptyFor}
+  class:list={[
+    boxed ? "card flex flex-col items-center gap-4 py-12 text-center" : "flex flex-col items-center gap-4 text-center",
+    initiallyHidden && "hidden",
+  ]}
+>
+  <Icon name="megaphone" class="w-9 h-9 text-brand-orange" />
+  <div>
+    <p class="text-lg font-bold text-ink">{heading}</p>
+    <p class="mt-2 text-ink-soft leading-relaxed">{description}</p>
+  </div>
+  <SocialFollowCards variant="inline" />
+</div>

@@ -1,0 +1,95 @@
+---
+// 公式SNS（Facebook・Instagram・Threads）へのリンクカード一覧です。
+//
+// ・URLは src/config/socialConfig.ts（→ src/data/socialLinks.ts）で一元管理しています。
+//   URLが未設定のSNSは自動的に非表示になります（推測でURLを追加しないでください）。
+// ・SNSの公式SDK（Facebook SDK等）は一切読み込みません。表示速度・プライバシーを守るため、
+//   静的なカード＋外部リンクだけで構成しています（14章）。
+import Icon from "./Icon.astro";
+import { socialLinks } from "../data/socialLinks";
+import { socialConfig } from "../config/socialConfig";
+import { socialPlatformMeta, type SocialPlatformKey } from "../config/socialPlatformMeta";
+
+interface Props {
+  /** カードの並び。"grid"（既定）は3列グリッド、"inline" は横並びのボタン列 */
+  variant?: "grid" | "inline";
+}
+
+const { variant = "grid" } = Astro.props;
+
+const candidates: { key: SocialPlatformKey; handle?: string; description: string }[] = [
+  {
+    key: "facebook",
+    description: "活動の様子や、日々のお知らせを投稿しています。",
+  },
+  {
+    key: "instagram",
+    handle: socialConfig.instagramUsername ? `@${socialConfig.instagramUsername}` : undefined,
+    description: "現場での活動を、写真を中心にお伝えしています。",
+  },
+  {
+    key: "threads",
+    description: "日々感じたこと、考えていることを短く発信しています。",
+  },
+];
+
+const links = candidates
+  .map((candidate) => ({ ...candidate, url: socialLinks[candidate.key], meta: socialPlatformMeta[candidate.key] }))
+  .filter((candidate) => Boolean(candidate.url));
+---
+
+{links.length > 0 && (
+  variant === "inline" ? (
+    <ul class="flex flex-wrap gap-3">
+      {links.map((link) => (
+        <li>
+          <a
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class:list={[
+              "inline-flex min-h-[44px] items-center gap-2 rounded-full px-5 py-2.5 text-base font-bold transition-all",
+              link.meta.buttonClass,
+            ]}
+          >
+            <Icon name={link.meta.icon} class="w-5 h-5" />
+            {link.meta.label}
+            <Icon name="external-link" class="w-3.5 h-3.5" ariaHidden={true} />
+            <span class="sr-only">（新しいタブで開く）</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {links.map((link) => (
+        <li>
+          <a
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="card flex h-full min-w-0 items-start gap-4 hover:shadow-md transition-shadow"
+          >
+            <span
+              class:list={[
+                "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full",
+                link.meta.badgeClass,
+              ]}
+            >
+              <Icon name={link.meta.icon} class="w-6 h-6" />
+            </span>
+            <span class="min-w-0">
+              <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span class="font-bold text-ink text-lg">{link.meta.label}</span>
+                {link.handle && <span class="text-sm text-ink-soft [overflow-wrap:anywhere]">{link.handle}</span>}
+                <Icon name="external-link" class="w-4 h-4 text-ink-soft" ariaHidden={true} />
+              </span>
+              <span class="mt-1 block text-sm text-ink-soft leading-relaxed">{link.description}</span>
+              <span class="sr-only">（新しいタブで開く）</span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+)}

@@ -1,0 +1,67 @@
+---
+// 「受付 → 整理中 → 確認中 → 提言反映」という、みんなの声の状態を視覚的に示す表示です。
+//
+// ・件数（src/data/voicesSummary.ts）が入っている段階だけ、その実数を表示します。
+// ・実数が確認できていない段階は数字を出さず、その段階の説明だけを表示します
+//   （推測値は絶対に表示しません）。
+// ・スマートフォンでは縦並び、タブレット以上では横並びになります（横スクロールは発生しません）。
+import Icon from "./Icon.astro";
+import { voicesSummary, hasAnyVoicesCount } from "../data/voicesSummary";
+
+const steps = [
+  {
+    label: "受付",
+    description: "フォーム・意見交換会・聞き取りなどでご意見をお預かりします。",
+    count: voicesSummary.pipeline.received ?? voicesSummary.total,
+  },
+  {
+    label: "整理中",
+    description: "個人情報を取り除き、内容ごとに整理します。",
+    count: voicesSummary.pipeline.organized,
+  },
+  {
+    label: "確認中",
+    description: "事務局が元の文章と照らし合わせて内容を確認します。",
+    count: voicesSummary.pipeline.underReview,
+  },
+  {
+    label: "提言反映",
+    description: "確認できた内容を、今後の活動や提言へ反映します。",
+    count: voicesSummary.pipeline.reflected,
+  },
+];
+
+const showCounts = hasAnyVoicesCount();
+---
+
+<ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  {steps.map((step, index) => (
+    <li class="card relative flex min-w-0 flex-col gap-2">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-orange text-sm font-bold text-white">
+          {index + 1}
+        </span>
+        <span class="min-w-0 font-bold text-ink">{step.label}</span>
+        {index < steps.length - 1 && (
+          <Icon
+            name="chevron-right"
+            class="ml-auto hidden h-5 w-5 flex-shrink-0 text-brand-orange-dark lg:block"
+            ariaHidden={true}
+          />
+        )}
+      </div>
+      {typeof step.count === "number" && (
+        <p class="text-2xl font-bold text-ink">
+          {step.count}<span class="ml-1 text-base font-bold text-ink-soft">件</span>
+        </p>
+      )}
+      <p class="min-w-0 text-sm text-ink-soft leading-relaxed">{step.description}</p>
+    </li>
+  ))}
+</ol>
+
+{!showCounts && (
+  <p class="mt-4 text-ink-soft leading-relaxed">
+    現在、寄せられたご意見を整理しています。件数の集計がまとまり次第、この画面でお知らせします。
+  </p>
+)}

@@ -1,5 +1,6 @@
 import type { SocialMediaType, SocialPost } from "../src/types/social";
 import type { FacebookPostRaw, InstagramMediaRaw } from "./metaClient";
+import type { ThreadsPostRaw } from "./threadsClient";
 
 const TITLE_MAX_LENGTH = 40;
 const CONTROL_CHAR_MAX_CODE = 0x1f;
@@ -146,5 +147,49 @@ export function normalizeInstagramMedia(raw: InstagramMediaRaw): SocialPost | nu
     thumbnailUrl,
     mediaType,
     sourceName: "Instagram",
+  };
+}
+
+export function normalizeThreadsPost(raw: ThreadsPostRaw): SocialPost | null {
+  if (!raw.id || !raw.permalink) return null;
+
+  const text = sanitizeText(raw.text ?? "");
+  const rawType = (raw.media_type ?? "TEXT_POST").toUpperCase();
+
+  let mediaType: SocialMediaType = "STATUS";
+  let imageUrl: string | null = null;
+  let thumbnailUrl: string | null = null;
+
+  if (rawType === "CAROUSEL_ALBUM") {
+    mediaType = "CAROUSEL_ALBUM";
+    // CAROUSEL_ALBUM自体にはmedia_urlが返らないため、先頭メディア（children[0]）を
+    // カード表示用の画像・サムネイルとして使う（normalizeInstagramMediaと同じ方針）。
+    const firstChild = raw.children?.data?.[0];
+    const childIsVideo = (firstChild?.media_type ?? "").toUpperCase() === "VIDEO";
+    if (childIsVideo) {
+      thumbnailUrl = firstChild?.media_url ?? null;
+    } else {
+      imageUrl = firstChild?.media_url ?? null;
+    }
+  } else if (rawType === "VIDEO") {
+    mediaType = "VIDEO";
+    thumbnailUrl = raw.thumbnail_url ?? raw.media_url ?? null;
+  } else if (rawType === "IMAGE") {
+    mediaType = "IMAGE";
+    imageUrl = raw.media_url ?? null;
+  }
+  // "TEXT_POST" | "AUDIO" | "REPOST_FACADE" 等、画像を持たない投稿種別は mediaType: "STATUS" のまま
+
+  return {
+    id: raw.id,
+    platform: "threads",
+    publishedAt: raw.timestamp ?? new Date().toISOString(),
+    title: makeTitle(text, "Threads活動報告"),
+    description: text,
+    permalink: raw.permalink,
+    imageUrl,
+    thumbnailUrl,
+    mediaType,
+    sourceName: "Threads",
   };
 }

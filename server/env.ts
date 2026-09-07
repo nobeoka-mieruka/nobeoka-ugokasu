@@ -28,6 +28,19 @@ export interface SocialSyncEnv {
    */
   META_ACCESS_TOKEN?: string;
 
+  /**
+   * ThreadsプロアカウントのユーザーID（Threads API用の数字のID）。
+   * Threadsのユーザーネーム（例: "chie_smily4"）とは別の値。
+   */
+  THREADS_USER_ID?: string;
+
+  /**
+   * Threads API専用のアクセストークン（秘密情報）。Meta Graph API用の
+   * META_ACCESS_TOKEN とは別のトークン（Threads APIは graph.threads.net という
+   * 別ホスト・別の認可フローのため、同じトークンを使い回すことはできない）。
+   */
+  THREADS_ACCESS_TOKEN?: string;
+
   /** 手動同期エンドポイントを保護する秘密キー */
   SOCIAL_SYNC_SECRET?: string;
 

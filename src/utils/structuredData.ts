@@ -30,7 +30,7 @@ export function organizationSchema() {
       streetAddress: siteConfig.address,
       addressCountry: "JP",
     },
-    email: siteConfig.email,
+    email: siteConfig.contact.office.email,
     ...(sameAs.length > 0 ? { sameAs } : {}),
   };
 }

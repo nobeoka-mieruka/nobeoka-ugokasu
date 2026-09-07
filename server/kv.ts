@@ -12,7 +12,7 @@ export interface SocialPostsCache {
   status: SocialFeedStatus;
 }
 
-const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured" };
+const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured", threads: "not_configured" };
 
 /** 保存されているキャッシュを読み込む。存在しない・壊れている場合はnull */
 export async function readCache(env: SocialSyncEnv): Promise<SocialPostsCache | null> {

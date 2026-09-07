@@ -1,0 +1,87 @@
+---
+// サイト側で管理している活動報告（src/data/activityEntries.ts）1件分のカードです。
+// SNSのAPI取得に依存しないため、SNSが一時的に読み込めない場合でも必ず表示されます。
+import Icon from "./Icon.astro";
+import type { ActivityEntry } from "../data/activityEntries";
+import { socialPlatformMeta } from "../config/socialPlatformMeta";
+
+interface Props {
+  entry: ActivityEntry;
+}
+
+const { entry } = Astro.props;
+
+const dateObj = new Date(entry.date);
+const dateLabel = dateObj.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+
+// "website" はSNS投稿を伴わないサイト独自の活動報告。バッジはサイト共通の配色にする。
+const meta = entry.platform === "website" ? undefined : socialPlatformMeta[entry.platform];
+
+// 絞り込みタブ（すべて／公式サイト／Facebook／Instagram／Threads）と対応させる
+const dataPlatforms = entry.platform === "website" ? "website" : entry.platform;
+---
+
+<div class="card p-0 overflow-hidden flex flex-col h-full" data-activity-card data-platforms={dataPlatforms} data-date={entry.date}>
+  {entry.image ? (
+    <div class="relative w-full aspect-[16/9] overflow-hidden bg-brand-orange-light" data-activity-media>
+      <img
+        src={entry.image.src}
+        alt={entry.image.alt}
+        class="w-full h-full object-cover object-center"
+        loading="lazy"
+        decoding="async"
+        width="640"
+        height="360"
+        data-activity-image
+      />
+      <div class="hidden absolute inset-0 items-center justify-center text-brand-orange-dark" data-activity-image-fallback>
+        <Icon name="document" class="w-8 h-8" />
+      </div>
+    </div>
+  ) : (
+    <div class="w-full h-[72px] flex items-center justify-center bg-brand-orange-light text-brand-orange-dark" data-activity-media>
+      <Icon name="document" class="w-6 h-6" />
+    </div>
+  )}
+
+  <div class="p-6 flex flex-col gap-3 flex-1">
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-soft">
+      {meta ? (
+        <span class:list={["inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold", meta.badgeClass]}>
+          <Icon name={meta.icon} class="w-3.5 h-3.5" />
+          {meta.badgeLabel}
+        </span>
+      ) : (
+        <span class="inline-flex items-center gap-1 rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">
+          <Icon name="document" class="w-3.5 h-3.5" />
+          公式サイト
+        </span>
+      )}
+      <span class="rounded-full bg-brand-orange-light px-2.5 py-1 font-bold text-ink">{entry.category}</span>
+      <time datetime={entry.date}>{dateLabel}</time>
+    </div>
+
+    <h3 class="text-xl font-bold text-ink leading-snug">{entry.title}</h3>
+    <p class="text-base text-ink-soft">{entry.summary}</p>
+
+    {entry.url && (
+      <div class="mt-auto pt-2">
+        <a
+          href={entry.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-track="activity_read_more"
+          class:list={[
+            "inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all",
+            meta ? meta.buttonClass : "border-2 border-brand-orange-dark text-brand-orange-dark hover:bg-brand-orange-light",
+          ]}
+        >
+          {meta && <Icon name={meta.icon} class="w-4 h-4" />}
+          {meta ? `${meta.label}で全文を見る` : "詳しく見る"}
+          <Icon name="external-link" class="w-3.5 h-3.5" ariaHidden={true} />
+          <span class="sr-only">（新しいタブで開く）</span>
+        </a>
+      </div>
+    )}
+  </div>
+</div>

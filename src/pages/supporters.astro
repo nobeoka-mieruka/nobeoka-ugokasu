@@ -4,6 +4,7 @@ import HeroSection from "../components/HeroSection.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import ContactBanner from "../components/ContactBanner.astro";
 import RelatedContent from "../components/RelatedContent.astro";
+import MailLink from "../components/MailLink.astro";
 import { siteConfig } from "../config/siteConfig";
 import { webPageSchema, organizationSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
@@ -48,8 +49,8 @@ const schemas = [
           </div>
           <div class="py-3 grid grid-cols-3 gap-2">
             <dt class="text-ink-soft text-sm font-bold">メール</dt>
-            <dd class="col-span-2 text-ink">
-              <a href={`mailto:${siteConfig.email}`} class="text-ink font-bold underline">{siteConfig.email}</a>
+            <dd class="col-span-2 min-w-0 text-ink">
+              <MailLink to="office" showIcon={false} showLabel={false} />
             </dd>
           </div>
         </dl>
@@ -76,11 +77,12 @@ const schemas = [
 
   <section class="py-14 sm:py-20 bg-brand-ivory">
     <div class="section-wrap">
+      {/* 同じリンク先のボタンを重ねないよう、主要な行動（入会）と補助（問い合わせ）に分ける */}
       <ContactBanner
         heading={"あなたと、延岡を動かす！"}
         description={"活動への参加や、ご意見のお寄せをお待ちしています。"}
-        primaryLabel="活動に参加する"
-        primaryHref="/contact/"
+        primaryLabel="後援会に入会する"
+        primaryHref="/supporters/join/"
         secondaryLabel="お問い合わせ"
         secondaryHref="/contact/"
       />

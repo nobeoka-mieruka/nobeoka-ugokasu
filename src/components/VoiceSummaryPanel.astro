@@ -1,59 +1,77 @@
 ---
-// 「みんなの声」の受付・整理状況の要約表示です。実データがない項目は、
-// 架空の数字を出さず自然な案内文に切り替わります（src/data/voicesSummary.ts参照）。
-import { voicesSummary } from "../data/voicesSummary";
+// 「みんなの声」の受付・整理状況の要約表示です。
+// 実データがない項目は、架空の数字を出さず自然な案内文に切り替わります
+//（src/data/voicesSummary.ts 参照）。
+import LastUpdated from "./LastUpdated.astro";
+import { voicesSummary, hasAnyVoicesCount } from "../data/voicesSummary";
+import { resolveLastUpdated } from "../utils/lastUpdated";
 
 const hasTotal = typeof voicesSummary.total === "number";
 const hasCategories = voicesSummary.categories.length > 0;
 const hasStatus = voicesSummary.status.length > 0;
-const updatedLabel = voicesSummary.updatedAt
-  ? new Date(voicesSummary.updatedAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })
-  : undefined;
+const showCounts = hasAnyVoicesCount();
+
+// 集計日が入力されていない間は、集計データファイルの更新日（Gitコミット日）を使う。
+const lastUpdated = resolveLastUpdated(voicesSummary.updatedAt, "voices");
 ---
 
 <div class="card">
-  <h3 class="font-bold text-ink text-lg mb-4">受付状況</h3>
-  <div class="grid gap-6 sm:grid-cols-3">
-    <div class="min-w-0">
-      <p class="text-sm font-bold text-ink-soft mb-1">受付件数</p>
-      {hasTotal ? (
-        <p class="text-3xl font-bold text-ink">
-          {voicesSummary.total}<span class="ml-1 text-base font-bold text-ink-soft">件</span>
-        </p>
-      ) : (
-        <p class="text-ink-soft leading-relaxed">現在集計中</p>
-      )}
+  {showCounts ? (
+    <div class="grid gap-6 sm:grid-cols-3">
+      <div class="min-w-0">
+        <p class="mb-1 text-sm font-bold text-ink-soft">受付件数</p>
+        {hasTotal ? (
+          <p class="text-3xl font-bold text-ink">
+            {voicesSummary.total}<span class="ml-1 text-base font-bold text-ink-soft">件</span>
+          </p>
+        ) : (
+          <p class="text-ink-soft leading-relaxed">集計がまとまり次第お知らせします</p>
+        )}
+      </div>
+      <div class="min-w-0">
+        <p class="mb-1 text-sm font-bold text-ink-soft">カテゴリ別件数</p>
+        {hasCategories ? (
+          <ul class="space-y-1">
+            {voicesSummary.categories.map((c) => (
+              <li class="flex items-center justify-between gap-2 text-sm text-ink">
+                <span class="min-w-0 [overflow-wrap:break-word]">{c.label}</span>
+                <span class="flex-shrink-0 font-bold">{c.count}件</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="text-ink-soft leading-relaxed">順次整理しています</p>
+        )}
+      </div>
+      <div class="min-w-0">
+        <p class="mb-1 text-sm font-bold text-ink-soft">対応状況</p>
+        {hasStatus ? (
+          <ul class="space-y-1">
+            {voicesSummary.status.map((s) => (
+              <li class="flex items-center justify-between gap-2 text-sm text-ink">
+                <span class="min-w-0 [overflow-wrap:break-word]">{s.label}</span>
+                <span class="flex-shrink-0 font-bold">{s.count}件</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="text-ink-soft leading-relaxed">内容を確認し、今後の活動や提言へ活用します</p>
+        )}
+      </div>
     </div>
-    <div class="min-w-0">
-      <p class="text-sm font-bold text-ink-soft mb-1">分類</p>
-      {hasCategories ? (
-        <ul class="space-y-1">
-          {voicesSummary.categories.map((c) => (
-            <li class="flex items-center justify-between gap-2 text-sm text-ink">
-              <span class="min-w-0 [overflow-wrap:break-word]">{c.label}</span>
-              <span class="flex-shrink-0 font-bold">{c.count}件</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p class="text-ink-soft leading-relaxed">順次整理しています</p>
-      )}
+  ) : (
+    <div class="space-y-3 text-ink-soft leading-relaxed">
+      <p>
+        現在、寄せられたご意見を整理しています。件数の集計がまとまり次第、受付件数・整理済み件数・
+        確認中・提言へ反映済みの件数と、カテゴリ別の件数をこの画面で公開します。
+      </p>
+      <p>
+        実際に確認できた数だけを掲載する方針のため、推計値や暫定の数字は掲載していません。
+      </p>
     </div>
-    <div class="min-w-0">
-      <p class="text-sm font-bold text-ink-soft mb-1">対応状況</p>
-      {hasStatus ? (
-        <ul class="space-y-1">
-          {voicesSummary.status.map((s) => (
-            <li class="flex items-center justify-between gap-2 text-sm text-ink">
-              <span class="min-w-0 [overflow-wrap:break-word]">{s.label}</span>
-              <span class="flex-shrink-0 font-bold">{s.count}件</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p class="text-ink-soft leading-relaxed">内容を確認し、今後の活動や提言へ活用します</p>
-      )}
-    </div>
+  )}
+
+  <div class="mt-4">
+    <LastUpdated date={lastUpdated} />
   </div>
-  {updatedLabel && <p class="mt-4 text-xs text-ink-soft">最終集計日：{updatedLabel}</p>}
 </div>

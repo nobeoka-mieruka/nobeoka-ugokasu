@@ -1,27 +1,19 @@
 ---
-// サイト全体の最終更新日時（GitHub mainブランチへ反映された最新コミットの日時）を表示する。
+// サイト全体の最終更新日（GitHub mainブランチへ反映された最新コミットの日時）を表示する。
 // scripts/generate-build-info.mjs がビルド前に生成する src/data/build-info.json を読み込む。
-// 日時が取得できない場合は、何も表示しない（TODO・undefined・Invalid Dateは表示しない）。
-import buildInfo from "../data/build-info.json";
+//
+// ・アクセス時刻ではなく、実際に内容が更新された日を表示する（4章）。
+// ・書式はサイト内の他の「最終更新」表示（src/components/LastUpdated.astro）と揃え、
+//   「2026年9月7日」の形（時刻なし）にする。
+// ・日付が取得できない場合は、何も表示しない（TODO・undefined・Invalid Dateは表示しない）。
+import { getSiteLastUpdated, formatLastUpdated } from "../utils/lastUpdated";
 
-const parsed = buildInfo?.lastUpdated ? new Date(buildInfo.lastUpdated) : null;
-const isValid = parsed !== null && !Number.isNaN(parsed.getTime());
-
-const label = isValid
-  ? parsed.toLocaleString("ja-JP", {
-      timeZone: "Asia/Tokyo",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
-  : null;
+const lastUpdated = getSiteLastUpdated();
+const label = lastUpdated ? formatLastUpdated(lastUpdated) : null;
 ---
 
-{label && isValid && (
+{lastUpdated && label && (
   <p class="text-xs text-white/60">
-    サイト最終更新日時：<time datetime={parsed.toISOString()}>{label}</time>
+    最終更新：<time datetime={lastUpdated.toISOString()}>{label}</time>
   </p>
 )}

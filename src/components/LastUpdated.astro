@@ -1,4 +1,9 @@
 ---
+// ページ・コンテンツ単位の「最終更新」表示です。
+// 書式はサイト全体で統一しています（「最終更新：2026年9月7日」／時刻は表示しません）。
+// 日付が渡されない・不正な場合は何も表示しません（src/utils/lastUpdated.ts参照）。
+import { formatLastUpdated } from "../utils/lastUpdated";
+
 interface Props {
   date?: Date | string;
 }
@@ -6,13 +11,11 @@ interface Props {
 const { date } = Astro.props;
 const parsedDate = date instanceof Date ? date : date ? new Date(date) : undefined;
 const dateObj = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : undefined;
-const label = dateObj
-  ? dateObj.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })
-  : undefined;
+const label = dateObj ? formatLastUpdated(dateObj) : undefined;
 ---
 
 {label && dateObj && (
   <p class="text-sm text-ink-soft">
-    最終更新日：<time datetime={dateObj.toISOString()}>{label}</time>
+    最終更新：<time datetime={dateObj.toISOString()}>{label}</time>
   </p>
 )}

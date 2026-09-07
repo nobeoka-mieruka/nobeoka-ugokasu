@@ -124,6 +124,62 @@ npm run dev
 
 ## 5. 活動報告を追加する方法
 
+活動報告の追加方法は3種類あります。**いちばん簡単なのは 5-1 の方法です。**
+
+| 方法 | ファイル | こんなときに |
+|---|---|---|
+| **5-1（推奨）** | `src/data/activityEntries.ts` | SNSに投稿した活動を、サイトにも短くまとめて載せたいとき |
+| 5-A | `src/content/activities/*.md` | 目的・実施内容・課題まで含む、長い記事として書きたいとき |
+| 5-3 | （設定のみ） | Facebook・Threadsの投稿を自動で反映させたいとき |
+
+いずれの方法で追加しても、**トップページの「最新の活動報告」（最新3件）と活動報告ページ（`/activities/`）の両方へ自動的に反映されます**（`src/data/activities.ts` が共通の取得口になっています）。
+
+**5-1・5-A で登録した活動は、SNSのAPIに一切依存しません。** SNS側が一時的に取得できない状態でも必ず表示されるため、「活動していないサイト」に見えてしまうことを防げます。
+
+---
+
+### 5-1. 活動報告を1件追加する（もっとも簡単な方法／推奨）
+
+**設定ファイル**：`src/data/activityEntries.ts`
+
+`activityEntries` 配列に、次の形でオブジェクトを1件追加するだけです。
+
+```ts
+{
+  id: "2026-08-25-signboard",                  // 他と重複しない半角英数字
+  date: "2026-08-25",                          // 活動日・投稿日（"YYYY-MM-DD"）
+  title: "新たに看板を設置しました",              // 見出し
+  summary: "延岡市内に活動をお知らせする看板を新しく設置しました。", // 本文概要
+  category: "地域活動",                          // カテゴリ
+  platform: "facebook",                        // facebook / instagram / threads / website
+  url: "https://www.facebook.com/xxxxx/posts/xxxxx", // 投稿URL（省略可）
+  image: {                                     // サムネイル（省略可）
+    src: "/images/activities/2026-08-25-signboard.jpg",
+    alt: "新しく設置した看板",
+  },
+},
+```
+
+| 項目 | 内容 |
+|---|---|
+| `id` | 他と重複しない半角英数字 |
+| `date` | 活動日・投稿日（`"YYYY-MM-DD"`形式）。未来の日付にすると、その日まで自動的に非表示になります |
+| `title` | 見出し |
+| `summary` | カードに表示する本文概要（2〜3行程度） |
+| `category` | カテゴリ（例：`"地域活動"` `"意見交換会"` `"福祉"` `"子育て"` `"防災"`） |
+| `platform` | 掲載元。`"facebook"` / `"instagram"` / `"threads"`、SNS投稿がない場合は `"website"` |
+| `url` | 投稿の公開URL（省略可。省略するとリンクなしの情報カードになります） |
+| `image` | サムネイル画像（省略可）。画像は `public/images/activities/` に置き、`"/images/activities/ファイル名.jpg"` の形で指定します |
+| `updatedAt` | 後から内容を更新した場合の更新日（省略可） |
+
+保存して `npm run build` が通れば完了です。並び順は日付の新しい順に自動で並び替えられます。
+
+**注意：実際に行っていない活動は登録しないでください。日付・場所・内容を推測で埋めないでください。**
+
+---
+
+### 5-A. 長い記事として活動報告を書く方法
+
 `src/content/activities/_TEMPLATE.md.example` をコピーして、同じフォルダに新しいファイル名（例：`2026-02-shien-koryukai.md`）で保存してください。
 
 frontmatter（ファイル先頭の`---`で囲まれた部分）に必要事項を入力し、本文に「活動の目的」「実施内容」「参加者から寄せられた声」「分かった課題」「今後の対応」を記入します。
@@ -134,7 +190,9 @@ frontmatter（ファイル先頭の`---`で囲まれた部分）に必要事項�
 
 ---
 
-### 5-2. FacebookやInstagramの投稿を追加する方法
+### 5-2. FacebookやInstagramの投稿を追加する方法（従来からの登録方式）
+
+> **新しく追加する場合は 5-1（`src/data/activityEntries.ts`）をおすすめします。** この 5-2 は、投稿の埋め込み表示や、同じ内容をFacebookとInstagramの両方へ投稿した場合の1枚化など、追加の機能が必要なときに使ってください。すでにこの方式で登録済みの投稿はそのまま動作します。
 
 活動報告ページ（`/activities`）では、公式サイトの活動報告に加えて、Facebook・Instagramで公開した投稿も一覧に表示できます。Meta APIやアクセストークンは不要で、投稿URLを手動で登録するだけの方式です。
 
@@ -193,7 +251,7 @@ frontmatter（ファイル先頭の`---`で囲まれた部分）に必要事項�
 },
 ```
 
-**公式アカウントのURL設定場所**：`src/config/socialConfig.ts` で一元管理しています（正式URLが既定値として設定済みのため、通常は変更不要です）。`src/data/socialLinks.ts` の `facebook` / `instagram` はここから値を読み込むだけで、直接書き換えないでください。SNS投稿がまだ1件も登録されていない、またはFacebook・Instagramタブに投稿がない場合、活動報告ページに「SNSでも活動を発信しています」という案内とあわせて、公式URLへのリンクボタン（「Facebookを見る」「Instagramを見る」）が自動的に表示されます。
+**公式アカウントのURL設定場所**：`src/config/socialConfig.ts` で一元管理しています（正式URLが既定値として設定済みのため、通常は変更不要です）。`src/data/socialLinks.ts` の `facebook` / `instagram` / `threads` はここから値を読み込むだけで、直接書き換えないでください。活動報告が1件も表示できない場合は、「最新情報はSNSでも発信しています」という案内と、公式URLへのリンクボタンが自動的に表示されます（詳しくは下の「活動報告が表示されないときの動き」を参照）。
 
 **投稿が表示されない・埋め込みが読み込まれない場合の確認方法**：
 - `postUrl` が実際に「公開」設定の投稿を指しているか確認してください（非公開・友達限定の投稿は埋め込めません）
@@ -207,9 +265,68 @@ frontmatter（ファイル先頭の`---`で囲まれた部分）に必要事項�
 5-2の手動登録とは別に、FacebookページとInstagramプロアカウントへ新しく投稿すると、活動報告ページを開いたタイミングで自動的に反映される仕組みも用意されています（キャッシュは10〜15分保持され、それより古い場合にのみ最新の投稿を取得し直すため、最大15分程度での反映が目安です）。Meta Graph APIとCloudflare Pages Functionsを使った仕組みで、アクセストークン等の秘密情報はCloudflare Pagesの暗号化されたSecretsにのみ保存し、GitHubやフロントエンドのコードには一切含まれません。
 
 - 設定手順は [META_SOCIAL_SETUP.md](./META_SOCIAL_SETUP.md)（詳しいMeta側の操作は [docs/social-sync-setup.md](./docs/social-sync-setup.md)）にまとめています
-- 設定が完了するまでは、この機能は自動的に「投稿0件」として扱われ、活動報告ページには「SNSでも活動を発信しています」という案内とFacebook・Instagramの公式URLへのボタンが表示されます。5-2の手動登録やサイトのデザインには一切影響しません
+- 設定が完了するまでは、この機能は自動的に「投稿0件」として扱われます。5-1・5-2の手動登録やサイトのデザインには一切影響しません
 - 手動登録した投稿と、自動取得された投稿で同じURLのものがある場合は、重複せず1件だけ表示されます
 - 片方のSNS（例：Instagram）だけ取得に失敗しても、もう片方（Facebook）の投稿は通常どおり表示されます
+
+---
+
+### 5-3b. SNS投稿がサイトへ反映されるまで（自動更新の仕組み）
+
+SNSへ投稿してから、写真付きカードとしてサイトへ載るまでの流れです。
+
+```
+Facebook / Threads へ投稿
+        ↓ （最大1時間）
+GitHub Actions（.github/workflows/refresh-social-posts.yml）が
+Cloudflare Pages のデプロイフックを実行
+        ↓
+Cloudflare Pages で再ビルド
+  ├ scripts/sync-social-posts.mjs が Meta / Threads API から投稿を取得
+  ├ 写真を public/images/social/{platform}/{投稿ID}.webp としてローカル保存
+  └ src/data/socialPostsSnapshot.json を更新
+        ↓
+トップページ（最新3件）と /activities/（一覧）へ、写真付きカードとしてHTMLに出力
+```
+
+さらに、ページを開いた後に `/api/social-feed`（Cloudflare KVで10〜15分キャッシュ）からも
+最新投稿を読み込み、ビルド後に増えた投稿をその場で差し込みます。
+つまり **ビルド時（最大1時間）と実行時（最大15分）の二重で反映される** 構成です。
+
+**⚠️ 定期実行の有効化には、GitHubリポジトリでの初回設定が1回だけ必要です。**
+手順は `.github/workflows/refresh-social-posts.yml` の冒頭コメントに記載しています
+（Cloudflareでデプロイフックを作成し、そのURLをGitHubのSecret `CLOUDFLARE_DEPLOY_HOOK_URL` へ登録）。
+未設定の間もサイトは正常に動作しますが、HTMLへ焼き込まれる活動報告が更新されなくなります。
+
+**必要な環境変数（Cloudflare Pagesの「Variables and Secrets」へ設定）**
+
+| 変数名 | 用途 | 秘密情報 |
+|---|---|---|
+| `FACEBOOK_PAGE_ID` | FacebookページのID | — |
+| `META_ACCESS_TOKEN` | Meta Graph APIのアクセストークン | ✅ Secret |
+| `INSTAGRAM_USER_ID` | InstagramプロアカウントのID | — |
+| `THREADS_USER_ID` | ThreadsのユーザーID | — |
+| `THREADS_ACCESS_TOKEN` | Threads APIのアクセストークン | ✅ Secret |
+| `SOCIAL_POST_LIMIT` | 取得件数（既定6） | — |
+
+トークン類は必ずCloudflareのSecretsへ保存し、ソースコード・`public/`・
+HTML・JavaScriptへ書き込まないでください。
+
+---
+
+### 5-4. 活動報告が表示されないときの動き（段階的フォールバック）
+
+SNSが一時的に取得できない状態でも、サイトが「活動していないサイト」に見えないよう、次の順に自動的に切り替わります。
+
+| 状況 | 表示される内容 |
+|---|---|
+| ① SNSの取得に成功 | 最新の投稿を表示 |
+| ② SNSの取得に失敗 | サイト側に保存された活動データ（5-1・5-A・前回のスナップショット）を表示 |
+| ③ 保存データも0件 | 「最新情報はSNSでも発信しています」という案内と、Facebook・Instagram・Threadsへのリンクを表示 |
+
+- **「SNSの最新投稿を読み込めません」「準備中です」といった技術的・後ろ向きな文言は、閲覧者には表示しません。** 取得エラーはブラウザのコンソール（`[home]` / `[activities]` の警告）にだけ記録されます。原因を調べる際はブラウザの開発者ツールを開いてください。
+- ビルド時の同期（`scripts/sync-social-posts.mjs`）も、認証情報が未設定・取得に失敗したプラットフォームについては、**前回のスナップショット（`src/data/socialPostsSnapshot.json`）の投稿をそのまま引き継ぎます。** トークンの期限切れや環境変数の設定漏れだけで、これまで表示できていた活動報告が消えることはありません。
+- ③の案内文は `src/components/ActivityFallbackNotice.astro` にまとまっています。文言を変えたい場合はこのファイルを編集してください（同じ案内が画面内に何枚も重複表示されないよう、1箇所に集約しています）。
 
 ---
 

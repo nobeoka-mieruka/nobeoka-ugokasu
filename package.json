@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/generate-build-info.mjs && node scripts/sync-facebook-posts.mjs",
+    "predev": "node scripts/generate-build-info.mjs && node scripts/sync-social-posts.mjs",
     "dev": "astro dev",
     "start": "astro dev",
-    "prebuild": "node scripts/generate-build-info.mjs && node scripts/sync-facebook-posts.mjs",
+    "prebuild": "node scripts/generate-build-info.mjs && node scripts/sync-social-posts.mjs",
     "build": "astro check && astro build",
     "preview": "astro preview",
     "astro": "astro",

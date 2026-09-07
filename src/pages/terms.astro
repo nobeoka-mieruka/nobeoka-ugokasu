@@ -5,10 +5,20 @@ import Breadcrumb from "../components/Breadcrumb.astro";
 import { siteConfig } from "../config/siteConfig";
 import { webPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
+import { getContentLastUpdated, formatLastUpdated } from "../utils/lastUpdated";
 
 const title = "サイト利用について｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会公式ホームページのご利用にあたっての注意事項です。著作権、免責事項、リンクについて説明します。";
 const breadcrumbItems = [{ name: "サイト利用について", path: "/terms" }];
+
+// 制定日は固定値のまま維持する（このページ自体の初出時点の日付のため、Git履歴とは連動させない）。
+const establishedDateLabel = "2026年7月17日";
+
+// 最終改定日は、このページ（src/pages/terms.astro）を最後にGitコミットした日時を使う。
+// ビルド実行時刻・アクセス時刻ではなく、実際に内容が変わった日を表示する（4章）。
+// 取得できない場合は制定日と同じ固定値へフォールバックし、ビルドは失敗させない。
+const termsLastModified = getContentLastUpdated("terms");
+const lastRevisedLabel = termsLastModified ? formatLastUpdated(termsLastModified) : establishedDateLabel;
 
 const schemas = [
   webPageSchema({ path: "/terms", name: title, description }),
@@ -62,12 +72,12 @@ const schemas = [
         <h2 class="text-lg font-bold text-ink mb-3">お問い合わせ</h2>
         <p>
           本ページに関するお問い合わせは、
-          <a href={`mailto:${siteConfig.email}`} class="underline text-ink font-bold">{siteConfig.email}</a>
+          <a href={`mailto:${siteConfig.contact.office.email}`} class="underline text-ink font-bold [overflow-wrap:anywhere]">{siteConfig.contact.office.email}</a>
           までご連絡ください。
         </p>
       </div>
 
-      <p class="text-sm text-ink-soft/70">制定日：2026年7月17日<br class="sm:hidden" /> 最終改定日：2026年7月17日</p>
+      <p class="text-sm text-ink-soft/70">制定日：{establishedDateLabel}<br class="sm:hidden" /> 最終改定日：{lastRevisedLabel}</p>
     </div>
   </section>
 </BaseLayout>

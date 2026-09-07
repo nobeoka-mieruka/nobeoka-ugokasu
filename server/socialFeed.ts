@@ -12,7 +12,7 @@ import { runSocialSync, summarizeForLog } from "./socialSync";
 /** キャッシュをどれだけの間「新しい」とみなすか（約5分） */
 const FRESH_TTL_MS = 5 * 60 * 1000;
 
-const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured" };
+const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured", threads: "not_configured" };
 
 export async function getSocialFeed(env: SocialSyncEnv): Promise<SocialPostsResponse> {
   const cached = await readCache(env);
@@ -28,7 +28,7 @@ export async function getSocialFeed(env: SocialSyncEnv): Promise<SocialPostsResp
     return { posts: result.posts, updatedAt: result.updatedAt, stale: false, status: result.status, fetchFailed: false };
   }
 
-  if (result.facebookError || result.instagramError) {
+  if (result.facebookError || result.instagramError || result.threadsError) {
     // 訪問者アクセスをきっかけにした自動同期の失敗も、手動同期と同様にCloudflare
     // Functionsログへ残す（トークン等の秘密情報は含まない。server/socialSync.tsの
     // summarizeForLog参照）。これが無いと、ページ閲覧時に発生した実際の取得失敗が

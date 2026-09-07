@@ -7,10 +7,14 @@ import MessageCard from "../components/MessageCard.astro";
 import ProfileSummary from "../components/ProfileSummary.astro";
 import VisionCard from "../components/VisionCard.astro";
 import ActivityCard from "../components/ActivityCard.astro";
+import ActivityEntryCard from "../components/ActivityEntryCard.astro";
 import SnsActivityCard from "../components/SnsActivityCard.astro";
 import SocialPostCard from "../components/SocialPostCard.astro";
+import ActivityFallbackNotice from "../components/ActivityFallbackNotice.astro";
+import SocialFollowCards from "../components/SocialFollowCards.astro";
 import NewsCard from "../components/NewsCard.astro";
 import ContactBanner from "../components/ContactBanner.astro";
+import MailLink from "../components/MailLink.astro";
 import Icon from "../components/Icon.astro";
 import VideoCard from "../components/VideoCard.astro";
 import { siteConfig } from "../config/siteConfig";
@@ -110,8 +114,8 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
           </div>
           <div class="mt-10 flex flex-wrap gap-4">
             <a href="/profile/" class="btn-primary">福富千恵について</a>
-            <a href="/vision/" class="btn-secondary">提言を見る</a>
-            <a href="/voices/submit/" class="btn-secondary">みんなの声を届ける</a>
+            <a href="/vision/" class="btn-secondary">政策・提言を見る</a>
+            <a href="/voices/submit/" class="btn-secondary">声を届ける</a>
           </div>
         </div>
         <div class="order-1 lg:order-2 relative rounded-[2rem] overflow-hidden p-4 sm:p-6 md:p-8 lg:p-10">
@@ -217,6 +221,8 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
   <!-- 8-2 3つのメッセージ -->
   <section class="py-14 sm:py-20">
     <div class="section-wrap">
+      {/* 見出し階層を保つための、視覚的には表示しない見出し（13章） */}
+      <h2 class="sr-only">大切にしていること</h2>
       <div class="grid gap-8 sm:grid-cols-3">
         <MessageCard icon="heart" iconColorClass="text-accent-childcare" text={"苦しいときに、\n苦しいと言える。"} />
         <MessageCard icon="handshake" iconColorClass="text-accent-welfare" text={"助けてほしいときに、\n助けてと言える。"} />
@@ -228,6 +234,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
   <!-- 8-3 基本メッセージ -->
   <section class="py-14 sm:py-20 bg-brand-ivory">
     <div class="section-wrap max-w-3xl text-center">
+      <h2 class="sr-only">活動への想い</h2>
       <p class="text-xl sm:text-2xl text-ink leading-loose">
         生きている限りサポートを必要とするのは、お互い様だから、支え合い、助け合い、協力するのが当たり前で当然なのです。
       </p>
@@ -241,8 +248,23 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
     </div>
   </section>
 
-  <!-- 8-5 現在の活動（最新の活動報告） -->
+  <!-- 8-5 政策・提言 -->
   <section class="py-14 sm:py-16 bg-brand-ivory">
+    <div class="section-wrap">
+      <SectionTitle title={visionHeading} subtitle={visionSubtitle} />
+      <div class="grid gap-8 sm:grid-cols-3">
+        {visionProposals.map((proposal) => (
+          <VisionCard proposal={proposal} />
+        ))}
+      </div>
+      <div class="mt-8 text-center">
+        <a href="/vision/" class="btn-secondary">政策・提言を見る</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8-6 最新の活動報告 -->
+  <section class="py-14 sm:py-16">
     <div class="section-wrap">
       <SectionTitle title="最新の活動報告" align="left" />
       <div
@@ -264,50 +286,42 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
               </div>
             );
           }
+          if (item.kind === "manual") {
+            return <ActivityEntryCard entry={item.entry} />;
+          }
           if (item.kind === "sns") {
             return <SnsActivityCard entry={item.entry} />;
           }
           return <SocialPostCard post={item.entry} priorityImage={index === 0} variant="home" />;
         })}
       </div>
-      {homeActivities.length === 0 && (
-        <div data-home-activities-empty class="rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft">
-          <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
-          <p>活動報告は準備中です。</p>
-        </div>
-      )}
+      {/*
+        段階的フォールバック（15章）：サイト側に保存された活動データも1件も無い場合にだけ、
+        「最新情報はSNSでも発信しています」という案内を出す。
+        「準備中です」「読み込めません」といった表示は行わない。
+      */}
+      <div
+        data-home-activities-empty
+        class:list={[homeActivities.length > 0 && "hidden"]}
+      >
+        <ActivityFallbackNotice boxed={false} />
+      </div>
       <div class="mt-8 text-center">
-        {homeActivities.length > 0 ? (
-          <a href="/activities/" data-home-activities-cta class="btn-secondary">
-            活動報告一覧を見る
-          </a>
-        ) : (
-          <>
-            <a href="/activities/" data-home-activities-cta class="btn-secondary hidden">
-              活動報告一覧を見る
-            </a>
-            <span
-              data-home-activities-cta-disabled
-              class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed"
-              aria-disabled="true"
-            >
-              活動報告一覧を見る（準備中）
-            </span>
-          </>
-        )}
+        <a href="/activities/" class="btn-secondary">活動報告一覧を見る</a>
       </div>
     </div>
   </section>
 
   <script>
-    // ビルド時点の活動報告（activitiesコレクション・SNS投稿スナップショット）に加えて、
-    // 最新のFacebook投稿を /api/social-feed（Cloudflare KVでキャッシュ済み）から取得する。
+    // ビルド時点の活動報告（activitiesコレクション・activityEntries・SNS投稿スナップショット）に
+    // 加えて、最新のSNS投稿を /api/social-feed（Cloudflare KVでキャッシュ済み）から取得する。
     // 活動報告一覧ページ（src/pages/activities/index.astro）と同じ挿入ロジック
     // （src/scripts/activityGrid.ts）で日付の新しい順の位置へ差し込み、そのうえで
     // 上位3件だけを残す。ビルド後に新しい投稿が公開されていた場合、ビルド時点の
     // スナップショットで埋まっていたカードも新しい投稿に置き換わるため、
     // トップページの最新3件が常に活動報告一覧の先頭3件と一致する。
-    // Meta APIへ直接アクセスすることはしない。
+    // Meta APIへ直接アクセスすることはしない。取得に失敗しても、SSR済みの活動報告が
+    // そのまま残るだけで、エラーメッセージを閲覧者へ表示することはない。
     import { fetchSocialPosts } from "../services/socialPosts";
     import { createSocialPostCardElement } from "../scripts/socialPostCard";
     import { registerActivityImageFallback } from "../scripts/activityImageFallback";
@@ -320,10 +334,14 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
     (async () => {
       const grid = document.querySelector<HTMLElement>("[data-home-activity-grid]");
       const emptyState = document.querySelector<HTMLElement>("[data-home-activities-empty]");
-      const ctaLink = document.querySelector<HTMLElement>("[data-home-activities-cta]");
-      const ctaDisabled = document.querySelector<HTMLElement>("[data-home-activities-cta-disabled]");
 
-      const { posts } = await fetchSocialPosts();
+      const { posts, requestFailed, fetchFailed } = await fetchSocialPosts();
+
+      if (requestFailed || fetchFailed) {
+        console.warn(
+          `[home] SNSの最新投稿を取得できませんでした（requestFailed=${requestFailed} / fetchFailed=${fetchFailed}）。保存済みの活動データを表示しています。`,
+        );
+      }
 
       if (grid && posts.length > 0) {
         // ビルド時点で既にSSRされている投稿（同じpermalink）は重複させない
@@ -346,49 +364,11 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
       const hasContent = (grid?.children.length ?? 0) > 0;
       grid?.classList.toggle("hidden", !hasContent);
       emptyState?.classList.toggle("hidden", hasContent);
-      ctaLink?.classList.toggle("hidden", !hasContent);
-      ctaDisabled?.classList.toggle("hidden", hasContent);
     })();
   </script>
 
-  <!-- 8-6 提言 -->
-  <section class="py-14 sm:py-16">
-    <div class="section-wrap">
-      <SectionTitle title={visionHeading} subtitle={visionSubtitle} />
-      <div class="grid gap-8 sm:grid-cols-3">
-        {visionProposals.map((proposal) => (
-          <VisionCard proposal={proposal} />
-        ))}
-      </div>
-      <div class="mt-8 text-center">
-        <a href="/vision/" class="btn-secondary">私たちの提言をもっと見る</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- 8-7 みんなの声 -->
+  <!-- 8-7 最新のお知らせ -->
   <section class="py-14 sm:py-16 bg-brand-ivory">
-    <div class="section-wrap">
-      <SectionTitle title={"あなたの声から、\n延岡のこれからを考えます。"} />
-      <div class="max-w-2xl mx-auto text-center text-lg text-ink-soft leading-relaxed">
-        <p>
-          福富千恵と延岡を動かす会では、地域の皆さまの声を幅広く集め、共通する課題や異なる考え方を整理し、今後の活動や提言に生かします。
-        </p>
-        <p class="mt-4">
-          小さな困りごと、制度について感じていること、地域を良くするためのアイデアをお寄せください。
-        </p>
-      </div>
-      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <a href="/voices/submit/" class="btn-primary">声を届ける</a>
-        <a href="/voices/themes/" class="btn-secondary">現在募集中のテーマ</a>
-        <a href="/voices/" class="btn-secondary">みんなの声を見る</a>
-        <a href="/voices/method/" class="btn-secondary">整理方法を見る</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- 8-8 最新のお知らせ -->
-  <section class="py-14 sm:py-16">
     <div class="section-wrap">
       <SectionTitle title="最新のお知らせ" align="left" />
       {news.length > 0 ? (
@@ -404,19 +384,38 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
           ))}
         </div>
       ) : (
-        <div class="rounded-xl bg-brand-orange-light/60 ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft">
+        <div class="rounded-xl bg-white ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft">
           <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
-          <p>お知らせは準備中です。</p>
+          <p>新しいお知らせは、公開次第こちらに掲載します。</p>
         </div>
       )}
-      <div class="mt-8 text-center">
-        {news.length > 0 ? (
+      {news.length > 0 && (
+        <div class="mt-8 text-center">
           <a href="/news/" class="btn-secondary">お知らせ一覧を見る</a>
-        ) : (
-          <span class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-black/10 px-6 py-3 text-xl font-bold text-ink-soft/50 cursor-not-allowed" aria-disabled="true">
-            お知らせ一覧を見る（準備中）
-          </span>
-        )}
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- 8-8 みんなの声 -->
+  <section class="py-14 sm:py-16">
+    <div class="section-wrap">
+      <SectionTitle title={"あなたの声から、\n延岡のこれからを考えます。"} />
+      <div class="max-w-2xl mx-auto text-center text-lg text-ink-soft leading-relaxed">
+        <p>
+          福富千恵と延岡を動かす会では、地域の皆さまの声を幅広く集め、共通する課題や異なる考え方を整理し、今後の活動や提言に生かします。
+        </p>
+        <p class="mt-4">
+          小さな困りごと、制度について感じていること、地域を良くするためのアイデアをお寄せください。
+        </p>
+      </div>
+      {/*
+        CTAはページ全体で「主要な行動1つ＋補助1つ」に統一する。
+        テーマ一覧・整理方法へのリンクは、みんなの声ページ（/voices/）側にまとめている。
+      */}
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+        <a href="/voices/submit/" class="btn-primary">声を届ける</a>
+        <a href="/voices/" class="btn-secondary">みんなの声を見る</a>
       </div>
     </div>
   </section>
@@ -511,9 +510,42 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
         primaryHref="/supporters/"
         secondaryLabel="後援会に入会する"
         secondaryHref="/supporters/join/"
-        tertiaryLabel="お問い合わせ"
-        tertiaryHref="/contact/"
       />
+    </div>
+  </section>
+
+  <!--
+    8-10 SNS
+    公式SNSへの導線。Facebook SDK等の重い外部スクリプトは読み込まず、
+    静的なカード＋外部リンクだけで構成している（14章：表示速度・プライバシー配慮）。
+    URLは src/config/socialConfig.ts で一元管理し、未設定のSNSは自動的に非表示になる。
+  -->
+  <section class="py-14 sm:py-16">
+    <div class="section-wrap">
+      <SectionTitle
+        title="SNSでも最新情報を発信しています"
+        subtitle="日々の活動やお知らせは、各SNSでも随時お届けしています。"
+        align="left"
+      />
+      <SocialFollowCards />
+    </div>
+  </section>
+
+  <!-- 8-11 お問い合わせ -->
+  <section class="py-14 sm:py-16 bg-brand-ivory">
+    <div class="section-wrap">
+      <div class="card mx-auto max-w-2xl text-center">
+        <h2 class="text-xl font-bold text-ink">お問い合わせ</h2>
+        <p class="mt-3 text-ink-soft leading-relaxed">
+          ご意見・ご質問、活動へのご参加のご相談は、後援会事務局までお気軽にご連絡ください。
+        </p>
+        <div class="mt-4 flex justify-center">
+          <MailLink to="office" />
+        </div>
+        <div class="mt-6">
+          <a href="/contact/" class="btn-primary">お問い合わせページへ</a>
+        </div>
+      </div>
     </div>
   </section>
 </BaseLayout>

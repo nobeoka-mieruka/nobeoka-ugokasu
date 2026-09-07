@@ -1,0 +1,79 @@
+# =============================================================
+# SNS投稿（Facebook・Threads）の自動反映用の定期リビルド
+# =============================================================
+# なぜ必要か
+# -----------------------------------------------------------------
+# このサイトはCloudflare Pagesの静的サイトです。SNS投稿は次の2経路で表示されます。
+#
+#   A. ビルド時同期（scripts/sync-social-posts.mjs）
+#      → HTMLへ直接書き出され、写真も public/images/social/ へ .webp で保存される。
+#        検索エンジンにも読まれ、JavaScriptが動かない環境でも表示される。
+#   B. 実行時API（/api/social-feed）
+#      → ページを開いた後にJavaScriptが最新投稿を追加する。
+#
+# Aはビルドしたときにしか更新されないため、定期的にビルドを実行しないと、
+# SNSへ新しく投稿しても、HTMLに焼き込まれた活動報告は古いままになります。
+# （実際に2026年8月2日のデプロイ以降ビルドが行われず、8月中の投稿がHTMLへ
+#   反映されていませんでした。）
+#
+# このワークフローは、Cloudflare Pagesの「デプロイフック」を定期的に叩いて
+# 再ビルドさせることで、SNSへ投稿するだけでサイトへ写真付きで反映される状態にします。
+#
+# 事前準備（GitHubリポジトリの管理者が1回だけ行う作業）
+# -----------------------------------------------------------------
+# 1. Cloudflareダッシュボード
+#      Workers & Pages → nobeoka-ugokasu → Settings → Builds & deployments
+#      → Deploy hooks → 「Add deploy hook」
+#      名前: scheduled-social-refresh / ブランチ: main
+#    で作成されたURLをコピーします。
+# 2. GitHubリポジトリ
+#      Settings → Secrets and variables → Actions → New repository secret
+#      Name : CLOUDFLARE_DEPLOY_HOOK_URL
+#      Value: 1でコピーしたURL
+#    を登録します。
+#
+# ※ このURL自体が実行権限を持つ秘密情報です。必ずSecretsへ保存し、
+#   ワークフローのログやソースコードへ出力しないでください。
+#   Meta/ThreadsのアクセストークンはCloudflare Pages側の環境変数に
+#   設定済みのため、GitHub側へ登録する必要はありません。
+
+name: Refresh social posts
+
+on:
+  schedule:
+    # 1時間ごと（UTC基準）。SNSへ投稿してから最大1時間程度でサイトへ反映されます。
+    # 実行回数を抑えるため、これより短い間隔にはしていません。
+    - cron: "0 * * * *"
+  # 手動実行（Actionsタブの「Run workflow」）でも即座に反映できるようにする
+  workflow_dispatch:
+
+# 同時に複数のリビルドが走らないようにする
+concurrency:
+  group: refresh-social-posts
+  cancel-in-progress: false
+
+jobs:
+  trigger-rebuild:
+    runs-on: ubuntu-latest
+    # 未設定の環境（フォーク等）で毎時失敗し続けないよう、Secretがある場合だけ実行する
+    if: github.repository_owner != ''
+    steps:
+      - name: Cloudflare Pagesの再ビルドを実行する
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK_URL" ]; then
+            echo "::warning::CLOUDFLARE_DEPLOY_HOOK_URL が未設定のため、再ビルドをスキップしました。"
+            echo "設定手順はこのファイル冒頭のコメントを参照してください。"
+            exit 0
+          fi
+
+          # -s/-o /dev/null でレスポンス本文を出さず、HTTPステータスだけを確認する
+          # （デプロイフックURLそのものがログへ出ないようにする）
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$DEPLOY_HOOK_URL")
+          echo "デプロイフックの応答: HTTP $status"
+
+          case "$status" in
+            200|201|202) echo "再ビルドを開始しました。" ;;
+            *) echo "::error::再ビルドの開始に失敗しました (HTTP $status)"; exit 1 ;;
+          esac

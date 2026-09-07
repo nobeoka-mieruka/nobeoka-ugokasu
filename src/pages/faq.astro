@@ -8,7 +8,7 @@ import { siteConfig } from "../config/siteConfig";
 import { webPageSchema, faqPageSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 
-const title = "福富千恵 よくある質問｜延岡市民との対話";
+const title = "よくある質問｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会に寄せられるよくある質問をまとめました。団体の活動内容、意見の届け方、市役所案内、プロフィール、政策についてご案内します。";
 const breadcrumbItems = [{ name: "よくある質問", path: "/faq" }];
 
@@ -44,7 +44,7 @@ const faqItems = [
   },
   {
     question: "活動報告はどこで確認できますか",
-    answer: "活動報告ページで、実施した活動を新しい順にご紹介しています。活動がまだない期間は「準備中」と表示されます。",
+    answer: "活動報告ページで、実施した活動を新しい順にご紹介しています。Facebook・Instagram・Threadsへの投稿も自動的に反映されます。掲載できる活動がまだない期間は、各SNSへのご案内を表示しています。",
   },
   {
     question: "意見はどのように届けられますか",
@@ -62,7 +62,7 @@ const faqItems = [
   },
   {
     question: "問い合わせ先を教えてください",
-    answer: `メールアドレス（${siteConfig.email}）よりお問い合わせください。詳しくはお問い合わせページをご覧ください。`,
+    answer: `事務局へのお問い合わせは、メールアドレス（${siteConfig.contact.office.email}）よりご連絡ください。福富千恵本人へのご連絡は、プロフィールページに記載の本人あてアドレス（${siteConfig.contact.personal.email}）をご利用ください。詳しくはお問い合わせページをご覧ください。`,
   },
 ];
 

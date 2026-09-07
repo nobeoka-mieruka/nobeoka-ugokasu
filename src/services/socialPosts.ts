@@ -4,7 +4,7 @@
 
 import type { SocialFeedStatus, SocialPost, SocialPostsResponse } from "../types/social";
 
-const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured" };
+const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured", threads: "not_configured" };
 
 export interface SocialPostsResult {
   posts: SocialPost[];

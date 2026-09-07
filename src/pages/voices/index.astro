@@ -7,12 +7,13 @@ import RelatedContent from "../../components/RelatedContent.astro";
 import Icon from "../../components/Icon.astro";
 import VoiceEngagementFlow from "../../components/VoiceEngagementFlow.astro";
 import VoiceSummaryPanel from "../../components/VoiceSummaryPanel.astro";
+import VoiceStatusPipeline from "../../components/VoiceStatusPipeline.astro";
 import { voicesConfig } from "../../config/voicesConfig";
 import { voiceThemes } from "../../data/voiceThemes";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
 
-const title = "延岡の課題と市民の声｜福富千恵と延岡を動かす会";
+const title = "みんなの声｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会の「みんなの声（ブロードリスニング）」のご紹介です。市民の皆さまの声を集め、整理し、対応状況を公開しています。";
 const breadcrumbItems = [{ name: "みんなの声", path: "/voices" }];
 
@@ -29,27 +30,48 @@ const schemas = [
     description="多様な声を幅広く集め、共通する課題、異なる立場からの意見、少数でも重要な意見を整理し、今後の活動や提言に生かす取り組みです。単なる多数決や人気投票ではありません。"
   />
 
+  {/*
+    「意見を送る」を、このページで最も分かりやすい主要な行動として最初に置く。
+    Googleフォームは /voices/submit/ ページ側から開く既存の導線をそのまま使う。
+  */}
+  <section class="pt-12 sm:pt-16">
+    <div class="section-wrap max-w-4xl">
+      <div class="card border-l-4 border-brand-orange text-center">
+        <h2 class="text-2xl font-bold text-ink">延岡で感じていることを、お聞かせください</h2>
+        <p class="mt-3 text-ink-soft leading-relaxed">
+          小さな困りごとでも、制度について感じていることでも構いません。
+          いただいたご意見は、個人情報を取り除いたうえで整理し、今後の活動や提言に生かします。
+        </p>
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
+          <a href="/voices/submit/" class="btn-primary">意見を送る</a>
+          <a href="/voices/themes/" class="btn-secondary">募集中のテーマを見る</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="py-14 sm:py-20">
     <div class="section-wrap max-w-4xl">
+      <h2 class="sr-only">みんなの声のご案内</h2>
       <div class="grid gap-6 sm:grid-cols-2">
         <a href="/voices/submit/" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
           <Icon name="megaphone" class="w-8 h-8 text-brand-orange" />
-          <h2 class="font-bold text-ink text-lg">声を届ける</h2>
+          <h3 class="font-bold text-ink text-lg">声を届ける</h3>
           <p class="text-sm text-ink-soft">ご意見やお困りごとをお寄せください。</p>
         </a>
         <a href="/voices/themes/" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
           <Icon name="document" class="w-8 h-8 text-brand-orange" />
-          <h2 class="font-bold text-ink text-lg">意見募集中のテーマ</h2>
+          <h3 class="font-bold text-ink text-lg">意見募集中のテーマ</h3>
           <p class="text-sm text-ink-soft">現在募集しているテーマの一覧です。</p>
         </a>
         <a href="/voices/reports/" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
           <Icon name="users" class="w-8 h-8 text-brand-orange" />
-          <h2 class="font-bold text-ink text-lg">分析結果一覧</h2>
+          <h3 class="font-bold text-ink text-lg">分析結果一覧</h3>
           <p class="text-sm text-ink-soft">集まった声の分析結果を公開しています。</p>
         </a>
         <a href="/voices/method/" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
           <Icon name="handshake" class="w-8 h-8 text-brand-orange" />
-          <h2 class="font-bold text-ink text-lg">声の集め方・整理方法</h2>
+          <h3 class="font-bold text-ink text-lg">声の集め方・整理方法</h3>
           <p class="text-sm text-ink-soft">どのように集め、整理しているかをご説明します。</p>
         </a>
       </div>
@@ -66,7 +88,16 @@ const schemas = [
   <section class="py-14 sm:py-20">
     <div class="section-wrap max-w-4xl">
       <SectionTitle title="受付状況" align="left" />
-      <VoiceSummaryPanel />
+      <p class="text-ink-soft leading-relaxed mb-6">
+        お預かりしたご意見は、次の4つの段階で整理・公開しています。
+      </p>
+      <VoiceStatusPipeline />
+      <div class="mt-8">
+        <VoiceSummaryPanel />
+      </div>
+      <div class="mt-8">
+        <a href="/voices/submit/" class="btn-primary">意見を送る</a>
+      </div>
     </div>
   </section>
 
@@ -74,17 +105,16 @@ const schemas = [
     <div class="section-wrap max-w-4xl">
       <SectionTitle title="現在寄せられている主なテーマ" align="left" />
       <p class="text-ink-soft leading-relaxed mb-6">
-        以下のテーマで意見を募集しています。テーマごとの件数は集計中です。
+        以下のテーマで意見を募集しています。テーマごとの件数は、集計がまとまり次第それぞれのテーマページで公開します。
       </p>
       <ul class="flex flex-wrap gap-2">
         {voiceThemes.map((theme) => (
           <li>
             <a
               href={`/voices/themes/${theme.slug}/`}
-              class="inline-flex items-center gap-2 rounded-full bg-white ring-1 ring-black/10 px-4 py-2 text-sm font-bold text-ink hover:ring-brand-orange-dark hover:bg-brand-orange-light transition-colors"
+              class="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white ring-1 ring-black/10 px-4 py-2 text-sm font-bold text-ink hover:ring-brand-orange-dark hover:bg-brand-orange-light transition-colors"
             >
               {theme.title}
-              <span class="text-xs font-normal text-ink-soft">集計中</span>
             </a>
           </li>
         ))}
@@ -109,6 +139,10 @@ const schemas = [
       <p class="mt-4 text-sm text-ink-soft">
         「現時点では対応が困難です」とする場合は、可能な範囲で理由もあわせて公開します。
       </p>
+      <div class="mt-8 flex flex-wrap items-center gap-4">
+        <a href="/voices/submit/" class="btn-primary">意見を送る</a>
+        <a href="/voices/method/" class="btn-secondary">整理方法を見る</a>
+      </div>
     </div>
   </section>
 
