@@ -65,6 +65,8 @@ export function personSchema(options?: { image?: string; imageWidth?: number; im
     name: siteConfig.personName,
     alternateName: siteConfig.personNameKana,
     url: absoluteUrl("/profile"),
+    // Personは本人あて、Organizationは後援会事務局あて。両者を混同しない
+    email: siteConfig.contact.personal.email,
     memberOf: {
       "@type": "Organization",
       "@id": organizationId,

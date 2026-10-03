@@ -3,7 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import Icon from "../../components/Icon.astro";
-import MailLink from "../../components/MailLink.astro";
+import ContactEmails from "../../components/ContactEmails.astro";
 import { supportersConfig } from "../../config/supporters";
 import { webPageSchema, organizationSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
@@ -245,10 +245,10 @@ const ruleSummaries = [
       <div class="mt-8 card border-l-4 border-brand-orange">
         <h3 class="font-bold text-ink mb-2">入会・規約に関するお問い合わせ</h3>
         <p class="text-sm text-ink-soft leading-relaxed">
-          入会申込みや後援会規約に関するご質問は、下記の事務局メールアドレスまでご連絡ください。
+          入会申込みや後援会規約に関するご質問は、後援会事務局までご連絡ください。福富千恵本人へのご連絡は、本人あてのメールアドレスをご利用ください。
         </p>
-        <div class="mt-2">
-          <MailLink to="office" />
+        <div class="mt-3">
+          <ContactEmails variant="compact" />
         </div>
       </div>
     </div>

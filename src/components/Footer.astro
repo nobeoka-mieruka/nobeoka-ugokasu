@@ -3,7 +3,7 @@ import { siteConfig } from "../config/siteConfig";
 import { footerNav } from "../data/navigation";
 import SocialLinks from "./SocialLinks.astro";
 import Icon from "./Icon.astro";
-import MailLink from "./MailLink.astro";
+import ContactEmails from "./ContactEmails.astro";
 import SiteLastUpdated from "./SiteLastUpdated.astro";
 ---
 
@@ -20,21 +20,13 @@ import SiteLastUpdated from "./SiteLastUpdated.astro";
           <Icon name="location" class="w-5 h-5 flex-shrink-0 mt-0.5" />
           <span>{siteConfig.postalCode}<br />{siteConfig.address}</span>
         </p>
-        <p class="mt-2 text-sm text-white/70">
-          <MailLink
-            to="office"
-            showLabel={false}
-            class="text-white/70 underline hover:text-brand-orange"
-            iconClass="text-white/70"
-          />
-        </p>
         <div class="mt-4">
           <SocialLinks />
         </div>
       </div>
 
       <nav aria-label="フッターメニュー" class="md:col-span-2">
-        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+        <ul class="grid grid-cols-1 min-[360px]:grid-cols-2 gap-x-6 gap-y-2 text-sm">
           {footerNav.map((item) => (
             <li>
               <a href={item.href} class="text-white/85 hover:text-brand-orange hover:underline">
@@ -46,7 +38,12 @@ import SiteLastUpdated from "./SiteLastUpdated.astro";
       </nav>
     </div>
 
-    <p class="mt-10 text-xs text-white/60 leading-relaxed">
+    {/* 問い合わせ先は「本人」と「後援会事務局」の2窓口を必ずセットで表示する（PCは横並び・スマホは縦並び） */}
+    <section aria-label="お問い合わせ先" class="mt-8">
+      <ContactEmails variant="footer" />
+    </section>
+
+    <p class="mt-8 text-xs text-white/60 leading-relaxed">
       {siteConfig.organizationName}は、延岡市や国・県などの行政機関とは異なる政治団体です。行政機関の公式サイトではありません。
     </p>
 

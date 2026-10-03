@@ -6,7 +6,7 @@ import Breadcrumb from "../components/Breadcrumb.astro";
 import RelatedContent from "../components/RelatedContent.astro";
 import InlineRelatedLinks from "../components/InlineRelatedLinks.astro";
 import LastUpdated from "../components/LastUpdated.astro";
-import MailLink from "../components/MailLink.astro";
+import ContactEmails from "../components/ContactEmails.astro";
 import {
   profilePageHeroHeading,
   profileChapters,
@@ -99,16 +99,12 @@ function getRelatedVisionProposals(chapter: (typeof profileChapters)[number]) {
       </div>
 
       <div class="mt-8 card text-center py-8">
-        <h2 class="font-bold text-ink text-lg mb-2">本人への連絡</h2>
+        <h2 class="font-bold text-ink text-lg mb-2">お問い合わせ</h2>
         <p class="text-sm text-ink-soft mb-4">
-          後援会事務局・ホームページ・Googleフォームに関するお問い合わせは
-          <a href="/contact/" class="underline font-bold text-ink">お問い合わせページ</a>
-          をご利用ください。福富千恵本人へのご連絡は、以下のメールアドレスまでお願いします。
+          ご用件に応じて、以下のメールアドレスへご連絡ください。
         </p>
-        {/* 本人への直接連絡先。事務局・お問い合わせ用のアドレス（siteConfig.email）とは使い分ける（3章） */}
-        <div class="flex justify-center">
-          <MailLink to="personal" useFullLabel={true} />
-        </div>
+        {/* 本人あてと後援会事務局あてを用途別に分けて表示する（3章） */}
+        <ContactEmails align="center" />
       </div>
     </div>
   </section>

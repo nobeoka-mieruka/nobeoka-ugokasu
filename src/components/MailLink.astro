@@ -13,8 +13,10 @@
 // 【なぜ共通化しているか】
 // メールアドレスは空白を含まない長い文字列のため、そのまま表示すると
 // 320〜390px程度のスマートフォンで横方向にはみ出し、ページ全体に横スクロールが
-// 発生します（10章）。`overflow-wrap: anywhere` を指定して途中で折り返せるように
-// し、アイコンと文字が別々の行になっても崩れないよう flex-wrap を併用しています。
+// 発生します（10章）。「@」の直前に <wbr> を入れて、折り返す場合はまず
+// 「ユーザー名 / @ドメイン」の位置で区切り、それでも収まらない場合に限り
+// `overflow-wrap: anywhere` で途中折り返しします。アイコンは文字と同じ行に保ち、
+// 文字側（min-w-0）が縮んで折り返すようにしています。
 import Icon from "./Icon.astro";
 import { siteConfig } from "../config/siteConfig";
 
@@ -54,6 +56,10 @@ const href = subject ? `mailto:${target.email}?subject=${encodeURIComponent(subj
 
 // 読み上げ時に「どちら宛のアドレスか」が必ず伝わるようにする（13章）
 const ariaLabel = `${target.fullLabel}（${target.email}）`;
+
+const atIndex = target.email.indexOf("@");
+const localPart = target.email.slice(0, atIndex);
+const domainPart = target.email.slice(atIndex);
 ---
 
 <span class="inline-block max-w-full">
@@ -62,11 +68,11 @@ const ariaLabel = `${target.fullLabel}（${target.email}）`;
     href={href}
     aria-label={ariaLabel}
     class:list={[
-      "inline-flex min-h-[44px] max-w-full flex-wrap items-center gap-2 py-1",
+      "inline-flex min-h-[44px] max-w-full items-center gap-2 py-1",
       className,
     ]}
   >
     {showIcon && <Icon name="mail" class:list={["w-5 h-5 flex-shrink-0", iconClass]} ariaHidden={true} />}
-    <span class="min-w-0 [overflow-wrap:anywhere]">{target.email}</span>
+    <span class="min-w-0 [overflow-wrap:anywhere]">{localPart}<wbr />{domainPart}</span>
   </a>
 </span>

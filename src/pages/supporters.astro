@@ -4,7 +4,7 @@ import HeroSection from "../components/HeroSection.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import ContactBanner from "../components/ContactBanner.astro";
 import RelatedContent from "../components/RelatedContent.astro";
-import MailLink from "../components/MailLink.astro";
+import ContactEmails from "../components/ContactEmails.astro";
 import Icon from "../components/Icon.astro";
 import { siteConfig } from "../config/siteConfig";
 import { webPageSchema, organizationSchema } from "../utils/structuredData";
@@ -88,10 +88,10 @@ const schemas = [
             <dt class="text-ink-soft text-sm font-bold">所在地</dt>
             <dd class="col-span-2 text-ink">{siteConfig.postalCode}<br />{siteConfig.address}</dd>
           </div>
-          <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-ink-soft text-sm font-bold">メール</dt>
-            <dd class="col-span-2 min-w-0 text-ink">
-              <MailLink to="office" showIcon={false} showLabel={false} />
+          <div class="py-3">
+            <dt class="text-ink-soft text-sm font-bold">お問い合わせ先</dt>
+            <dd class="mt-2 min-w-0">
+              <ContactEmails variant="compact" />
             </dd>
           </div>
         </dl>
