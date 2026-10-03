@@ -1,7 +1,7 @@
 // GET /api/social-feed
 // ホームページの「活動報告」ページから読み込む公開APIです。
-// Cloudflare KVのキャッシュが新しければそのまま返し、古い場合はこの中でMeta Graph API
-// へ取得しにいきます（server/socialFeed.ts参照）。アクセストークン・Meta APIの生レスポンス・
+// 定期同期（worker/social-cron）がKVへ保存した結果を返すだけで、このAPI自体はSNSへ
+// 問い合わせません（server/socialFeed.ts参照）。アクセストークン・Meta APIの生レスポンス・
 // 内部エラー詳細など、表示に不要な情報は一切含めません（返すのは正規化済みの投稿一覧と
 // プラットフォームごとの状態のみ）。
 
@@ -21,17 +21,16 @@ async function handleGet(context: Parameters<PagesFunction<SocialSyncEnv>>[0]): 
     // 原因調査のため、エラーメッセージのみ（秘密情報は含まない）Cloudflare Functionsログへ残す。
     // eslint-disable-next-line no-console
     console.error("social-feed: unexpected error", err instanceof Error ? err.message : "unknown_error");
-    body = { posts: [], updatedAt: null, stale: true, status: DEFAULT_STATUS, fetchFailed: true };
+    body = { posts: [], updatedAt: null, checkedAt: null, stale: true, status: DEFAULT_STATUS, fetchFailed: true };
   }
 
   return new Response(JSON.stringify(body), {
     status: 200,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      // Meta APIへのアクセス回数を抑えつつ、新しい投稿を約5分以内に反映するため、
-      // s-maxage=300（Cloudflareエッジで5分）とする。stale-while-revalidateで
-      // 同期が遅延・失敗していても古いキャッシュの提供を継続する。
-      "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
+      // 定期同期（3分ごと）の結果を投稿から5分以内に届けるため、ブラウザ・エッジとも30秒だけ
+      // キャッシュする。中身はKVを読むだけの軽い処理のため、短いキャッシュでも負荷は小さい。
+      "Cache-Control": "public, max-age=30, s-maxage=30, stale-while-revalidate=60",
     },
   });
 }

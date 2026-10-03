@@ -6,7 +6,7 @@
 
 import type { SocialPost } from "../types/social";
 import { socialPlatformMeta } from "../config/socialPlatformMeta";
-import { resolveActivityImage, buildActivityImageAlt } from "../utils/activityImage";
+import { resolveActivityImage, buildActivityImageAlt, socialCardSignature } from "../utils/activityImage";
 
 export const ICONS = {
   facebook: '<path d="M15 8h2V4.5h-2.5A4 4 0 0 0 10 8.5V11H8v3.5h2V21h3.5v-6.5H16l.5-3.5h-3V8.8c0-.5.2-.8.7-.8z"/>',
@@ -72,6 +72,9 @@ export function createSocialPostCardElement(
   const wrapper = el("div", "card p-0 overflow-hidden flex flex-col");
   wrapper.setAttribute("data-activity-card", "");
   wrapper.setAttribute("data-platforms", post.platform);
+  wrapper.dataset.date = post.publishedAt;
+  wrapper.dataset.socialPostKey = `${post.platform}:${post.id}`;
+  wrapper.dataset.socialSignature = socialCardSignature(post);
 
   // ---- 画像 / コンパクトフォールバック ----
   const resolvedImage = resolveActivityImage(post);
@@ -105,6 +108,13 @@ export function createSocialPostCardElement(
     // 画像URLの期限切れ等で読み込みに失敗した場合の処理は、ページ側で1回だけ登録される
     // registerActivityImageFallback()（イベント委譲）が行う。動的に追加したこの<img>にも
     // 同じ[data-activity-image]属性が付いているため、追加のリスナー登録は不要。
+
+    if ((post.mediaCount ?? 0) > 1) {
+      const countBadge = el("span", "absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-bold text-white");
+      countBadge.textContent = `写真${post.mediaCount}枚`;
+      countBadge.setAttribute("data-activity-media-count", "");
+      mediaBox.append(countBadge);
+    }
 
     if (isVideoLike) {
       const playOverlay = el("div", "absolute inset-0 flex items-center justify-center pointer-events-none", [
@@ -150,12 +160,12 @@ export function createSocialPostCardElement(
   }
   body.append(metaRow);
 
-  const heading = el("h3", "text-xl font-bold text-ink leading-snug line-clamp-3");
+  const heading = el("h3", "text-xl font-bold text-ink leading-snug line-clamp-3 [overflow-wrap:anywhere]");
   heading.textContent = post.title;
   body.append(heading);
 
   if (post.description) {
-    const desc = el("p", `text-base text-ink-soft ${bodyClampClass}`);
+    const desc = el("p", `text-base text-ink-soft [overflow-wrap:anywhere] ${bodyClampClass}`);
     desc.textContent = post.description;
     body.append(desc);
   }
@@ -165,7 +175,7 @@ export function createSocialPostCardElement(
   viewLink.href = post.permalink;
   viewLink.target = "_blank";
   viewLink.rel = "noopener noreferrer";
-  viewLink.className = `inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all ${meta.buttonClass}`;
+  viewLink.className = `inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-all ${meta.buttonClass}`;
   viewLink.dataset.track = "activity_read_more";
   viewLink.append(svgIcon(meta.icon, "w-4 h-4"), document.createTextNode(`${meta.label}で全文を見る`));
   viewLink.append(svgIcon("externalLink", "w-3.5 h-3.5"));

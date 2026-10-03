@@ -19,6 +19,8 @@ interface FacebookAttachment {
   type?: string;
   url?: string;
   media?: FacebookAttachmentMedia;
+  /** アルバム（複数枚）投稿の場合の各写真。枚数の表示にだけ使う */
+  subattachments?: { data?: { media_type?: string }[] };
 }
 
 export interface FacebookPostRaw {
@@ -82,7 +84,8 @@ export async function fetchFacebookPosts(params: {
   limit: number;
 }): Promise<FacebookPostRaw[]> {
   const version = apiVersion(params.apiVersion);
-  const fields = "id,message,created_time,permalink_url,full_picture,attachments{media_type,type,url,media}";
+  const fields =
+    "id,message,created_time,permalink_url,full_picture,attachments{media_type,type,url,media,subattachments.limit(20){media_type}}";
   // published_posts エッジを使用し、Facebookページ自身が公開した投稿だけを取得する
   // （訪問者がページへ投稿した内容は含まれない）。
   const url =
@@ -105,6 +108,8 @@ export async function fetchFacebookPosts(params: {
 interface InstagramChildMedia {
   media_url?: string;
   media_type?: string; // "IMAGE" | "VIDEO"
+  /** 動画の場合のサムネイル画像（media_urlは動画ファイルのため画像として使えない） */
+  thumbnail_url?: string;
 }
 
 export interface InstagramMediaRaw {
@@ -136,7 +141,7 @@ export async function fetchInstagramMedia(params: {
 }): Promise<InstagramMediaRaw[]> {
   const version = apiVersion(params.apiVersion);
   const fields =
-    "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,username,children{media_url,media_type}";
+    "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,username,children{media_url,media_type,thumbnail_url}";
   const url =
     `https://graph.facebook.com/${version}/${encodeURIComponent(params.userId)}/media` +
     `?fields=${encodeURIComponent(fields)}&limit=${params.limit}` +

@@ -1,82 +1,99 @@
 # =============================================================
-# SNS投稿（Facebook・Threads）の自動反映用の定期リビルド
+# SNS投稿をビルド済みHTMLへ反映するための「変化があるときだけ」再ビルド
 # =============================================================
-# なぜ必要か
-# -----------------------------------------------------------------
-# このサイトはCloudflare Pagesの静的サイトです。SNS投稿は次の2経路で表示されます。
+# SNS投稿は次の2経路で表示されます。
 #
-#   A. ビルド時同期（scripts/sync-social-posts.mjs）
-#      → HTMLへ直接書き出され、写真も public/images/social/ へ .webp で保存される。
-#        検索エンジンにも読まれ、JavaScriptが動かない環境でも表示される。
-#   B. 実行時API（/api/social-feed）
-#      → ページを開いた後にJavaScriptが最新投稿を追加する。
+#   A. 実行時API（/api/social-feed）
+#      → 定期同期Worker（worker/social-cron、3分ごと）がSNSから取得し、画像もサイト側へ保存。
+#        ページを開くと、JavaScriptがこの最新の結果でカードを追加・更新する。
+#        新しい投稿は、原則として投稿から5分以内にここへ反映される。
+#   B. ビルド時のHTML（scripts/sync-social-posts.mjs）
+#      → 検索エンジンやJavaScriptが動かない環境向けに、ビルド時点の投稿をHTMLへ書き出す。
 #
-# Aはビルドしたときにしか更新されないため、定期的にビルドを実行しないと、
-# SNSへ新しく投稿しても、HTMLに焼き込まれた活動報告は古いままになります。
-# （実際に2026年8月2日のデプロイ以降ビルドが行われず、8月中の投稿がHTMLへ
-#   反映されていませんでした。）
+# このワークフローは B を最新に保つためのものです。本番APIの投稿一覧の「署名」と、
+# 現在公開中のビルドの署名（/social-build-manifest.json）を比べ、
+# 変化があるときだけCloudflare Pagesのデプロイフックを呼び出して再ビルドします。
+# 変化が無いときは何もしない（コミットもデプロイも行わない）ため、不要なビルドは発生しません。
 #
-# このワークフローは、Cloudflare Pagesの「デプロイフック」を定期的に叩いて
-# 再ビルドさせることで、SNSへ投稿するだけでサイトへ写真付きで反映される状態にします。
-#
-# 事前準備（★2026年9月7日に設定完了済み。以下は再構築時の参考手順です）
-# -----------------------------------------------------------------
-# このリポジトリでは、下記1〜2の設定・動作確認（デプロイフックの発火、
-# Cloudflare Productionの再ビルド成功）まで完了しています。
-# 通常の運用で、あらためて設定し直す必要はありません。
-#
-# 1. Cloudflareダッシュボード
-#      Workers & Pages → nobeoka-ugokasu → Settings → Builds & deployments
-#      → Deploy hooks → 「Add deploy hook」
-#      名前: scheduled-social-refresh / ブランチ: main
-#    で作成されたURLをコピーします。
-# 2. GitHubリポジトリ
-#      Settings → Secrets and variables → Actions → New repository secret
-#      Name : CLOUDFLARE_DEPLOY_HOOK_URL
-#      Value: 1でコピーしたURL
-#    を登録します。
-#
-# ※ このURL自体が実行権限を持つ秘密情報です。必ずSecretsへ保存し、
-#   ワークフローのログやソースコードへ出力しないでください。
-#   Meta/ThreadsのアクセストークンはCloudflare Pages側の環境変数に
-#   設定済みのため、GitHub側へ登録する必要はありません。
+# 必要な設定（2026年9月7日に設定済み）
+#   GitHub → Settings → Secrets and variables → Actions
+#   CLOUDFLARE_DEPLOY_HOOK_URL : Cloudflare Pagesのデプロイフック（URL自体が秘密情報）
 
 name: Refresh social posts
 
 on:
   schedule:
-    # 1時間ごと（UTC基準）。SNSへ投稿してから最大1時間程度でサイトへ反映されます。
-    # 実行回数を抑えるため、これより短い間隔にはしていません。
-    - cron: "0 * * * *"
-  # 手動実行（Actionsタブの「Run workflow」）でも即座に反映できるようにする
+    # 15分ごと（GitHub Actionsの定期実行は混雑時に数分〜十数分遅れることがあります）。
+    # 閲覧者への最新投稿の表示はAの経路で5分以内に行われるため、ここはHTMLの追従用です。
+    - cron: "*/15 * * * *"
+  # 手動実行（Actionsタブの「Run workflow」）。force=true で変化が無くても再ビルドする
   workflow_dispatch:
+    inputs:
+      force:
+        description: "変化が無くても再ビルドする"
+        type: boolean
+        default: false
 
-# 同時に複数のリビルドが走らないようにする
 concurrency:
   group: refresh-social-posts
   cancel-in-progress: false
 
 jobs:
-  trigger-rebuild:
+  rebuild-if-changed:
     runs-on: ubuntu-latest
-    # 未設定の環境（フォーク等）で毎時失敗し続けないよう、Secretがある場合だけ実行する
-    if: github.repository_owner != ''
+    timeout-minutes: 5
     steps:
-      - name: Cloudflare Pagesの再ビルドを実行する
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 本番APIと公開中のビルドの内容を比べる
+        id: compare
+        env:
+          SITE_URL: https://nobeoka-ugokasu.pages.dev
+          FORCE: ${{ github.event.inputs.force }}
+        run: |
+          node --input-type=module -e '
+            import { postsSignature } from "./scripts/social-signature.mjs";
+            import { appendFileSync } from "node:fs";
+            const site = process.env.SITE_URL;
+            const get = async (p) => {
+              const res = await fetch(site + p + (p.includes("?") ? "&" : "?") + "t=" + Date.now(), { headers: { "Cache-Control": "no-cache" } });
+              if (!res.ok) throw new Error(p + " HTTP " + res.status);
+              return res.json();
+            };
+            let changed = false;
+            try {
+              const feed = await get("/api/social-feed");
+              const latest = postsSignature(feed.posts);
+              let built = null;
+              try { built = (await get("/social-build-manifest.json")).signature; } catch (e) { console.log("manifest:", e.message); }
+              changed = latest !== built;
+              console.log(`最新=${latest} 公開中=${built} 変化=${changed}`);
+            } catch (e) {
+              // 本番APIが一時的に応答しない場合は、再ビルドせずに次回へ回す
+              console.log("::warning::比較できませんでした: " + e.message);
+            }
+            if (process.env.FORCE === "true") changed = true;
+            appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\n`);
+          '
+
+      - name: 変化があるときだけCloudflare Pagesを再ビルドする
+        if: steps.compare.outputs.changed == 'true'
         env:
           DEPLOY_HOOK_URL: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK_URL }}
         run: |
           if [ -z "$DEPLOY_HOOK_URL" ]; then
             echo "::warning::CLOUDFLARE_DEPLOY_HOOK_URL が未設定のため、再ビルドをスキップしました。"
-            echo "設定手順はこのファイル冒頭のコメントを参照してください。"
             exit 0
           fi
-
           # -s/-o /dev/null でレスポンス本文を出さず、HTTPステータスだけを確認する
           # （デプロイフックURLそのものがログへ出ないようにする）
           status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$DEPLOY_HOOK_URL")
           echo "デプロイフックの応答: HTTP $status"
-
           case "$status" in
             200|201|202) echo "再ビルドを開始しました。" ;;
             *) echo "::error::再ビルドの開始に失敗しました (HTTP $status)"; exit 1 ;;

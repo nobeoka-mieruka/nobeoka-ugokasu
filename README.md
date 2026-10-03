@@ -262,7 +262,7 @@ frontmatter（ファイル先頭の`---`で囲まれた部分）に必要事項�
 
 ### 5-3. FacebookページとInstagramの投稿を自動反映する仕組み（上級者向け）
 
-5-2の手動登録とは別に、FacebookページとInstagramプロアカウントへ新しく投稿すると、活動報告ページを開いたタイミングで自動的に反映される仕組みも用意されています（キャッシュは10〜15分保持され、それより古い場合にのみ最新の投稿を取得し直すため、最大15分程度での反映が目安です）。Meta Graph APIとCloudflare Pages Functionsを使った仕組みで、アクセストークン等の秘密情報はCloudflare Pagesの暗号化されたSecretsにのみ保存し、GitHubやフロントエンドのコードには一切含まれません。
+5-2の手動登録とは別に、Facebookページ・Instagramプロアカウント・Threadsへ新しく投稿すると、バックグラウンドの定期同期（3分ごと）で取得され、原則として投稿から5分以内にトップページと活動報告ページへ反映されます（閲覧者がページを開いたときにSNSへ問い合わせる仕組みではありません）。アクセストークン等の秘密情報はCloudflare Pagesの暗号化されたSecretsにのみ保存し、GitHubやフロントエンドのコードには一切含まれません。
 
 - 設定手順は [META_SOCIAL_SETUP.md](./META_SOCIAL_SETUP.md)（詳しいMeta側の操作は [docs/social-sync-setup.md](./docs/social-sync-setup.md)）にまとめています
 - 設定が完了するまでは、この機能は自動的に「投稿0件」として扱われます。5-1・5-2の手動登録やサイトのデザインには一切影響しません
@@ -276,27 +276,27 @@ frontmatter（ファイル先頭の`---`で囲まれた部分）に必要事項�
 SNSへ投稿してから、写真付きカードとしてサイトへ載るまでの流れです。
 
 ```
-Facebook / Threads へ投稿
-        ↓ （最大1時間）
-GitHub Actions（.github/workflows/refresh-social-posts.yml）が
-Cloudflare Pages のデプロイフックを実行
-        ↓
-Cloudflare Pages で再ビルド
-  ├ scripts/sync-social-posts.mjs が Meta / Threads API から投稿を取得
-  ├ 写真を public/images/social/{platform}/{投稿ID}.webp としてローカル保存
-  └ src/data/socialPostsSnapshot.json を更新
-        ↓
-トップページ（最新3件）と /activities/（一覧）へ、写真付きカードとしてHTMLに出力
+Facebook / Instagram / Threads へ投稿
+        ↓ 3分ごと（Cloudflare Cron Triggers：worker/social-cron）
+/api/admin/sync-social-posts（Cloudflare Pages Functions）
+  ├ SNSごとに独立して公式APIから取得（1つが失敗しても他は更新。失敗したSNSは直前の投稿を保持）
+  ├ 投稿画像を取得してCloudflare KVへ保存（期限付きのSNS画像URLは保存・表示しない）
+  └ 内容が変わったときだけ投稿一覧を保存
+        ↓ 30秒キャッシュ
+/api/social-feed → トップページ・/activities/ がページ表示後に最新の投稿を反映
+  （画像は自社ドメインの /api/social-image?k=... から配信）
+        ↓ 15分ごとに内容を比較（GitHub Actions：.github/workflows/refresh-social-posts.yml）
+内容が変わったときだけ Cloudflare Pages を再ビルドし、HTMLにも最新の投稿を書き出す
 ```
 
-さらに、ページを開いた後に `/api/social-feed`（Cloudflare KVで10〜15分キャッシュ）からも
-最新投稿を読み込み、ビルド後に増えた投稿をその場で差し込みます。
-つまり **ビルド時（最大1時間）と実行時（最大15分）の二重で反映される** 構成です。
+- 実際の反映間隔：定期同期が3分ごと、公開APIのキャッシュが30秒のため、投稿から最大でも4〜5分程度です
+  （Meta側のAPIの反映遅延がある場合を除く）
+- 写真が取得できなかった投稿は、壊れた画像ではなく「画像なし」のカードとして表示します
+- SNS欄には「SNS最終更新：○月○日 ○:○○」として、最後に取得できた時刻を小さく表示します
 
-**✅ 定期実行はすでに有効化済みです（2026年9月7日 設定完了）。**
-Cloudflare Pagesのデプロイフックを作成し、GitHubのSecret `CLOUDFLARE_DEPLOY_HOOK_URL` への登録、
-GitHub Actionsの手動実行、デプロイフックの発火、Production再ビルドまで確認済みです。
-そのため、SNSへ投稿すれば追加の操作なしでサイトへ反映されます。
+**定期同期Worker（worker/social-cron）とデプロイフックは設定済みです。**
+アクセストークンの期限が切れると取得が止まるため（直前の投稿は表示され続けます）、
+[META_SOCIAL_SETUP.md](./META_SOCIAL_SETUP.md) の「トークン期限切れ時の更新方法」に沿って更新してください。
 
 （参考：この仕組みを別環境で新たに構築し直す場合の手順は、
 `.github/workflows/refresh-social-posts.yml` の冒頭コメントに残しています。）

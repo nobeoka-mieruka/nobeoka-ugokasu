@@ -1,49 +1,35 @@
 // 公開API（functions/api/social-feed.ts）から呼び出される、表示用データの組み立て役です。
-// Cloudflare KVに保存済みのキャッシュが新しければそれを返し、古くなっていれば
-// その場でMeta Graph APIへ取得しにいきます（アクセスのたびに毎回Meta APIへ
-// 問い合わせることを避けるため）。取得に失敗した場合は、直前のキャッシュがあれば
-// それを返し、無ければ空の結果を返します。
+// 閲覧者のアクセスをきっかけにSNSのAPIを呼ぶことはしません。SNSからの取得・画像の保存は
+// 定期実行（worker/social-cron → /api/admin/sync-social-posts → server/socialSync.ts）が
+// バックグラウンドで行い、ここではKVに保存済みの結果を読むだけです。
 
 import type { SocialFeedStatus, SocialPostsResponse } from "../src/types/social";
 import type { SocialSyncEnv } from "./env";
-import { readCache } from "./kv";
-import { runSocialSync, summarizeForLog } from "./socialSync";
+import { readCache, readHeartbeat, toPublicPost } from "./kv";
 
-/** キャッシュをどれだけの間「新しい」とみなすか（約5分） */
-const FRESH_TTL_MS = 5 * 60 * 1000;
+/** 定期同期がこれより長く実行されていない場合は「古い」とみなす */
+const STALE_AFTER_MS = 15 * 60 * 1000;
 
 const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured", threads: "not_configured" };
 
 export async function getSocialFeed(env: SocialSyncEnv): Promise<SocialPostsResponse> {
-  const cached = await readCache(env);
-  const cachedAgeMs = cached ? Date.now() - Date.parse(cached.updatedAt) : Number.POSITIVE_INFINITY;
+  const [cached, heartbeat] = await Promise.all([readCache(env), readHeartbeat(env)]);
 
-  if (cached && cachedAgeMs < FRESH_TTL_MS) {
-    return { posts: cached.posts, updatedAt: cached.updatedAt, stale: false, status: cached.status, fetchFailed: false };
-  }
+  const status = heartbeat?.status ?? cached?.status ?? DEFAULT_STATUS;
+  const statuses = [status.facebook, status.instagram, status.threads];
+  const attempted = statuses.filter((s) => s !== "not_configured");
+  // 認証情報があるSNSがすべて取得に失敗している場合だけ fetchFailed とする（未設定は失敗扱いにしない）
+  const fetchFailed = attempted.length > 0 && attempted.every((s) => s === "error");
 
-  const result = await runSocialSync(env);
+  const checkedAt = heartbeat?.checkedAt ?? null;
+  const checkedTooLongAgo = !checkedAt || Date.now() - Date.parse(checkedAt) > STALE_AFTER_MS;
 
-  if (result.ok) {
-    return { posts: result.posts, updatedAt: result.updatedAt, stale: false, status: result.status, fetchFailed: false };
-  }
-
-  if (result.facebookError || result.instagramError || result.threadsError) {
-    // 訪問者アクセスをきっかけにした自動同期の失敗も、手動同期と同様にCloudflare
-    // Functionsログへ残す（トークン等の秘密情報は含まない。server/socialSync.tsの
-    // summarizeForLog参照）。これが無いと、ページ閲覧時に発生した実際の取得失敗が
-    // ログ上どこにも残らず、原因調査ができなくなる。
-    // eslint-disable-next-line no-console
-    console.error(JSON.stringify(summarizeForLog(result)));
-  }
-
-  // 取得できなかった（未設定 or 失敗）。previousキャッシュがあればそれを返す。
-  const fetchFailed = result.skippedReason === "all_platforms_failed";
   return {
-    posts: result.posts,
-    updatedAt: result.updatedAt,
-    stale: result.posts.length > 0,
-    status: result.status ?? DEFAULT_STATUS,
+    posts: (cached?.posts ?? []).map(toPublicPost),
+    updatedAt: heartbeat?.lastSuccessAt ?? cached?.updatedAt ?? null,
+    checkedAt,
+    stale: fetchFailed || checkedTooLongAgo || statuses.includes("error"),
+    status,
     fetchFailed,
   };
 }

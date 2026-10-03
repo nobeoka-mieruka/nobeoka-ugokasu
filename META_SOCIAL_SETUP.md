@@ -178,11 +178,25 @@ Cloudflare Pagesの環境変数は、**Production環境**と**Preview環境（�
 
 ---
 
-## 9-b. 投稿画像のローカル保存について
+## 9-b. 自動更新と投稿画像の保存について
 
-`FACEBOOK_PAGE_ID`・`META_ACCESS_TOKEN` は、Cloudflare Pagesの**ビルド実行環境**にも同じ値が渡されます。ビルドのたびに `scripts/sync-facebook-posts.mjs` が実行され、投稿の写真をWebP形式で `public/images/social/facebook/` へ保存してから `astro build` が走ります。これにより、トップページ・活動報告ページの初期HTML（JavaScript実行前）にも、実際の投稿写真がすでに含まれた状態で配信されます。
+```
+Facebook / Instagram / Threads へ投稿
+        ↓ 3分ごと（Cloudflare Cron Triggers：worker/social-cron）
+/api/admin/sync-social-posts（Cloudflare Pages Functions）
+  ├ SNSごとに独立して公式APIから取得（1つが失敗しても他は更新。失敗したSNSは直前の投稿を保持）
+  ├ 投稿画像を取得してCloudflare KVへ保存（期限付きのSNS画像URLは保存・表示しない）
+  └ 内容が変わったときだけ投稿一覧を保存
+        ↓ 30秒キャッシュ
+/api/social-feed → トップページ・/activities/ がページ表示後に最新の投稿を反映
+  （画像は自社ドメインの /api/social-image?k=... から配信）
+        ↓ 15分ごとに内容を比較（GitHub Actions：.github/workflows/refresh-social-posts.yml）
+内容が変わったときだけ Cloudflare Pages を再ビルドし、HTMLにも最新の投稿を書き出す
+```
 
-最後のデプロイ以降に新しく投稿された写真（まだビルドに反映されていない分）は、自社ドメインの `/api/social-image` という安全なプロキシ（許可ドメインのみ・タイムアウト・サイズ上限・キャッシュあり）を経由して表示されます。Facebookの画像URLをブラウザへ直接渡すことはありません。特別な追加設定は不要です。
+- **定期同期**：`worker/social-cron`（Cloudflare Worker、Cron Trigger 3分ごと）が `/api/admin/sync-social-posts` を呼び出します。Worker側に登録するのは `SOCIAL_CRON_SECRET`（Pages側と同じ値）だけで、SNSのトークンはPages側にだけ保存します
+- **画像**：SNSのAPIが返す画像URLは数日〜数週間で無効になる署名付きURLのため、同期のタイミングで画像そのものをKVへ保存し、`/api/social-image?k=投稿ID_ハッシュ` から配信します。画像が差し替わるとURLも変わるため、古い画像がキャッシュに残りません
+- **ビルド**：`scripts/sync-social-posts.mjs` は本番の `/api/social-feed` を読むだけで、ビルド環境にSNSのトークンは不要です
 
 ## 10. 設定後に再デプロイが必要なこと
 
@@ -225,7 +239,7 @@ Pages Functions（`/api/social-feed` など）は、`astro dev` だけでは動�
      -H "Authorization: Bearer <SOCIAL_SYNC_SECRETの値>"
    ```
 
-5. 通常は、Facebook・Instagramへの新規投稿から**最大5分程度**で `/activities` へ反映されます（訪問者がページを開くたびに、キャッシュが約5分より古ければその場で最新の投稿を取得し直す仕組みのため、Cronのような固定間隔ではなく「次にページが開かれたタイミング」で更新されます）
+5. 通常は、新規投稿から**5分以内**にトップページ・`/activities` へ反映されます（3分ごとの定期同期。閲覧者のアクセスとは無関係にバックグラウンドで更新されます）
 
 ---
 
@@ -252,5 +266,6 @@ Pages Functions（`/api/social-feed` など）は、`astro dev` だけでは動�
 - Instagramの投稿が「ストーリーズ」ではなく、通常の投稿・リール・カルーセルであるか確認する（ストーリーズは24時間で消えるため対象外です）
 - `INSTAGRAM_USER_ID` に、ユーザーネーム（`chie_smily4`という文字列）を誤って入力していないか確認する（数字のIDである必要があります）
 - 8章の登録後に、10章の再デプロイを行ったか確認する
-- 反映まで最大15分程度かかります。投稿直後に確認した場合は、少し時間を置いてから再確認してください
-- 投稿本文・日付は表示されるのに写真だけ表示されない場合：ビルドログで `sync-facebook-posts` の警告（画像取得失敗等）が出ていないか確認する。それでも直らない場合は、ブラウザの開発者ツールで `/api/social-image?u=...` へのリクエストが403/404になっていないか確認する（Facebook側の画像URLが期限切れの可能性があります。次回ビルドで再取得されます）
+- 反映まで最大5分程度かかります。投稿直後に確認した場合は、少し時間を置いてから再確認してください
+- 投稿本文・日付は表示されるのに写真だけ表示されない場合：Cloudflare PagesのFunctionsログで `social-image-mirror-failed` が出ていないか確認する（画像の取得に失敗した投稿は、次回以降の同期で再取得を試みます）
+- `/api/social-feed` の `checkedAt` が15分以上前のままの場合：定期同期Worker（`nobeoka-ugokasu-social-cron`）が動いているか、Worker側の `SOCIAL_CRON_SECRET` がPages側と同じ値か確認する

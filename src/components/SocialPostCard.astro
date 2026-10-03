@@ -7,7 +7,7 @@
 import Icon from "./Icon.astro";
 import type { SocialPost } from "../types/social";
 import { socialPlatformMeta } from "../config/socialPlatformMeta";
-import { resolveActivityImage, buildActivityImageAlt } from "../utils/activityImage";
+import { resolveActivityImage, buildActivityImageAlt, socialCardSignature } from "../utils/activityImage";
 
 interface Props {
   post: SocialPost;
@@ -33,7 +33,14 @@ const dateLabel = (() => {
 })();
 ---
 
-<div class="card p-0 overflow-hidden flex flex-col" data-activity-card data-platforms={post.platform} data-date={post.publishedAt}>
+<div
+  class="card p-0 overflow-hidden flex flex-col"
+  data-activity-card
+  data-platforms={post.platform}
+  data-date={post.publishedAt}
+  data-social-post-key={`${post.platform}:${post.id}`}
+  data-social-signature={socialCardSignature(post)}
+>
   {image ? (
     <div
       class:list={["relative w-full aspect-[16/9] overflow-hidden", image.fit === "contain" ? "bg-brand-ivory" : "bg-brand-orange-light"]}
@@ -54,6 +61,11 @@ const dateLabel = (() => {
       <div class="hidden absolute inset-0 items-center justify-center text-brand-orange-dark" data-activity-image-fallback>
         <Icon name="document" class="w-8 h-8" />
       </div>
+      {(post.mediaCount ?? 0) > 1 && (
+        <span class="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-bold text-white" data-activity-media-count>
+          写真{post.mediaCount}枚
+        </span>
+      )}
       {isVideoLike && (
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span class="rounded-full bg-black/50 p-3 text-white">
@@ -80,8 +92,8 @@ const dateLabel = (() => {
       {dateLabel && <time datetime={post.publishedAt}>{dateLabel}</time>}
     </div>
 
-    <h3 class="text-xl font-bold text-ink leading-snug line-clamp-3">{post.title}</h3>
-    {post.description && <p class:list={["text-base text-ink-soft", bodyClampClass]}>{post.description}</p>}
+    <h3 class="text-xl font-bold text-ink leading-snug line-clamp-3 [overflow-wrap:anywhere]">{post.title}</h3>
+    {post.description && <p class:list={["text-base text-ink-soft [overflow-wrap:anywhere]", bodyClampClass]}>{post.description}</p>}
 
     <div class="pt-2">
       <a

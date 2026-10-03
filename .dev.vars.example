@@ -16,4 +16,6 @@ THREADS_USER_ID=
 THREADS_ACCESS_TOKEN=
 THREADS_PROFILE_URL=https://www.threads.net/@chie_smily4
 SOCIAL_SYNC_SECRET=
+# 定期同期Worker（worker/social-cron）が同期エンドポイントを呼ぶための秘密キー（Worker側にも同じ値を登録）
+SOCIAL_CRON_SECRET=
 SOCIAL_POST_LIMIT=6

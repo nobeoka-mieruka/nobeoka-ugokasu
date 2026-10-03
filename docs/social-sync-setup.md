@@ -28,15 +28,20 @@
 ## この仕組みの全体像
 
 ```
-Facebookページ / Instagram（投稿）
-        ↓ Meta Graph API（訪問時にキャッシュが古ければ取得）
-Cloudflare Pages Functions（functions/api/social-feed.ts）
-        ↓ 結果をCloudflare KVへ保存（約5分キャッシュ）
-        ↓ ブラウザがfetchで取得
-ホームページの「活動報告」ページ
+Facebook / Instagram / Threads へ投稿
+        ↓ 3分ごと（Cloudflare Cron Triggers：worker/social-cron）
+/api/admin/sync-social-posts（Cloudflare Pages Functions）
+  ├ SNSごとに独立して公式APIから取得（1つが失敗しても他は更新。失敗したSNSは直前の投稿を保持）
+  ├ 投稿画像を取得してCloudflare KVへ保存（期限付きのSNS画像URLは保存・表示しない）
+  └ 内容が変わったときだけ投稿一覧を保存
+        ↓ 30秒キャッシュ
+/api/social-feed → トップページ・/activities/ がページ表示後に最新の投稿を反映
+  （画像は自社ドメインの /api/social-image?k=... から配信）
+        ↓ 15分ごとに内容を比較（GitHub Actions：.github/workflows/refresh-social-posts.yml）
+内容が変わったときだけ Cloudflare Pages を再ビルドし、HTMLにも最新の投稿を書き出す
 ```
 
-Cloudflare Workerなど別仕組みのデプロイは不要で、**Cloudflare Pagesの設定だけ**で完結します。ページが開かれたときに、直近のキャッシュが約5分より古ければその場でMeta Graph APIへ取得しに行き、結果をCloudflare KVへ保存します。取得に失敗した場合は、直前に保存されていたキャッシュをそのまま表示し続けます。
+SNSのトークンはCloudflare Pagesにだけ保存します。定期同期用のWorker（`worker/social-cron`）は同期エンドポイントを呼び出すだけで、トークンを持ちません。取得に失敗した場合は、直前に保存されていた投稿をそのまま表示し続けます（SNSごとに独立）。
 
 アクセストークン（合言葉のようなもの）は、Cloudflare Pagesの「Secrets」という暗号化された場所にだけ保存します。GitHubやホームページのプログラムファイルには一切書き込みません。
 
@@ -178,17 +183,13 @@ FacebookページのアクセストークンURLは期限切れの概念がない
 
 ## 10. 投稿の自動更新の仕組み
 
-固定間隔のCron Triggerは使っていません。代わりに、`/activities` ページが開かれるたびに、Cloudflare Pages Functions（`functions/api/social-feed.ts`）がKVキャッシュの新しさを確認し、**約5分より古ければその場でMeta Graph APIへ取得しに行き**、結果をKVへ保存してから返します。取得に失敗した場合は、直前に保存されていた投稿をそのまま返します（サイトが空白になることはありません）。
+Cloudflare Cron Triggers（3分ごと）で、閲覧者のアクセスとは関係なくバックグラウンドで取得します。公開API（`/api/social-feed`）は保存済みの結果を読むだけで、30秒キャッシュです。そのため、新しい投稿は原則として投稿から5分以内にホームページへ反映されます。
 
-そのため、新しい投稿が実際にホームページへ反映されるタイミングは、「投稿してから最初にページが開かれたとき」になります。アクセス頻度が高いサイトほど、体感的な反映は速くなります。
+Webhookは使っていません。InstagramのWebhookは自分の新規投稿を通知する項目が無く、FacebookページのWebhookもページ管理権限（`pages_manage_metadata`）の追加とアプリ設定の変更が必要なため、3つのSNSで同じ動きになる定期取得を採用しています。
 
-### 投稿画像の扱い（ビルド時ローカル保存＋安全なプロキシ）
+### 投稿画像の扱い（同期時にサイト側へ保存）
 
-投稿の**画像**は、Facebookの一時的なCDN画像URLをそのままブラウザへ渡す実装にはしていません。
-
-- `scripts/sync-facebook-posts.mjs` が、ビルド開始前（`npm run build`/`npm run dev` の前段階）にMeta Graph APIから投稿を取得し、写真を `public/images/social/facebook/` へWebP形式でダウンロード・保存します。これにより、トップページ・活動報告ページのJS実行前の初期HTMLにも、実際の投稿写真が含まれます。
-- このスクリプトは、認証情報が未設定の場合や画像の取得・変換に失敗した場合でも、ビルド全体を止めません（該当の投稿は画像なし表示になるだけです）。
-- 最後のビルド以降に新しく投稿された分（まだローカル保存されていない画像）は、`/api/social-image` という自社ドメインのプロキシ経由でのみ表示します。このプロキシは、Facebookの画像配信ドメインのみを許可リストで検証し、タイムアウト・サイズ上限・エッジキャッシュを設けた上で画像を中継します。**Facebookの画像URLを直接img要素へ設定することは一切ありません。**
+SNSのAPIが返す画像URL（`*.fbcdn.net` / `*.cdninstagram.com`）は「oe=」付きの署名付きURLで、数日〜数週間で無効（403）になります。そのため、定期同期のタイミングで画像そのものを取得してCloudflare KVへ保存し、自社ドメインの `/api/social-image?k=...` から配信します（`server/socialImages.ts`・`functions/api/social-image.ts`）。SNS側の画像URLを保存・表示に使うことはありません。画像を取得できなかった投稿は、壊れた画像ではなく「画像なし」のカードになり、次回以降の同期で再取得を試みます。
 
 ---
 

@@ -63,6 +63,22 @@ function makeTitle(body: string, fallback: string): string {
   return `${sourceLine.slice(0, TITLE_MAX_LENGTH)}...`;
 }
 
+/**
+ * カルーセル（複数メディア）投稿の表紙画像を決める。先頭が動画の場合はmedia_url（動画ファイル）
+ * ではなくthumbnail_urlを使い、サムネイルが無ければ後続の画像メディアを探す。
+ */
+function carouselCover(children: { media_type?: string; media_url?: string; thumbnail_url?: string }[] | undefined): {
+  imageUrl: string | null;
+  thumbnailUrl: string | null;
+} {
+  for (const child of children ?? []) {
+    const isVideo = (child.media_type ?? "").toUpperCase() === "VIDEO";
+    if (!isVideo && child.media_url) return { imageUrl: child.media_url, thumbnailUrl: null };
+    if (isVideo && child.thumbnail_url) return { imageUrl: null, thumbnailUrl: child.thumbnail_url };
+  }
+  return { imageUrl: null, thumbnailUrl: null };
+}
+
 export function normalizeFacebookPost(raw: FacebookPostRaw): SocialPost | null {
   if (!raw.id || !raw.permalink_url) return null;
 
@@ -72,6 +88,7 @@ export function normalizeFacebookPost(raw: FacebookPostRaw): SocialPost | null {
   let mediaType: SocialMediaType = "STATUS";
   let imageUrl: string | null = null;
   let thumbnailUrl: string | null = null;
+  let mediaCount = 0;
 
   if (attachment?.media_type === "video") {
     mediaType = "VIDEO";
@@ -79,6 +96,7 @@ export function normalizeFacebookPost(raw: FacebookPostRaw): SocialPost | null {
   } else if (attachment?.media_type === "album") {
     mediaType = "CAROUSEL_ALBUM";
     imageUrl = raw.full_picture ?? attachment.media?.image?.src ?? null;
+    mediaCount = attachment.subattachments?.data?.length ?? 0;
   } else if (attachment?.media_type === "photo" || raw.full_picture) {
     mediaType = "IMAGE";
     imageUrl = raw.full_picture ?? attachment?.media?.image?.src ?? null;
@@ -97,6 +115,7 @@ export function normalizeFacebookPost(raw: FacebookPostRaw): SocialPost | null {
     imageUrl,
     thumbnailUrl,
     mediaType,
+    ...(mediaCount > 1 ? { mediaCount } : {}),
     sourceName: "Facebook",
   };
 }
@@ -123,18 +142,13 @@ export function normalizeInstagramMedia(raw: InstagramMediaRaw): SocialPost | nu
   let thumbnailUrl: string | null = null;
 
   if (mediaType === "CAROUSEL_ALBUM") {
-    const firstChild = raw.children?.data?.[0];
-    const childIsVideo = (firstChild?.media_type ?? "").toUpperCase() === "VIDEO";
-    if (childIsVideo) {
-      thumbnailUrl = firstChild?.media_url ?? null;
-    } else {
-      imageUrl = firstChild?.media_url ?? null;
-    }
+    ({ imageUrl, thumbnailUrl } = carouselCover(raw.children?.data));
   } else if (isVideoLike) {
     thumbnailUrl = raw.thumbnail_url ?? null;
   } else {
     imageUrl = raw.media_url ?? null;
   }
+  const mediaCount = mediaType === "CAROUSEL_ALBUM" ? (raw.children?.data?.length ?? 0) : 0;
 
   return {
     id: raw.id,
@@ -146,6 +160,7 @@ export function normalizeInstagramMedia(raw: InstagramMediaRaw): SocialPost | nu
     imageUrl,
     thumbnailUrl,
     mediaType,
+    ...(mediaCount > 1 ? { mediaCount } : {}),
     sourceName: "Instagram",
   };
 }
@@ -164,16 +179,11 @@ export function normalizeThreadsPost(raw: ThreadsPostRaw): SocialPost | null {
     mediaType = "CAROUSEL_ALBUM";
     // CAROUSEL_ALBUM自体にはmedia_urlが返らないため、先頭メディア（children[0]）を
     // カード表示用の画像・サムネイルとして使う（normalizeInstagramMediaと同じ方針）。
-    const firstChild = raw.children?.data?.[0];
-    const childIsVideo = (firstChild?.media_type ?? "").toUpperCase() === "VIDEO";
-    if (childIsVideo) {
-      thumbnailUrl = firstChild?.media_url ?? null;
-    } else {
-      imageUrl = firstChild?.media_url ?? null;
-    }
+    ({ imageUrl, thumbnailUrl } = carouselCover(raw.children?.data));
   } else if (rawType === "VIDEO") {
     mediaType = "VIDEO";
-    thumbnailUrl = raw.thumbnail_url ?? raw.media_url ?? null;
+    // media_urlは動画ファイル（mp4）のため、画像としては使わない
+    thumbnailUrl = raw.thumbnail_url ?? null;
   } else if (rawType === "IMAGE") {
     mediaType = "IMAGE";
     imageUrl = raw.media_url ?? null;
@@ -190,6 +200,7 @@ export function normalizeThreadsPost(raw: ThreadsPostRaw): SocialPost | null {
     imageUrl,
     thumbnailUrl,
     mediaType,
+    ...(mediaType === "CAROUSEL_ALBUM" && (raw.children?.data?.length ?? 0) > 1 ? { mediaCount: raw.children!.data!.length } : {}),
     sourceName: "Threads",
   };
 }

@@ -21,9 +21,14 @@ export interface SocialFeedStatus {
   threads: PlatformSyncStatus;
 }
 
-/** ビルド時に画像をローカルへミラーした場合の参照情報（public/images/social/以下） */
+/**
+ * サイト側に保存（ミラー）済みの投稿画像の参照情報。
+ * SNS同期（server/socialImages.ts）が投稿画像を取得してCloudflare KVへ保存し、
+ * 自社ドメインの /api/social-image?k=... から配信する。キー（k）には投稿IDと
+ * 画像のハッシュが含まれるため、画像が差し替わるとURLも変わる（キャッシュバスティング）。
+ */
 export interface LocalMirroredImage {
-  /** サイト内の絶対パス（例: "/images/social/facebook/122105.webp"） */
+  /** サイト内の絶対パス（例: "/api/social-image?k=facebook_122105_1a2b3c4d"） */
   src: string;
   width: number;
   height: number;
@@ -42,21 +47,31 @@ export interface SocialPost {
   description: string;
   /** 投稿の公開URL */
   permalink: string;
+  /**
+   * SNS側の画像URL（同期処理の内部でのみ使用）。Meta系のCDN画像URLは時間が経つと
+   * 無効になる署名付きURLのため、公開API・ビルド時スナップショットでは必ずnullにして
+   * 出力し、表示には localImage だけを使う。
+   */
   imageUrl: string | null;
   thumbnailUrl: string | null;
   mediaType: SocialMediaType;
+  /** 複数画像（カルーセル・アルバム）投稿の場合の枚数。1枚・不明の場合は省略 */
+  mediaCount?: number;
   /** 画面表示用の掲載元名称（"Facebook" | "Instagram"） */
   sourceName: string;
   /**
-   * ビルド時同期（scripts/sync-facebook-posts.mjs）でローカルへ保存できた画像。
-   * 存在する場合は、Facebook CDNの一時URLへ直接リンクせずこちらを優先して表示する。
-   * 実行時API（/api/social-feed）が返す投稿には基本的に含まれない
-   * （Cloudflare Pages Functionsはファイルシステムへ書き込めないため）。
+   * サイト側に保存済みの投稿画像。表示に使う画像はこれだけで、無い場合は画像なしの
+   * カードとして表示する（SNS側の期限付きURLへは直接リンクしない）。
    */
   localImage?: LocalMirroredImage | null;
+  /**
+   * 画像の取得元を識別する値（SNS側画像URLのパス部分。署名・トークンを含むクエリは除く）。
+   * 同じ画像を毎回ダウンロードし直さないための内部用で、公開APIには出力しない。
+   */
+  imageSource?: string | null;
 }
 
-/** src/data/socialPostsSnapshot.json（ビルド時同期の出力）1件分の形。SocialPostのサブセット＋localImage */
+/** src/data/socialPostsSnapshot.json（ビルド時に /api/social-feed から書き出したもの）1件分の形 */
 export interface BuildSocialPost extends SocialPost {
   localImage: LocalMirroredImage | null;
 }
@@ -64,8 +79,10 @@ export interface BuildSocialPost extends SocialPost {
 /** GET /api/social-feed が返すレスポンスの形 */
 export interface SocialPostsResponse {
   posts: SocialPost[];
-  /** 最後に同期が成功した日時（ISO 8601）。一度も成功していない場合はnull */
+  /** 最後にSNSからの取得が成功した日時（ISO 8601）。一度も成功していない場合はnull */
   updatedAt: string | null;
+  /** 最後に定期同期を実行した日時（成功・失敗を問わない）。一度も実行していない場合はnull */
+  checkedAt?: string | null;
   /** trueの場合、直近の取得に失敗・スキップし、以前のキャッシュを表示していることを示す */
   stale: boolean;
   /** プラットフォームごとの直近の同期状態 */

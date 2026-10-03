@@ -122,6 +122,15 @@ export function registerSocialPhotoFallback() {
   if (fallbackRegistered) return;
   fallbackRegistered = true;
 
+  // このスクリプトより前に読み込みに失敗した画像には error イベントが届かないため、
+  // 登録時点で「読み込み完了なのに中身が無い」画像も同じように非表示にする
+  document.querySelectorAll<HTMLImageElement>("img[data-social-photo]").forEach((img) => {
+    if (!img.complete || img.naturalWidth > 0) return;
+    const card = img.closest<HTMLElement>("[data-photo-card]");
+    card?.classList.add("hidden");
+    card?.setAttribute("aria-hidden", "true");
+  });
+
   document.addEventListener(
     "error",
     (event) => {

@@ -1,0 +1,19 @@
+---
+// SNS欄に小さく添える「SNS最終更新：○月○日 ○:○○」の表示です。
+// ビルド時点のスナップショットの取得時刻を出力し、ページ表示後に /api/social-feed の
+// 最新の取得時刻で書き換えます（src/utils/snsLastUpdated.ts の applySnsLastUpdated）。
+import socialPostsSnapshot from "../data/socialPostsSnapshot.json";
+import { formatSnsLastUpdated } from "../utils/snsLastUpdated";
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+const fetchedAt = (socialPostsSnapshot as { fetchedAt?: string | null }).fetchedAt ?? null;
+const label = formatSnsLastUpdated(fetchedAt);
+---
+
+<p class:list={["text-xs text-ink-soft", className]}>
+  <time data-sns-last-updated datetime={fetchedAt ?? undefined} class:list={[!label && "hidden"]}>{label}</time>
+</p>

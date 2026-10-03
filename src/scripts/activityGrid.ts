@@ -12,6 +12,35 @@ export function getExistingActivityLinks(grid: HTMLElement): Set<string> {
   return set;
 }
 
+/**
+ * 最新のSNS投稿カードをグリッドへ反映する。
+ * ・同じ投稿のカードが既にある場合：内容（画像・本文）が変わっていればカードを入れ替え、
+ *   同じなら何もしない（ビルド時点の古い画像が残り続けることを防ぐ）
+ * ・同じURLのカード（手動登録の活動報告など）がある場合：重複させない
+ * ・どちらも無い場合：日付の新しい順の位置へ挿入する
+ * 戻り値は、カードを追加・入れ替えした場合 true。
+ */
+export function upsertSocialPostCard(
+  grid: HTMLElement,
+  card: HTMLElement,
+  permalink: string,
+  knownLinks: Set<string>,
+): boolean {
+  const key = card.dataset.socialPostKey;
+  const existing = key
+    ? Array.from(grid.querySelectorAll<HTMLElement>("[data-social-post-key]")).find((el) => el.dataset.socialPostKey === key)
+    : undefined;
+  if (existing) {
+    if (existing.dataset.socialSignature === card.dataset.socialSignature) return false;
+    existing.replaceWith(card);
+    return true;
+  }
+  if (knownLinks.has(permalink)) return false;
+  insertActivityCardSorted(grid, card, card.dataset.date ?? "");
+  knownLinks.add(permalink);
+  return true;
+}
+
 /** 日付（ISO文字列）を基準に、新しい順を保ったままカードをグリッドへ挿入する */
 export function insertActivityCardSorted(grid: HTMLElement, card: HTMLElement, dateIso: string) {
   const time = new Date(dateIso).getTime();

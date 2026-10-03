@@ -1,0 +1,22 @@
+# SNS投稿の定期同期用Worker（Cloudflare Cron Triggers）
+#
+# Cloudflare Pagesは定期実行（Cron）を持たないため、この小さなWorkerが3分ごとに
+# Pagesの同期エンドポイント（/api/admin/sync-social-posts）を呼び出します。
+# SNSのアクセストークンはPages側の環境変数にだけ保存し、このWorkerには持たせません。
+#
+# デプロイ:   npx wrangler deploy --config worker/social-cron/wrangler.toml
+# 秘密キー:   npx wrangler secret put SOCIAL_CRON_SECRET --config worker/social-cron/wrangler.toml
+#             （Pages側の SOCIAL_CRON_SECRET と同じ値。ソースコードには書かない）
+
+name = "nobeoka-ugokasu-social-cron"
+main = "index.ts"
+compatibility_date = "2026-07-01"
+workers_dev = false
+
+[triggers]
+# 3分ごと。同期3分＋公開APIのキャッシュ30秒＋KVの反映遅延（最大60秒程度）でも、
+# 投稿から5分以内にホームページへ届くよう、5分より短い間隔にしている。
+crons = ["*/3 * * * *"]
+
+[vars]
+SYNC_URL = "https://nobeoka-ugokasu.pages.dev/api/admin/sync-social-posts"

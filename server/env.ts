@@ -44,6 +44,12 @@ export interface SocialSyncEnv {
   /** 手動同期エンドポイントを保護する秘密キー */
   SOCIAL_SYNC_SECRET?: string;
 
+  /**
+   * 定期実行Worker（worker/social-cron）が同期エンドポイントを呼び出すための秘密キー。
+   * 管理者用の SOCIAL_SYNC_SECRET とは別の値にし、Worker側のSecretにも同じ値を登録する。
+   */
+  SOCIAL_CRON_SECRET?: string;
+
   /** 保存・表示するSNS投稿の最大件数（文字列で渡ってくるため利用側で数値化する） */
   SOCIAL_POST_LIMIT?: string;
 

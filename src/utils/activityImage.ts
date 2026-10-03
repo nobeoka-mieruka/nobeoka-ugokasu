@@ -2,14 +2,13 @@
 // ブラウザ実行時（src/scripts/socialPostCard.ts）の両方から共通のロジックで決定するための
 // ユーティリティです。normalizeActivityPost()相当の役割を持ちます。
 //
-// 優先順位：
-//   1. ビルド時同期（scripts/sync-facebook-posts.mjs）でローカルへ保存済みの画像（localImage）
-//   2. imageUrl / thumbnailUrl を、Facebook CDNへ直接リンクさせず /api/social-image 経由で表示
-//      （functions/api/social-image.ts が許可ホストのみを検証・取得・キャッシュする）
+// 表示する画像は、定期同期がサイト側に保存した画像（localImage、/api/social-image?k=...）だけ。
+// SNS側の画像URL（imageUrl / thumbnailUrl）は時間が経つと無効になる署名付きURLのため、
+// 表示には一切使わない（保存済みの画像が無い投稿は「画像なし」のカードになる）。
 //
-// null/空文字/undefined/http(s)以外のURLは、無効な画像として扱いここでフィルタする。
-// 表示方法（cover/contain）・alt文言は、投稿ID単位で src/config/activityImageOverrides.ts から
-// 上書きできる（チラシ・書影などの文字入り画像をcoverで切り取らないため）。
+// 表示方法（cover/contain）は画像の縦横比から自動で決める（縦長の写真で人物の顔が
+// 切れないようにするため）。投稿ID単位で src/config/activityImageOverrides.ts から
+// 上書きもできる（チラシ・書影などの文字入り画像をcoverで切り取らないため）。
 
 import type { SocialPost } from "../types/social";
 import { getActivityImageOverride } from "../config/activityImageOverrides";
@@ -25,24 +24,26 @@ export interface ResolvedActivityImage {
   position: string;
 }
 
-type ImageSourcePost = Pick<SocialPost, "id" | "imageUrl" | "thumbnailUrl" | "localImage">;
+type ImageSourcePost = Pick<SocialPost, "id" | "localImage">;
 
-/** 画像候補として有効な絶対URL（http/https）かどうかを判定する */
-function isPlausibleRemoteImageUrl(url: string | null | undefined): url is string {
-  if (typeof url !== "string") return false;
-  const trimmed = url.trim();
-  if (trimmed.length === 0) return false;
-  try {
-    const parsed = new URL(trimmed);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
+/** サイト内で配信している画像パス（/ で始まり、// ではない）かどうか */
+function isSiteImagePath(src: unknown): src is string {
+  return typeof src === "string" && src.startsWith("/") && !src.startsWith("//");
 }
 
-/** functions/api/social-image.ts 向けの、同一オリジン経由プロキシURLを組み立てる */
-export function buildSocialImageProxyUrl(remoteUrl: string): string {
-  return `/api/social-image?u=${encodeURIComponent(remoteUrl)}`;
+/**
+ * 縦横比から、16:9の画像枠への収め方を決める。
+ * ・横長（4:3より横長）… 枠いっぱいに表示（cover、中央）
+ * ・正方形に近い          … cover。上下が切れるため、顔が写りやすい上寄りを基準にする
+ * ・縦長                  … 全体を見せる（contain）。人物の頭や足元が切れないようにする
+ * 寸法が分からない場合は従来どおり cover・中央。
+ */
+function fitForAspect(width?: number, height?: number): { fit: "cover" | "contain"; position: string } {
+  if (!width || !height) return { fit: "cover", position: "center" };
+  const ratio = width / height;
+  if (ratio >= 1.3) return { fit: "cover", position: "center" };
+  if (ratio >= 0.9) return { fit: "cover", position: "center 30%" };
+  return { fit: "contain", position: "center" };
 }
 
 /**
@@ -50,21 +51,33 @@ export function buildSocialImageProxyUrl(remoteUrl: string): string {
  * 呼び出し側はコンパクトなフォールバック表示に切り替える。
  */
 export function resolveActivityImage(post: ImageSourcePost): ResolvedActivityImage | null {
-  const override = getActivityImageOverride(post.id);
-  const fit = override?.imageFit ?? "cover";
-  const position = override?.imagePosition ?? "center";
-
   const local = post.localImage;
-  if (local && typeof local.src === "string" && local.src.trim().length > 0) {
-    return { src: local.src, width: local.width, height: local.height, fit, position };
-  }
+  if (!local || !isSiteImagePath(local.src)) return null;
 
-  const remoteCandidate = post.imageUrl ?? post.thumbnailUrl;
-  if (isPlausibleRemoteImageUrl(remoteCandidate)) {
-    return { src: buildSocialImageProxyUrl(remoteCandidate), fit, position };
-  }
+  const auto = fitForAspect(local.width, local.height);
+  const override = getActivityImageOverride(post.id);
+  return {
+    src: local.src,
+    width: local.width,
+    height: local.height,
+    fit: override?.imageFit ?? auto.fit,
+    position: override?.imagePosition ?? auto.position,
+  };
+}
 
-  return null;
+/**
+ * SNS投稿カードの表示内容（画像・見出し・本文）を表す短い文字列。
+ * ビルド時に出力したカードと、ページ表示後に /api/social-feed から届いた最新の内容を比べ、
+ * 画像の差し替え・本文の編集があった場合だけカードを入れ替えるために使う。
+ */
+export function socialCardSignature(post: Pick<SocialPost, "title" | "description" | "localImage" | "mediaCount">): string {
+  const material = [post.localImage?.src ?? "", post.title, post.description, post.mediaCount ?? 1].join("");
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < material.length; i++) {
+    hash ^= material.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
 }
 
 const LEADING_HASHTAG_RUN = /^(?:[#＃]\S+\s*)+/;

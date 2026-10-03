@@ -17,6 +17,8 @@ function apiVersion(version: string | undefined): string {
 interface ThreadsChildMedia {
   media_url?: string;
   media_type?: string; // "IMAGE" | "VIDEO"
+  /** 動画の場合のサムネイル画像（media_urlは動画ファイルのため画像として使えない） */
+  thumbnail_url?: string;
 }
 
 export interface ThreadsPostRaw {
@@ -45,7 +47,7 @@ export async function fetchThreadsPosts(params: {
   limit: number;
 }): Promise<ThreadsPostRaw[]> {
   const version = apiVersion(params.apiVersion);
-  const fields = "id,media_type,text,permalink,timestamp,media_url,thumbnail_url,children{media_type,media_url}";
+  const fields = "id,media_type,text,permalink,timestamp,media_url,thumbnail_url,children{media_type,media_url,thumbnail_url}";
   // threads エッジは、対象アカウント自身が公開したThreads投稿のみを返す。
   const url =
     `https://graph.threads.net/${version}/${encodeURIComponent(params.userId)}/threads` +

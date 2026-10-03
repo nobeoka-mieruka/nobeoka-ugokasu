@@ -14,7 +14,8 @@
     "check": "astro check",
     "check:functions": "tsc --noEmit -p functions/tsconfig.json",
     "dev:pages": "npm run build && wrangler pages dev dist --kv SOCIAL_POSTS_KV --compatibility-date=2026-07-01",
-    "seo:check": "node scripts/seo-check.mjs"
+    "seo:check": "node scripts/seo-check.mjs",
+    "test:social": "esbuild scripts/tests/social-sync.test.ts --bundle --platform=node --format=esm --external:sharp --outfile=.astro/test/social-sync.test.mjs --log-level=warning && node .astro/test/social-sync.test.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

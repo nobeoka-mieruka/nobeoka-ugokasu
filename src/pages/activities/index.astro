@@ -6,6 +6,7 @@ import ActivityCard from "../../components/ActivityCard.astro";
 import ActivityEntryCard from "../../components/ActivityEntryCard.astro";
 import SnsActivityCard from "../../components/SnsActivityCard.astro";
 import SocialPostCard from "../../components/SocialPostCard.astro";
+import SnsLastUpdated from "../../components/SnsLastUpdated.astro";
 import ActivityFilterBar from "../../components/ActivityFilterBar.astro";
 import ActivityFallbackNotice from "../../components/ActivityFallbackNotice.astro";
 import LastUpdated from "../../components/LastUpdated.astro";
@@ -74,6 +75,7 @@ const schemas = [
     <div class="section-wrap">
       <h2 class="sr-only">活動報告一覧</h2>
       <ActivityFilterBar />
+      <SnsLastUpdated class="-mt-2 mb-4 text-right" />
 
       <div
         id="activity-grid"
@@ -175,7 +177,8 @@ const schemas = [
   import { fetchSocialPosts } from "../../services/socialPosts";
   import { createSocialPostCardElement } from "../../scripts/socialPostCard";
   import { registerActivityImageFallback } from "../../scripts/activityImageFallback";
-  import { getExistingActivityLinks, insertActivityCardSorted } from "../../scripts/activityGrid";
+  import { getExistingActivityLinks, upsertSocialPostCard } from "../../scripts/activityGrid";
+  import { applySnsLastUpdated } from "../../utils/snsLastUpdated";
 
   const grid = document.querySelector<HTMLElement>("[data-activity-grid]");
 
@@ -215,7 +218,8 @@ const schemas = [
     skeletons.forEach((s) => grid?.append(s));
     if (skeletons.length > 0) document.dispatchEvent(new CustomEvent("social-posts:updated"));
 
-    const { posts, fetchFailed, requestFailed } = await fetchSocialPosts();
+    const { posts, fetchFailed, requestFailed, updatedAt } = await fetchSocialPosts();
+    applySnsLastUpdated(updatedAt);
 
     skeletons.forEach((s) => s.remove());
 
@@ -224,13 +228,9 @@ const schemas = [
     if (grid && posts.length > 0) {
       const known = getExistingActivityLinks(grid);
       for (const post of posts) {
-        // 手動登録済みの投稿（src/data/activityEntries.ts・snsActivities.ts）と
-        // 同じURLの場合は重複させない
-        if (known.has(post.permalink)) continue;
-        const card = createSocialPostCardElement(post, instagramUsername);
-        card.dataset.date = post.publishedAt;
-        insertActivityCardSorted(grid, card, post.publishedAt);
-        known.add(post.permalink);
+        // 手動登録済みの投稿（src/data/activityEntries.ts・snsActivities.ts）と同じURLの場合は
+        // 重複させない。ビルド時点のカードがある投稿は、画像・本文が更新されていれば入れ替える。
+        upsertSocialPostCard(grid, createSocialPostCardElement(post, instagramUsername), post.permalink, known);
       }
     }
 

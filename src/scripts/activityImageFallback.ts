@@ -25,10 +25,21 @@ let registered = false;
 /**
  * ビルド時に出力された[data-activity-image]のonerrorを、イベント委譲で一括して処理する。
  * 複数ページ・複数コンポーネントから呼ばれても、実際の登録は1回だけ行う。
+ *
+ * このスクリプトはページの読み込み後に実行されるため、それより前に読み込みに失敗した
+ * 画像にはerrorイベントが届かない。登録時に「読み込み完了なのに中身が無い」画像を探して
+ * 同じフォールバックを適用し、壊れた画像アイコンが残らないようにする。
  */
 export function registerActivityImageFallback() {
   if (registered) return;
   registered = true;
+
+  document.querySelectorAll<HTMLImageElement>("img[data-activity-image]").forEach((img) => {
+    if (img.complete && img.naturalWidth === 0) {
+      const media = img.closest<HTMLElement>("[data-activity-media]");
+      if (media) collapseActivityMediaToCompact(media, img);
+    }
+  });
 
   document.addEventListener(
     "error",

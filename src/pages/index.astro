@@ -9,6 +9,8 @@ import ActivityCard from "../components/ActivityCard.astro";
 import ActivityEntryCard from "../components/ActivityEntryCard.astro";
 import SnsActivityCard from "../components/SnsActivityCard.astro";
 import SocialPostCard from "../components/SocialPostCard.astro";
+import SnsLastUpdated from "../components/SnsLastUpdated.astro";
+import HomeActivityFeedScript from "../components/HomeActivityFeedScript.astro";
 import ActivityFallbackNotice from "../components/ActivityFallbackNotice.astro";
 import SocialFollowCards from "../components/SocialFollowCards.astro";
 import NewsCard from "../components/NewsCard.astro";
@@ -306,66 +308,14 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
       >
         <ActivityFallbackNotice boxed={false} />
       </div>
-      <div class="mt-8 text-center">
+      <SnsLastUpdated class="mt-4 text-right" />
+      <div class="mt-6 text-center">
         <a href="/activities/" class="btn-secondary">活動報告一覧を見る</a>
       </div>
     </div>
   </section>
 
-  <script>
-    // ビルド時点の活動報告（activitiesコレクション・activityEntries・SNS投稿スナップショット）に
-    // 加えて、最新のSNS投稿を /api/social-feed（Cloudflare KVでキャッシュ済み）から取得する。
-    // 活動報告一覧ページ（src/pages/activities/index.astro）と同じ挿入ロジック
-    // （src/scripts/activityGrid.ts）で日付の新しい順の位置へ差し込み、そのうえで
-    // 上位3件だけを残す。ビルド後に新しい投稿が公開されていた場合、ビルド時点の
-    // スナップショットで埋まっていたカードも新しい投稿に置き換わるため、
-    // トップページの最新3件が常に活動報告一覧の先頭3件と一致する。
-    // Meta APIへ直接アクセスすることはしない。取得に失敗しても、SSR済みの活動報告が
-    // そのまま残るだけで、エラーメッセージを閲覧者へ表示することはない。
-    import { fetchSocialPosts } from "../services/socialPosts";
-    import { createSocialPostCardElement } from "../scripts/socialPostCard";
-    import { registerActivityImageFallback } from "../scripts/activityImageFallback";
-    import { getExistingActivityLinks, insertActivityCardSorted } from "../scripts/activityGrid";
-
-    const MAX_HOME_ACTIVITY_CARDS = 3;
-
-    registerActivityImageFallback();
-
-    (async () => {
-      const grid = document.querySelector<HTMLElement>("[data-home-activity-grid]");
-      const emptyState = document.querySelector<HTMLElement>("[data-home-activities-empty]");
-
-      const { posts, requestFailed, fetchFailed } = await fetchSocialPosts();
-
-      if (requestFailed || fetchFailed) {
-        console.warn(
-          `[home] SNSの最新投稿を取得できませんでした（requestFailed=${requestFailed} / fetchFailed=${fetchFailed}）。保存済みの活動データを表示しています。`,
-        );
-      }
-
-      if (grid && posts.length > 0) {
-        // ビルド時点で既にSSRされている投稿（同じpermalink）は重複させない
-        const known = getExistingActivityLinks(grid);
-        for (const post of posts) {
-          if (known.has(post.permalink)) continue;
-          const card = createSocialPostCardElement(post, undefined, "home");
-          card.dataset.date = post.publishedAt;
-          insertActivityCardSorted(grid, card, post.publishedAt);
-          known.add(post.permalink);
-        }
-
-        // 新しい投稿が加わったことで4件目以降になったカード（＝ビルド時点のスナップショット
-        // より古いカード）を取り除き、常に最新3件だけを表示する。
-        Array.from(grid.children)
-          .slice(MAX_HOME_ACTIVITY_CARDS)
-          .forEach((el) => el.remove());
-      }
-
-      const hasContent = (grid?.children.length ?? 0) > 0;
-      grid?.classList.toggle("hidden", !hasContent);
-      emptyState?.classList.toggle("hidden", hasContent);
-    })();
-  </script>
+  <HomeActivityFeedScript />
 
   <!-- 8-7 最新のお知らせ -->
   <section class="py-14 sm:py-16 bg-brand-ivory">
