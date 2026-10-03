@@ -70,12 +70,15 @@ export const siteConfig = {
       label: "本人へのお問い合わせ",
       /** 見出しなどで正式に名乗る場合の表示名 */
       fullLabel: "福富千恵本人へのお問い合わせ",
+      /** 宛先の用途を説明する一文（お問い合わせ欄で表示名の下に添える） */
+      description: "福富千恵本人へのご連絡はこちら",
       email: "fukutomichie1227@gmail.com",
     },
     /** 後援会事務局あて（一般のお問い合わせ全般） */
     office: {
-      label: "事務局へのお問い合わせ",
-      fullLabel: "福富千恵と延岡を動かす会 事務局へのお問い合わせ",
+      label: "後援会事務局へのお問い合わせ",
+      fullLabel: "福富千恵と延岡を動かす会 後援会事務局へのお問い合わせ",
+      description: "後援会への入会、活動、ホームページ、各種お問い合わせはこちら",
       email: "nobeoka.ugokasu.contact@gmail.com",
     },
   },

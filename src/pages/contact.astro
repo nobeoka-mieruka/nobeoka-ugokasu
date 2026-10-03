@@ -4,14 +4,14 @@ import HeroSection from "../components/HeroSection.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import SocialLinks from "../components/SocialLinks.astro";
 import Icon from "../components/Icon.astro";
-import MailLink from "../components/MailLink.astro";
+import ContactEmails from "../components/ContactEmails.astro";
 import { siteConfig } from "../config/siteConfig";
 import { voicesConfig } from "../config/voicesConfig";
 import { webPageSchema, organizationSchema } from "../utils/structuredData";
 import { buildBreadcrumbList } from "../utils/seo";
 
 const title = "お問い合わせ｜福富千恵と延岡を動かす会";
-const description = "福富千恵と延岡を動かす会へのお問い合わせ方法をご案内します。メールにてご連絡ください。";
+const description = "福富千恵と延岡を動かす会へのお問い合わせ方法をご案内します。福富千恵本人へのご連絡と、後援会事務局へのお問い合わせは、それぞれ専用のメールアドレスで承っています。";
 const breadcrumbItems = [{ name: "お問い合わせ", path: "/contact" }];
 
 const schemas = [
@@ -37,13 +37,9 @@ const schemas = [
             </dt>
             <dd class="min-w-0 text-ink-soft">{siteConfig.postalCode}<br />{siteConfig.address}</dd>
           </div>
-          <div class="min-w-0">
-            <dt class="sr-only">後援会事務局のメールアドレス</dt>
-            <dd class="min-w-0">
-              <MailLink to="office" useFullLabel={true} />
-            </dd>
-          </div>
         </dl>
+        <h3 class="mt-6 mb-3 font-bold text-ink">メールでのお問い合わせ</h3>
+        <ContactEmails />
         <div class="mt-4">
           <SocialLinks />
         </div>
