@@ -12,7 +12,7 @@ Googleでのログインに成功しても、`STAFF_ALLOWED_EMAILS` に登録さ
 | 項目 | 内容 |
 |---|---|
 | ログイン画面 | `/staff/login/`（フッター最下部の「管理者ログイン」から） |
-| 認証方式 | Google OAuth 2.0 / OpenID Connect（認可コードフロー＋PKCE、state・nonce検証、`email_verified=true` 必須） |
+| 認証方式 | Google OAuth 2.0 / OpenID Connect（認可コードフロー＋PKCE、state検証。IDトークンはGoogleの公開鍵（jwks_uri）でRS256署名を検証し、iss・aud・exp・iat・nonce・`email_verified=true` を確認） |
 | 許可の判定 | サーバー側（Pages Functions）で `STAFF_ALLOWED_EMAILS` と照合 |
 | セッション | Cloudflare D1（binding名 `STAFF_DB`）。IDは256bitの乱数、D1にはSHA-256ハッシュのみ保存。有効期限12時間 |
 | Cookie | `staff_session`：HttpOnly / Secure / SameSite=Strict / Path=/staff |
@@ -145,6 +145,33 @@ Cloudflareダッシュボード → **Workers & Pages** → `nobeoka-ugokasu` �
 3. **「ログアウト」** を押す → 「ログアウトしました。」と表示される
 4. ブラウザの「戻る」や `/staff/` を直接開いても、ログイン画面に戻されることを確認
 5. 許可していないGoogleアカウントでは「ログインできませんでした。」となることを確認
+
+## ログインできないときの原因の調べ方
+
+ログイン画面の表示は「ログインできませんでした」などの定型文だけです。原因の切り分けには、
+アドレス欄の `?error=…` と、サーバーログ（`staff-login-failed`）を使います。
+
+| `?error=` | 原因 | 主な対処 |
+|---|---|---|
+| `email_not_allowed` | Googleのログインは成功したが、`STAFF_ALLOWED_EMAILS` に含まれていない | 許可リストのメールアドレスを確認（ログの `allowlistWarnings` も参照） |
+| `oauth_token_exchange` | Googleとのトークン交換が拒否された | ログの `googleError` が `invalid_client` なら Client ID / Secret の誤り、`redirect_uri_mismatch` ならリダイレクトURIの誤り |
+| `id_token_invalid` | IDトークンの検証に失敗（ログの `check` に `signature`・`alg`・`kid`・`iss`・`aud`・`exp`・`iat`・`nonce` などの項目名） | `aud` なら `GOOGLE_CLIENT_ID` の誤り。`iat`/`exp` はやり直せば通ることが多い |
+| `email_not_verified` | Googleアカウントのメールアドレスが未確認 | Googleアカウント側でメールアドレスを確認する |
+| `state_invalid` | ログイン用の一時Cookieが届かない・一致しない（ログの `check`） | 本番URL（`https://nobeoka-ugokasu.pages.dev`）からログインし直す。10分以内に完了する |
+| `config_error` | D1・Client ID・Secret・許可リストのいずれかが未設定（ログの `configured` に設定済み／未設定だけを記録） | 手順5を確認して再デプロイ |
+| `d1_error` / `session_error` | D1への読み書き・セッション作成に失敗 | D1のバインディング `STAFF_DB` を確認 |
+
+`allowlistWarnings` の意味：`fullwidth_separator`（全角カンマ「，」や読点「、」で区切っている）、
+`quotes`（メールアドレスを引用符で囲んでいる）、`invalid_entry`（メールアドレスの形でない項目があり、無視した）。
+全角カンマと引用符はそのままでも読み取れますが、半角カンマ区切りに直しておくことをおすすめします。
+
+ログに記録するのは、上記の理由コード・項目名・許可リストとの一致有無と件数・GoogleのHTTPステータスとエラー種別だけです。
+Client Secret・認可コード・トークン・Cookie・メールアドレスは記録しません。
+
+**ログの見方**：Cloudflareダッシュボード → Workers & Pages → `nobeoka-ugokasu` → デプロイ（Deployments）→
+本番のデプロイの「詳細を表示（View details）」→ **「関数（Functions）」→「リアルタイムログ（Real-time Logs）」→「ログストリームを開始」**。
+ログストリームを開始してからログインを試します（開始前のログは表示されません）。
+開発者は `npx wrangler pages deployment tail --project-name nobeoka-ugokasu --environment production` でも確認できます。
 
 ## メンバーの追加・削除（初回の管理者登録もこの方法）
 

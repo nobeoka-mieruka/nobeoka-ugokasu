@@ -57,11 +57,22 @@ const description = "福富千恵と延岡を動かす会 後援会執行部向�
 
   <script>
     // ?error=... / ?logged_out=1 に応じた案内を表示する（定型文のみ。URLの値をそのまま表示しない）
+    // 失敗理由のコードは原因調査用で、画面では詳しい理由を出し分けない（詳細はサーバーログで確認する）
+    const failed = { text: "ログインできませんでした。登録済みのGoogleアカウントでログインしてください。", tone: "error" } as const;
+    const unavailable = { text: "現在ログイン機能をご利用いただけません。時間をおいて再度お試しいただくか、後援会事務局へお問い合わせください。", tone: "error" } as const;
     const messages: Record<string, { text: string; tone: "error" | "info" }> = {
-      failed: { text: "ログインできませんでした。登録済みのGoogleアカウントでログインしてください。", tone: "error" },
+      failed,
+      state_invalid: failed,
+      oauth_token_exchange: failed,
+      id_token_invalid: failed,
+      email_not_verified: failed,
+      email_not_allowed: failed,
       locked: { text: "ログインの失敗が続いたため、一時的にログインを制限しています。15分ほど時間をおいてから再度お試しください。", tone: "error" },
       cancelled: { text: "ログインがキャンセルされました。", tone: "info" },
-      unavailable: { text: "現在ログイン機能をご利用いただけません。時間をおいて再度お試しいただくか、後援会事務局へお問い合わせください。", tone: "error" },
+      unavailable,
+      config_error: unavailable,
+      d1_error: unavailable,
+      session_error: unavailable,
       logged_out: { text: "ログアウトしました。", tone: "info" },
     };
     const params = new URLSearchParams(location.search);

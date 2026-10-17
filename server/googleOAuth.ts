@@ -4,17 +4,26 @@
 // ・PKCE   … code_verifier をCookieに保存し、S256のcode_challengeをGoogleへ送る（認可コード横取り対策）
 // ・nonce  … IDトークンに埋め込まれた値がCookieの値と一致することを確認（IDトークン再利用対策）
 //
-// IDトークンは、ブラウザを経由せずにGoogleのトークンエンドポイントからTLSで直接受け取るため、
-// OpenID Connect Core 3.1.3.7 に従い、署名検証の代わりにTLSによる発行元確認を用いる。
-// そのうえで iss・aud・exp・nonce・email_verified を必ず検証する。
+// IDトークンは、GoogleのDiscovery Documentに記載された jwks_uri の公開鍵でRS256署名を検証し
+// （jose ライブラリ。Web Crypto APIで動作）、さらに iss・aud・exp・iat・nonce・email_verified を検証する。
+//
+// 失敗時は、原因を切り分けるための理由コード（秘密情報を含まない）を返す。
+// 認可コード・トークン・Cookie・メールアドレスは、戻り値にもログにも含めない。
 
+import { createRemoteJWKSet, errors as joseErrors, jwtVerify, type JWTPayload } from "jose";
 import { SITE_URL } from "../src/config/siteUrl";
 import type { StaffAuthEnv } from "./env";
-import { base64Url, getCookie, randomToken, safeEqual } from "./staffAuth";
+import { base64Url, getCookie, parseAllowlist, randomToken, safeEqual } from "./staffAuth";
 
 const AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
+const DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration";
 const VALID_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
+/** Googleが発行したばかりのIDトークンだけを受け付ける（iat がこれより古ければ拒否） */
+const ID_TOKEN_MAX_AGE = "10m";
+const CLOCK_TOLERANCE = "60s";
+/** 公開鍵のキャッシュ時間（未知の鍵IDが来た場合は、この時間内でも取得し直す） */
+const JWKS_CACHE_MS = 60 * 60 * 1000;
 
 export const OAUTH_COOKIE = "staff_oauth";
 const OAUTH_COOKIE_PATH = "/staff/auth";
@@ -33,7 +42,7 @@ export function callbackUrl(): string {
 }
 
 export function isGoogleConfigured(env: StaffAuthEnv): boolean {
-  return Boolean(env.STAFF_DB && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.STAFF_ALLOWED_EMAILS?.trim());
+  return Boolean(env.STAFF_DB && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && parseAllowlist(env.STAFF_ALLOWED_EMAILS).emails.length > 0);
 }
 
 async function pkceChallenge(verifier: string): Promise<string> {
@@ -67,21 +76,88 @@ export function clearOAuthCookie(): string {
   return `${OAUTH_COOKIE}=; Path=${OAUTH_COOKIE_PATH}; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
 }
 
+/** Googleのトークンエンドポイントが返すエラー種別のうち、ログへ記録してよい既知の値 */
+const KNOWN_GOOGLE_ERRORS = new Set([
+  "invalid_client",
+  "invalid_grant",
+  "redirect_uri_mismatch",
+  "unauthorized_client",
+  "invalid_request",
+  "unsupported_grant_type",
+  "invalid_scope",
+]);
+
+/**
+ * ログイン失敗の切り分け用の情報（秘密情報・個人情報は含めない）。
+ * check … 失敗した確認項目（例: state_mismatch・signature・aud・nonce）
+ */
+export interface GoogleLoginDiagnostics {
+  check?: string;
+  googleStatus?: number;
+  googleError?: string;
+}
+
 export type GoogleLoginResult =
   | { ok: true; email: string }
-  | { ok: false; reason: "cancelled" | "invalid_state" | "token_exchange_failed" | "invalid_id_token" | "email_not_verified" };
+  | ({ ok: false; reason: "cancelled" | "state_invalid" | "oauth_token_exchange" | "id_token_invalid" | "email_not_verified" } & GoogleLoginDiagnostics);
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  const part = token.split(".")[1];
-  if (!part) return null;
+// ---- Googleの公開鍵（JWKS） ----
+
+let googleJwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+
+/** Discovery Documentの jwks_uri から公開鍵セットを用意する（isolateごとにキャッシュ） */
+async function getGoogleJwks(): Promise<ReturnType<typeof createRemoteJWKSet>> {
+  if (googleJwks) return googleJwks;
+  const res = await fetch(DISCOVERY_URL, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error("discovery_unavailable");
+  const { jwks_uri: jwksUri } = (await res.json()) as { jwks_uri?: unknown };
+  if (typeof jwksUri !== "string" || new URL(jwksUri).protocol !== "https:") throw new Error("discovery_invalid");
+  googleJwks = createRemoteJWKSet(new URL(jwksUri), { cacheMaxAge: JWKS_CACHE_MS });
+  return googleJwks;
+}
+
+/** テスト用：公開鍵のキャッシュを消す */
+export function resetGoogleJwksCache(): void {
+  googleJwks = null;
+}
+
+/** joseの検証エラーを、ログに出してよい短い項目名へ変換する */
+function idTokenCheckName(err: unknown): string {
+  if (err instanceof joseErrors.JWTExpired) return err.claim;
+  if (err instanceof joseErrors.JWTClaimValidationFailed) return err.claim;
+  if (err instanceof joseErrors.JWSSignatureVerificationFailed) return "signature";
+  if (err instanceof joseErrors.JOSEAlgNotAllowed) return "alg";
+  if (err instanceof joseErrors.JWKSNoMatchingKey) return "kid";
+  if (err instanceof joseErrors.JWKSTimeout) return "jwks_fetch";
+  if (err instanceof joseErrors.JWSInvalid || err instanceof joseErrors.JWTInvalid) return "format";
+  if (err instanceof Error && err.message.startsWith("discovery_")) return err.message;
+  if (err instanceof joseErrors.JOSEError) return "jwks_fetch";
+  return "unknown";
+}
+
+/** IDトークンの署名と内容を検証し、検証済みの内容を返す */
+async function verifyIdToken(
+  idToken: string,
+  env: StaffAuthEnv,
+  nonce: string,
+): Promise<{ ok: true; payload: JWTPayload } | { ok: false; check: string }> {
+  let payload: JWTPayload;
   try {
-    const base64 = part.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(part.length / 4) * 4, "=");
-    const json = new TextDecoder().decode(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)));
-    const value: unknown = JSON.parse(json);
-    return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
-  } catch {
-    return null;
+    ({ payload } = await jwtVerify(idToken, await getGoogleJwks(), {
+      algorithms: ["RS256"],
+      issuer: VALID_ISSUERS,
+      audience: env.GOOGLE_CLIENT_ID ?? "",
+      maxTokenAge: ID_TOKEN_MAX_AGE,
+      clockTolerance: CLOCK_TOLERANCE,
+      requiredClaims: ["exp", "iat"],
+      currentDate: new Date(Date.now()),
+    }));
+  } catch (err) {
+    return { ok: false, check: idTokenCheckName(err) };
   }
+  if (typeof payload.nonce !== "string" || !safeEqual(payload.nonce, nonce)) return { ok: false, check: "nonce" };
+  if (typeof payload.email !== "string" || payload.email === "") return { ok: false, check: "email" };
+  return { ok: true, payload };
 }
 
 /** Googleからのコールバックを検証し、確認済みのメールアドレスを返す（許可リストの確認は呼び出し側） */
@@ -91,12 +167,15 @@ export async function completeGoogleLogin(request: Request, env: StaffAuthEnv): 
 
   const code = url.searchParams.get("code");
   const returnedState = url.searchParams.get("state");
-  const [state, nonce, verifier] = (getCookie(request, OAUTH_COOKIE) ?? "").split(".");
-  if (!code || !returnedState || !state || !nonce || !verifier || !safeEqual(returnedState, state)) {
-    return { ok: false, reason: "invalid_state" };
+  const oauthCookie = getCookie(request, OAUTH_COOKIE);
+  const [state, nonce, verifier] = (oauthCookie ?? "").split(".");
+  if (!code || !returnedState) return { ok: false, reason: "state_invalid", check: "missing_params" };
+  if (!oauthCookie) return { ok: false, reason: "state_invalid", check: "missing_cookie" };
+  if (!state || !nonce || !verifier || !safeEqual(returnedState, state)) {
+    return { ok: false, reason: "state_invalid", check: "state_mismatch" };
   }
 
-  let idToken: string | undefined;
+  let idToken: unknown;
   try {
     const res = await fetch(TOKEN_URL, {
       method: "POST",
@@ -110,32 +189,25 @@ export async function completeGoogleLogin(request: Request, env: StaffAuthEnv): 
         code_verifier: verifier,
       }),
     });
-    if (!res.ok) return { ok: false, reason: "token_exchange_failed" };
-    idToken = ((await res.json()) as { id_token?: string }).id_token;
+    const body = (await res.json().catch(() => null)) as { id_token?: unknown; error?: unknown } | null;
+    if (!res.ok) {
+      // error_description などの自由記述は記録しない。既知のエラー種別だけを返す
+      const error = typeof body?.error === "string" ? body.error : "";
+      return { ok: false, reason: "oauth_token_exchange", googleStatus: res.status, googleError: KNOWN_GOOGLE_ERRORS.has(error) ? error : "other" };
+    }
+    idToken = body?.id_token;
+    if (typeof idToken !== "string" || idToken === "") {
+      return { ok: false, reason: "oauth_token_exchange", googleStatus: res.status, check: "missing_id_token" };
+    }
   } catch {
-    return { ok: false, reason: "token_exchange_failed" };
+    return { ok: false, reason: "oauth_token_exchange", check: "network" };
   }
-  if (!idToken) return { ok: false, reason: "token_exchange_failed" };
 
-  const claims = decodeJwtPayload(idToken);
-  const now = Math.floor(Date.now() / 1000);
-  const aud = Array.isArray(claims?.aud) ? claims?.aud : [claims?.aud];
-  if (
-    !claims ||
-    typeof claims.iss !== "string" ||
-    !VALID_ISSUERS.includes(claims.iss) ||
-    !aud.includes(env.GOOGLE_CLIENT_ID) ||
-    typeof claims.exp !== "number" ||
-    claims.exp < now ||
-    typeof claims.nonce !== "string" ||
-    !safeEqual(claims.nonce, nonce) ||
-    typeof claims.email !== "string" ||
-    claims.email === ""
-  ) {
-    return { ok: false, reason: "invalid_id_token" };
-  }
-  if (claims.email_verified !== true && claims.email_verified !== "true") {
+  const verified = await verifyIdToken(idToken, env, nonce);
+  if (!verified.ok) return { ok: false, reason: "id_token_invalid", check: verified.check };
+  const { payload } = verified;
+  if (payload.email_verified !== true && payload.email_verified !== "true") {
     return { ok: false, reason: "email_not_verified" };
   }
-  return { ok: true, email: claims.email.toLowerCase() };
+  return { ok: true, email: (payload.email as string).toLowerCase() };
 }

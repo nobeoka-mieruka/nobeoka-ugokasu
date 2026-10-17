@@ -71,13 +71,42 @@ export function clearSessionCookie(): string {
 }
 
 /** 許可メールアドレス一覧（環境変数）に含まれるか。大文字・小文字は区別しない */
+/**
+ * STAFF_ALLOWED_EMAILS の誤入力の種類（ログ用。メールアドレス自体は含めない）
+ * ・fullwidth_separator … 全角カンマ「，」・読点「、」・全角セミコロンで区切られている
+ * ・quotes              … メールアドレスが引用符（" ' “ ” ‘ ’ 「 」）で囲まれている
+ * ・invalid_entry       … メールアドレスの形になっていない項目がある（全角文字の混入など）。この項目は無視する
+ */
+export type AllowlistWarning = "fullwidth_separator" | "quotes" | "invalid_entry";
+
+const ALLOWLIST_SEPARATORS = /[\s,;，、；]+/;
+const FULLWIDTH_SEPARATORS = /[，、；]/;
+const SURROUNDING_QUOTES = /^["'“”‘’「」『』]+|["'“”‘’「」『』]+$/g;
+const EMAIL_SHAPE = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/;
+
+/** 許可リストを読み取る（前後の空白除去・小文字化・区切り文字での分割・引用符の除去） */
+export function parseAllowlist(raw: string | undefined): { emails: string[]; warnings: AllowlistWarning[] } {
+  const warnings = new Set<AllowlistWarning>();
+  const value = raw ?? "";
+  if (FULLWIDTH_SEPARATORS.test(value)) warnings.add("fullwidth_separator");
+  const emails: string[] = [];
+  for (const item of value.split(ALLOWLIST_SEPARATORS)) {
+    if (!item) continue;
+    const unquoted = item.replace(SURROUNDING_QUOTES, "");
+    if (unquoted !== item) warnings.add("quotes");
+    const email = unquoted.trim().toLowerCase();
+    if (!EMAIL_SHAPE.test(email)) {
+      warnings.add("invalid_entry");
+      continue;
+    }
+    emails.push(email);
+  }
+  return { emails, warnings: [...warnings] };
+}
+
 export function isAllowedEmail(email: string, env: StaffAuthEnv): boolean {
-  const allowed = (env.STAFF_ALLOWED_EMAILS ?? "")
-    .split(/[\s,;]+/)
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
   const target = email.trim().toLowerCase();
-  return target !== "" && allowed.includes(target);
+  return target !== "" && parseAllowlist(env.STAFF_ALLOWED_EMAILS).emails.includes(target);
 }
 
 export function clientIp(request: Request): string {
