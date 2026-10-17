@@ -1,0 +1,88 @@
+---
+// 資料の登録・編集フォーム（/staff/documents/new/ と /staff/documents/:id/edit/ で共用）。
+// 送信は src/scripts/staff/documentForm.ts が /staff/api/documents へJSONで行います。
+// 入力値の検証はサーバー側（server/documents.ts）でも必ず行います。ここでの maxlength 等は入力補助です。
+import { DOCUMENT_CATEGORIES, DOCUMENT_CATEGORY_LABELS, DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from "../../types/documents";
+import DriveSharingNotice from "./DriveSharingNotice.astro";
+
+interface Props {
+  mode: "create" | "edit";
+}
+
+const { mode } = Astro.props;
+const L = { title: 100, description: 1000, url: 2000 };
+
+const inputClass =
+  "mt-2 block w-full rounded-xl border border-black/20 bg-white px-4 py-3 text-base text-ink focus:border-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-brand-orange-dark/30";
+const labelClass = "block text-base font-bold text-ink";
+const requiredBadge = "ml-2 rounded bg-brand-orange-dark px-1.5 py-0.5 text-xs font-bold text-white align-middle";
+const optionalBadge = "ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs font-bold text-ink-soft align-middle";
+const errorClass = "mt-1 hidden text-sm font-bold text-red-700";
+const hintClass = "mt-1 text-sm text-ink-soft";
+---
+
+<form data-document-form data-mode={mode} class="card space-y-6" novalidate>
+  <input type="hidden" name="csrf_token" value="" />
+
+  <DriveSharingNotice />
+
+  <div>
+    <label for="doc-title" class={labelClass}>タイトル<span class={requiredBadge}>必須</span></label>
+    <input id="doc-title" name="title" type="text" required maxlength={L.title} class={inputClass} aria-describedby="doc-title-error" />
+    <p id="doc-title-error" data-error-for="title" class={errorClass}></p>
+  </div>
+
+  <div>
+    <label for="doc-url" class={labelClass}>資料のURL<span class={requiredBadge}>必須</span></label>
+    <input id="doc-url" name="url" type="url" inputmode="url" required maxlength={L.url} placeholder="https://drive.google.com/…" class={inputClass} aria-describedby="doc-url-hint doc-url-error" />
+    <p id="doc-url-hint" class={hintClass}>「https://」で始まるURLだけ登録できます。サイト側で資料の中身を読み込むことはありません。</p>
+    <p id="doc-url-error" data-error-for="url" class={errorClass}></p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+    <div>
+      <label for="doc-category" class={labelClass}>カテゴリー<span class={requiredBadge}>必須</span></label>
+      <select id="doc-category" name="category" required class={inputClass} aria-describedby="doc-category-error">
+        {DOCUMENT_CATEGORIES.map((category) => <option value={category}>{DOCUMENT_CATEGORY_LABELS[category]}</option>)}
+      </select>
+      <p id="doc-category-error" data-error-for="category" class={errorClass}></p>
+    </div>
+    <div>
+      <label for="doc-type" class={labelClass}>資料の種類</label>
+      <select id="doc-type" name="documentType" class={inputClass} aria-describedby="doc-type-hint doc-type-error">
+        <option value="auto">URLから自動判定</option>
+        {DOCUMENT_TYPES.map((type) => <option value={type}>{DOCUMENT_TYPE_LABELS[type]}</option>)}
+      </select>
+      <p id="doc-type-hint" data-type-hint class={hintClass}>判定できない場合は「その他」になります。</p>
+      <p id="doc-type-error" data-error-for="documentType" class={errorClass}></p>
+    </div>
+  </div>
+
+  <div>
+    <label for="doc-description" class={labelClass}>説明<span class={optionalBadge}>任意</span></label>
+    <textarea id="doc-description" name="description" rows="3" maxlength={L.description} class={inputClass} aria-describedby="doc-description-error"></textarea>
+    <p id="doc-description-error" data-error-for="description" class={errorClass}></p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+    <div>
+      <label for="doc-order" class={labelClass}>表示順<span class={optionalBadge}>任意</span></label>
+      <input id="doc-order" name="displayOrder" type="number" inputmode="numeric" min="-9999" max="9999" step="1" value="0" class={inputClass} aria-describedby="doc-order-hint doc-order-error" />
+      <p id="doc-order-hint" class={hintClass}>小さい数字ほど上に表示されます。通常は 0 のままで構いません。</p>
+      <p id="doc-order-error" data-error-for="displayOrder" class={errorClass}></p>
+    </div>
+    <div class="flex items-end">
+      <label class="flex items-start gap-3 rounded-xl bg-brand-ivory p-4 text-base text-ink w-full">
+        <input name="pinned" type="checkbox" class="mt-1 h-5 w-5 flex-shrink-0 accent-brand-orange-dark" />
+        <span><span class="font-bold">ピン留めする</span><span class="block text-sm text-ink-soft">一覧の一番上に表示します。</span></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+    <a href="/staff/documents/" class="btn-secondary justify-center">一覧へ戻る</a>
+    <button type="submit" class="btn-primary justify-center" data-submit>
+      {mode === "create" ? "登録する" : "変更を保存する"}
+    </button>
+  </div>
+</form>

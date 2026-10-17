@@ -52,8 +52,22 @@ export const STAFF_SECTIONS: readonly StaffSection[] = [
     icon: "check",
     href: "/staff/tasks/",
   },
-  { key: "sns", label: "SNS", cardTitle: "SNS", description: "SNS投稿の同期状況の確認", icon: "megaphone" },
-  { key: "documents", label: "資料", cardTitle: "資料", description: "執行部内の資料の共有", icon: "document" },
+  {
+    key: "sns",
+    label: "SNS",
+    cardTitle: "SNS",
+    description: "Facebook・Instagram・Threads の連携状況・最終同期の確認と手動同期",
+    icon: "megaphone",
+    href: "/staff/sns/",
+  },
+  {
+    key: "documents",
+    label: "資料",
+    cardTitle: "資料",
+    description: "Google Drive などにある執行部の資料へのリンクの整理",
+    icon: "document",
+    href: "/staff/documents/",
+  },
 ];
 
 /** URLのパスから、表示中の機能を判定する（例："/staff/events/12/edit/" → "events"） */

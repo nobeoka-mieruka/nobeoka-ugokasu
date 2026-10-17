@@ -15,11 +15,28 @@ export type StaffPermission =
   | "events:read"
   | "events:write"
   | "tasks:read"
-  | "tasks:write";
+  | "tasks:write"
+  | "sns:read"
+  | "sns:write"
+  | "documents:read"
+  | "documents:write";
 export type StaffRole = "admin";
 
 const ROLE_PERMISSIONS: Record<StaffRole, readonly StaffPermission[]> = {
-  admin: ["dialogue:read", "dialogue:write", "news:read", "news:write", "events:read", "events:write", "tasks:read", "tasks:write"],
+  admin: [
+    "dialogue:read",
+    "dialogue:write",
+    "news:read",
+    "news:write",
+    "events:read",
+    "events:write",
+    "tasks:read",
+    "tasks:write",
+    "sns:read",
+    "sns:write",
+    "documents:read",
+    "documents:write",
+  ],
 };
 
 /** ログイン中の方の役割（現在は全員 admin） */

@@ -1,0 +1,19 @@
+---
+// /staff/documents/new/ … 資料の新規登録（ログイン必須。functions/staff/_middleware.ts が保護）
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import StaffPageHeader from "../../../components/staff/StaffPageHeader.astro";
+import DocumentForm from "../../../components/staff/DocumentForm.astro";
+---
+
+<BaseLayout title="資料の新規登録｜執行部ポータル" description="資料を登録します。" path="/staff/documents/new" noindex>
+  <StaffPageHeader title="資料の新規登録" backHref="/staff/documents/" backLabel="資料の一覧へ戻る" />
+  <section class="py-10 sm:py-14">
+    <div class="section-wrap max-w-3xl space-y-6">
+      <div data-staff-notice role="status" tabindex="-1" class="hidden rounded-xl px-4 py-3 font-bold"></div>
+      <DocumentForm mode="create" />
+    </div>
+  </section>
+  <script>
+    import "../../../scripts/staff/documentForm";
+  </script>
+</BaseLayout>

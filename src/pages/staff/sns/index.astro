@@ -1,0 +1,85 @@
+---
+// /staff/sns/ … SNS管理（ログイン必須。functions/staff/_middleware.ts が保護）
+// SNSへの投稿機能ではなく、既存のSNS自動同期（Facebook・Instagram・Threads）の連携状況の確認と手動同期のための画面です。
+// 状態はブラウザが /staff/api/sns/status から読み込みます。「今すぐ同期」は /staff/api/sns/sync（サーバー側で既存の同期処理を実行）。
+// 秘密キー・アクセストークンはこの画面にもAPIの応答にも含まれません。
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import StaffPageHeader from "../../../components/staff/StaffPageHeader.astro";
+import { socialLinks } from "../../../data/socialLinks";
+
+const platforms = [
+  { key: "facebook", label: "Facebook", url: socialLinks.facebook },
+  { key: "instagram", label: "Instagram", url: socialLinks.instagram },
+  { key: "threads", label: "Threads", url: socialLinks.threads },
+] as const;
+const termClass = "flex-shrink-0 whitespace-nowrap text-xs font-bold text-ink-soft";
+---
+
+<BaseLayout title="SNS管理｜執行部ポータル" description="SNS自動同期の状況を確認します。" path="/staff/sns" noindex>
+  <StaffPageHeader
+    title="SNS管理"
+    description="Facebook・Instagram・Threads の自動同期（約3分ごと）の状況を確認できます。ここからSNSへ投稿することはできません。"
+  />
+
+  <section class="py-10 sm:py-14">
+    <div class="section-wrap max-w-5xl space-y-8">
+      <input type="hidden" name="csrf_token" value="" />
+      <div data-staff-notice role="status" tabindex="-1" class="hidden rounded-xl px-4 py-3 font-bold"></div>
+
+      <div class="card flex flex-col sm:flex-row sm:items-center gap-4">
+        <div class="min-w-0 flex-1 space-y-1 text-sm text-ink">
+          <p><span class="font-bold">最終同期：</span><span data-sns="lastCheckedAt">読み込んでいます…</span></p>
+          <p><span class="font-bold">最後に取得に成功した日時：</span><span data-sns="lastSuccessAt">—</span></p>
+          <p class="text-ink-soft">手動同期は60秒に1回までです。SNS側のAPI制限があるため、必要なときだけ実行してください。</p>
+        </div>
+        <button type="button" data-sns-sync class="btn-primary justify-center disabled:opacity-50">今すぐ同期</button>
+      </div>
+
+      <div data-sns-result role="status" class="hidden card space-y-2"></div>
+
+      <ul class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {platforms.map((platform) => (
+          <li class="card min-w-0 flex flex-col gap-3" data-sns-platform={platform.key}>
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-xl font-bold text-ink">{platform.label}</h2>
+              <span data-sns-field="state" class="rounded-full bg-black/5 px-3 py-1 text-xs font-bold text-ink-soft">確認中</span>
+            </div>
+            <dl class="space-y-2 text-sm text-ink">
+              <div class="flex gap-3"><dt class={termClass}>保存済みの投稿</dt><dd data-sns-field="postCount">—</dd></div>
+              <div class="flex gap-3"><dt class={termClass}>最終同期</dt><dd data-sns-field="checkedAt">—</dd></div>
+            </dl>
+            <p data-sns-field="hint" class="hidden text-sm text-ink-soft"></p>
+            <div class="mt-auto pt-2">
+              {platform.url ? (
+                <a href={platform.url} target="_blank" rel="noopener noreferrer" class="btn-secondary w-full justify-center text-base">
+                  公式アカウントを開く<span class="sr-only">（新しいタブで開く）</span>
+                </a>
+              ) : (
+                <p class="text-sm text-ink-soft">公式アカウントのURLは未設定です。</p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div class="space-y-3">
+        <h2 class="text-2xl font-bold text-ink">直近の取得投稿</h2>
+        <p data-sns-posts-empty class="hidden card text-center text-ink-soft">保存済みの投稿はありません。</p>
+        <ul data-sns-posts class="divide-y divide-black/5 rounded-2xl bg-white ring-1 ring-black/5"></ul>
+        <p class="text-sm text-ink-soft">公開ページの「活動報告」に表示しているものと同じ投稿です。</p>
+      </div>
+    </div>
+  </section>
+
+  <template data-sns-post-template>
+    <li class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-5 py-4">
+      <span data-post="platform" class="w-fit rounded-full bg-brand-orange-light px-2.5 py-1 text-xs font-bold text-ink"></span>
+      <span data-post="date" class="text-sm text-ink-soft whitespace-nowrap"></span>
+      <a data-post="link" target="_blank" rel="noopener noreferrer" class="min-w-0 flex-1 font-bold text-ink underline [overflow-wrap:anywhere]"></a>
+    </li>
+  </template>
+
+  <script>
+    import "../../../scripts/staff/snsAdmin";
+  </script>
+</BaseLayout>
