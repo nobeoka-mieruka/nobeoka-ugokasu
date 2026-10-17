@@ -1,5 +1,7 @@
 ---
-// 執行部ポータル内の各画面の見出し（パンくず代わりの「ポータルへ戻る」リンク付き）。
+// 執行部ポータル内の各画面の見出し（パンくず代わりの「ポータルへ戻る」リンクと、共通ナビゲーション付き）。
+import StaffNav from "./StaffNav.astro";
+
 interface Props {
   title: string;
   description?: string;
@@ -16,5 +18,6 @@ const { title, description, backHref = "/staff/", backLabel = "執行部ポー�
     <h1 class="mt-1 text-3xl sm:text-4xl font-bold text-ink">{title}</h1>
     {description && <p class="mt-3 text-base text-ink-soft leading-relaxed">{description}</p>}
     <p class="mt-3 text-sm text-ink-soft [overflow-wrap:anywhere]">ログイン中：<span data-staff-email></span></p>
+    <StaffNav />
   </div>
 </div>

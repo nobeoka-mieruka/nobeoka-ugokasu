@@ -1,0 +1,46 @@
+---
+// 執行部ポータル内の共通ナビゲーション（ポータル内の各画面の見出し部分に表示）。
+// ・項目は src/config/staffNav.ts で一元管理。未実装の機能は「準備中」として押せない状態で表示する。
+// ・表示中の機能は aria-current="page" で強調する（URLから自動判定）。
+// ・スマートフォンでは折り返して全項目を表示する（横スクロールさせない）。
+// ・ログアウトは既存のCSRFトークン付きフォーム（csrf_token は配信時にミドルウェアが差し込む）。
+// 一般公開サイトのメニューには使わないでください。
+import { STAFF_SECTIONS, currentStaffSection } from "../../config/staffNav";
+
+const current = currentStaffSection(Astro.url.pathname);
+const base = "inline-flex min-h-[44px] items-center rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap";
+---
+
+<nav aria-label="執行部ポータルのメニュー" class="mt-5">
+  <ul class="flex flex-wrap gap-2">
+    {STAFF_SECTIONS.map((section) => (
+      <li>
+        {section.href ? (
+          <a
+            href={section.href}
+            aria-current={section.key === current ? "page" : undefined}
+            class:list={[
+              base,
+              section.key === current
+                ? "bg-brand-orange-dark text-white"
+                : "bg-white text-ink ring-1 ring-black/10 hover:bg-brand-orange-light",
+            ]}
+          >
+            {section.label}
+          </a>
+        ) : (
+          <span aria-disabled="true" class:list={[base, "bg-black/5 text-ink-soft cursor-not-allowed"]}>
+            {section.label}
+            <span class="ml-1 text-xs font-normal">（準備中）</span>
+          </span>
+        )}
+      </li>
+    ))}
+    <li class="ml-auto">
+      <form method="post" action="/staff/logout">
+        <input type="hidden" name="csrf_token" value="" />
+        <button type="submit" class:list={[base, "bg-white text-ink ring-1 ring-black/10 hover:bg-brand-orange-light"]}>ログアウト</button>
+      </form>
+    </li>
+  </ul>
+</nav>

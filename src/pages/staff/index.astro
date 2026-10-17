@@ -10,27 +10,19 @@
 //（/staff/api/ もミドルウェアで保護されます）。
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Icon from "../../components/Icon.astro";
-import type { IconName } from "../../types/icon";
+import StaffNav from "../../components/staff/StaffNav.astro";
+import { STAFF_SECTIONS } from "../../config/staffNav";
 
 const title = "後援会執行部ポータル｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会 後援会執行部向けのページです。";
 
-interface PortalCard {
-  title: string;
-  description: string;
-  icon: IconName;
-  /** 実装済みの機能へのリンク。未実装の間は undefined（「準備中」と表示） */
-  href?: string;
-}
-
-const cards: PortalCard[] = [
-  { title: "意見交換会", description: "開催予定の登録・編集・受付状況の変更（公開ページ /dialogue/ へ反映）", icon: "users", href: "/staff/dialogue/" },
-  { title: "お知らせ管理", description: "トップページ「最新のお知らせ」の登録・編集・公開／非公開", icon: "document", href: "/staff/news/" },
-  { title: "イベント", description: "イベントの登録・進捗・担当者・内部メモの管理（一般公開分は /events/ へ反映）", icon: "clock", href: "/staff/events/" },
-  { title: "タスク", description: "執行部内のやること・担当の管理", icon: "check" },
-  { title: "SNS", description: "SNS投稿の同期状況の確認", icon: "megaphone" },
-  { title: "資料", description: "執行部内の資料の共有", icon: "document" },
-];
+// 機能の一覧は src/config/staffNav.ts で一元管理（共通ナビゲーションと同じ内容）。href が無い機能は「準備中」
+const cards = STAFF_SECTIONS.filter((section) => section.key !== "top").map((section) => ({
+  title: section.cardTitle ?? section.label,
+  description: section.description ?? "",
+  icon: section.icon,
+  href: section.href,
+}));
 ---
 
 <BaseLayout title={title} description={description} path="/staff" noindex>
@@ -41,6 +33,7 @@ const cards: PortalCard[] = [
       <p class="mt-3 text-sm text-ink-soft [overflow-wrap:anywhere]">
         ログイン中：<span data-staff-email></span>
       </p>
+      <StaffNav />
     </div>
   </div>
 
