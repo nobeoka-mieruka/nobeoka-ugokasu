@@ -62,3 +62,21 @@ export interface SocialSyncEnv {
   /** チャンネルの「アップロード動画」プレイリストID。playlistItems.list呼び出しに使用 */
   YOUTUBE_UPLOADS_PLAYLIST_ID?: string;
 }
+
+/**
+ * 後援会執行部ポータル（/staff/）のGoogleログインに使う設定です。
+ * 設定手順は docs/staff-login-setup.md を参照。
+ * いずれかが未設定の間は、誰もログインできません（フェイルクローズ）。
+ *
+ * SNS自動同期（/api/admin/sync-social-posts）の秘密キー認証とは完全に別物です。
+ */
+export interface StaffAuthEnv {
+  /** セッション・ログイン失敗回数を保存するD1データベース（binding名: STAFF_DB） */
+  STAFF_DB?: D1Database;
+  /** Google OAuthクライアントID（公開されても問題ない値） */
+  GOOGLE_CLIENT_ID?: string;
+  /** Google OAuthクライアントシークレット（秘密情報。必ずSecretとして登録する） */
+  GOOGLE_CLIENT_SECRET?: string;
+  /** ログインを許可するメールアドレス（カンマ・空白・改行区切り。Secretとして登録する） */
+  STAFF_ALLOWED_EMAILS?: string;
+}

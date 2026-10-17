@@ -51,5 +51,22 @@ import SiteLastUpdated from "./SiteLastUpdated.astro";
     <div class="mt-1">
       <SiteLastUpdated />
     </div>
+
+    {/*
+      後援会執行部ポータルへの入口。一般向けのメニューより控えめに表示するが、
+      読める濃さ（暗い背景に白70%）とタップしやすい高さは確保する。
+      リンクを目立たなくすることはセキュリティ対策ではない。/staff/ 以下は
+      functions/staff/_middleware.ts（サーバー側のGoogleログイン＋セッション）で認証を必須にしている。
+    */}
+    {/* 右下には「ページ上部へ戻る」ボタンが重なるため、左寄せにしている */}
+    <div class="mt-4 border-t border-white/10 pt-2">
+      <a
+        href="/staff/login/"
+        rel="nofollow"
+        class="inline-flex min-h-[44px] items-center text-xs text-white/70 hover:text-white hover:underline"
+      >
+        管理者ログイン
+      </a>
+    </div>
   </div>
 </footer>

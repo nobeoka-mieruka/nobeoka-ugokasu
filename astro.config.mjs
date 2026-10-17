@@ -27,6 +27,7 @@ export default defineConfig({
         !page.includes("/voices/submit") &&
         !page.includes("/issues/") &&
         !page.includes("/404") &&
+        !page.includes("/staff/") &&
         (hasPublishedVideos || !page.includes("/videos")),
     }),
   ],

@@ -1,0 +1,77 @@
+---
+// 後援会執行部ログイン画面（/staff/login/）。
+// Googleアカウントでログインし、サーバー側（functions/staff/auth/callback.ts）で
+// 許可されたメールアドレスかどうかを確認します。
+// このページには許可メールアドレス・秘密情報などは一切含めません。
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Icon from "../../components/Icon.astro";
+
+const title = "後援会執行部ログイン｜福富千恵と延岡を動かす会";
+const description = "福富千恵と延岡を動かす会 後援会執行部向けのログイン画面です。";
+---
+
+<BaseLayout title={title} description={description} path="/staff/login" noindex>
+  <section class="py-14 sm:py-20 bg-brand-ivory">
+    <div class="section-wrap max-w-md">
+      <div class="card text-center">
+        <p class="text-sm font-bold text-ink-soft">福富千恵と延岡を動かす会</p>
+        <h1 class="mt-2 text-2xl sm:text-3xl font-bold text-ink">後援会執行部ログイン</h1>
+        <p class="mt-4 text-sm text-ink-soft leading-relaxed">
+          このページは後援会執行部の方専用です。登録済みのGoogleアカウントでログインしてください。
+        </p>
+
+        <p
+          data-login-message
+          role="status"
+          aria-live="polite"
+          class="mt-6 hidden rounded-xl px-4 py-3 text-sm font-bold leading-relaxed text-left"
+        >
+        </p>
+
+        <a
+          href="/staff/auth/google"
+          class="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-lg font-bold text-ink ring-2 ring-black/15 shadow-sm transition-colors hover:bg-brand-orange-light"
+        >
+          <svg aria-hidden="true" viewBox="0 0 48 48" class="w-6 h-6 flex-shrink-0">
+            <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z" />
+            <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+            <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+            <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.3-.4-3.5z" />
+          </svg>
+          Googleでログイン
+        </a>
+
+        <p class="mt-6 text-xs text-ink-soft leading-relaxed text-left">
+          ※ログインできるのは、後援会事務局があらかじめ登録したGoogleアカウントのみです。ログインの失敗が続いた場合は、一定時間ログインできなくなります。
+        </p>
+      </div>
+
+      <div class="mt-6 text-center">
+        <a href="/" class="inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-ink underline">
+          <Icon name="chevron-left" class="w-4 h-4" />
+          公開ホームページへ戻る
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ?error=... / ?logged_out=1 に応じた案内を表示する（定型文のみ。URLの値をそのまま表示しない）
+    const messages: Record<string, { text: string; tone: "error" | "info" }> = {
+      failed: { text: "ログインできませんでした。登録済みのGoogleアカウントでログインしてください。", tone: "error" },
+      locked: { text: "ログインの失敗が続いたため、一時的にログインを制限しています。15分ほど時間をおいてから再度お試しください。", tone: "error" },
+      cancelled: { text: "ログインがキャンセルされました。", tone: "info" },
+      unavailable: { text: "現在ログイン機能をご利用いただけません。時間をおいて再度お試しいただくか、後援会事務局へお問い合わせください。", tone: "error" },
+      logged_out: { text: "ログアウトしました。", tone: "info" },
+    };
+    const params = new URLSearchParams(location.search);
+    const key = params.has("logged_out") ? "logged_out" : (params.get("error") ?? "");
+    const message = messages[key];
+    const target = document.querySelector<HTMLElement>("[data-login-message]");
+    if (message && target) {
+      target.textContent = message.text;
+      target.classList.remove("hidden");
+      target.classList.add(...(message.tone === "error" ? ["bg-red-50", "text-red-800"] : ["bg-brand-orange-light", "text-ink"]));
+    }
+  </script>
+</BaseLayout>

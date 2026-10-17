@@ -181,6 +181,8 @@ for (const file of htmlFiles) {
     if (href.startsWith("//")) continue; // プロトコル相対URL（今回は使用していないが念のため除外）
     const cleanHref = href.split("#")[0].split("?")[0];
     if (cleanHref === "") continue;
+    // Pages Functionsが応答するパス（例：Googleログインの開始）は、ビルド成果物には存在しない
+    if (cleanHref.startsWith("/staff/auth/")) continue;
     const isFile = /\.[a-zA-Z0-9]+$/.test(cleanHref);
     if (isFile) {
       if (!existsSync(path.join(distDir, cleanHref))) {
