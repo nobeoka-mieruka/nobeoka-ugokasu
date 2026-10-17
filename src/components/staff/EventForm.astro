@@ -1,0 +1,182 @@
+---
+// イベントの登録・編集フォーム（/staff/events/new/ と /staff/events/:id/edit/ で共用）。
+// 送信は src/scripts/staff/eventForm.ts が /staff/api/events へJSONで行います。
+// 入力値の検証はサーバー側（server/events.ts）でも必ず行います。ここでの maxlength 等は入力補助です。
+import {
+  EVENT_CATEGORIES,
+  EVENT_CATEGORY_LABELS,
+  EVENT_STATUSES,
+  EVENT_STATUS_LABELS,
+} from "../../types/events";
+
+interface Props {
+  mode: "create" | "edit";
+}
+
+const { mode } = Astro.props;
+const L = { title: 100, venue: 100, address: 200, description: 2000, personInCharge: 100, requiredItems: 1000, internalNotes: 2000 };
+
+const inputClass =
+  "mt-2 block w-full rounded-xl border border-black/20 bg-white px-4 py-3 text-base text-ink focus:border-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-brand-orange-dark/30";
+const labelClass = "block text-base font-bold text-ink";
+const requiredBadge = "ml-2 rounded bg-brand-orange-dark px-1.5 py-0.5 text-xs font-bold text-white align-middle";
+const optionalBadge = "ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs font-bold text-ink-soft align-middle";
+const errorClass = "mt-1 hidden text-sm font-bold text-red-700";
+const hintClass = "mt-1 text-sm text-ink-soft";
+const legendClass = "text-xl font-bold text-ink";
+---
+
+<form data-event-form data-mode={mode} class="space-y-6" novalidate>
+  <input type="hidden" name="csrf_token" value="" />
+
+  <fieldset class="card space-y-6">
+    <legend class={legendClass}>基本情報</legend>
+
+    <div>
+      <label for="ev-title" class={labelClass}>イベント名<span class={requiredBadge}>必須</span></label>
+      <input id="ev-title" name="title" type="text" required maxlength={L.title} class={inputClass} aria-describedby="ev-title-error" />
+      <p id="ev-title-error" data-error-for="title" class={errorClass}></p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div>
+        <label for="ev-date" class={labelClass}>開催日<span class={requiredBadge}>必須</span></label>
+        <input id="ev-date" name="eventDate" type="date" required min="2020-01-01" max="2100-12-31" class={inputClass} aria-describedby="ev-date-error" />
+        <p id="ev-date-error" data-error-for="eventDate" class={errorClass}></p>
+      </div>
+      <div>
+        <label for="ev-start" class={labelClass}>開始時間<span class={requiredBadge}>必須</span></label>
+        <input id="ev-start" name="startTime" type="time" required class={inputClass} aria-describedby="ev-start-error" />
+        <p id="ev-start-error" data-error-for="startTime" class={errorClass}></p>
+      </div>
+      <div>
+        <label for="ev-end" class={labelClass}>終了時間<span class={optionalBadge}>任意</span></label>
+        <input id="ev-end" name="endTime" type="time" class={inputClass} aria-describedby="ev-end-error" />
+        <p id="ev-end-error" data-error-for="endTime" class={errorClass}></p>
+      </div>
+    </div>
+
+    <div>
+      <label for="ev-venue" class={labelClass}>会場<span class={requiredBadge}>必須</span></label>
+      <input id="ev-venue" name="venue" type="text" required maxlength={L.venue} placeholder="例：○○公民館" class={inputClass} aria-describedby="ev-venue-error" />
+      <p id="ev-venue-error" data-error-for="venue" class={errorClass}></p>
+    </div>
+
+    <div>
+      <label for="ev-address" class={labelClass}>住所<span class={optionalBadge}>任意</span></label>
+      <input id="ev-address" name="address" type="text" maxlength={L.address} class={inputClass} aria-describedby="ev-address-error" />
+      <p id="ev-address-error" data-error-for="address" class={errorClass}></p>
+    </div>
+
+    <div>
+      <label for="ev-description" class={labelClass}>概要<span class={optionalBadge}>任意</span></label>
+      <textarea id="ev-description" name="description" rows="4" maxlength={L.description} class={inputClass} aria-describedby="ev-description-hint ev-description-error"></textarea>
+      <p id="ev-description-hint" class={hintClass}>一般公開のイベントでは、公開ページにそのまま表示されます。個人情報や内部の連絡事項は「内部管理」の欄へ書いてください。</p>
+      <p id="ev-description-error" data-error-for="description" class={errorClass}></p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div>
+        <label for="ev-category" class={labelClass}>カテゴリー<span class={requiredBadge}>必須</span></label>
+        <select id="ev-category" name="category" required class={inputClass} aria-describedby="ev-category-hint ev-category-error">
+          {EVENT_CATEGORIES.map((category) => <option value={category}>{EVENT_CATEGORY_LABELS[category]}</option>)}
+        </select>
+        <p id="ev-category-hint" class={hintClass}>「意見交換会」は専用の管理画面（意見交換会）で登録してください。ここには登録しないでください。</p>
+        <p id="ev-category-error" data-error-for="category" class={errorClass}></p>
+      </div>
+      <div>
+        <label for="ev-status" class={labelClass}>ステータス<span class={requiredBadge}>必須</span></label>
+        <select id="ev-status" name="status" required class={inputClass} aria-describedby="ev-status-error">
+          {EVENT_STATUSES.map((status) => <option value={status}>{EVENT_STATUS_LABELS[status]}</option>)}
+        </select>
+        <p id="ev-status-error" data-error-for="status" class={errorClass}></p>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend class={labelClass}>公開範囲<span class={requiredBadge}>必須</span></legend>
+      <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label class="flex items-start gap-3 rounded-xl border border-black/20 bg-white p-4 text-base text-ink">
+          <input name="visibility" type="radio" value="internal" checked class="mt-1 h-5 w-5 flex-shrink-0 accent-brand-orange-dark" />
+          <span><span class="font-bold">執行部のみ</span><span class="block text-sm text-ink-soft">公開ページには表示しません</span></span>
+        </label>
+        <label class="flex items-start gap-3 rounded-xl border border-black/20 bg-white p-4 text-base text-ink">
+          <input name="visibility" type="radio" value="public" class="mt-1 h-5 w-5 flex-shrink-0 accent-brand-orange-dark" />
+          <span><span class="font-bold">一般公開</span><span class="block text-sm text-ink-soft">トップページ・イベント一覧（/events/）に表示します</span></span>
+        </label>
+      </div>
+      <p data-error-for="visibility" class={errorClass}></p>
+    </fieldset>
+
+    <div>
+      <label for="ev-order" class={labelClass}>表示順<span class={optionalBadge}>任意</span></label>
+      <input id="ev-order" name="displayOrder" type="number" inputmode="numeric" min="-9999" max="9999" step="1" value="0" class={inputClass} aria-describedby="ev-order-hint ev-order-error" />
+      <p id="ev-order-hint" class={hintClass}>同じ日のイベントの並び順です。通常は 0 のままで構いません。</p>
+      <p id="ev-order-error" data-error-for="displayOrder" class={errorClass}></p>
+    </div>
+  </fieldset>
+
+  <fieldset class="card space-y-6">
+    <legend class={legendClass}>参加関係</legend>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div>
+        <label for="ev-capacity" class={labelClass}>定員（人）<span class={optionalBadge}>任意</span></label>
+        <input id="ev-capacity" name="capacity" type="number" inputmode="numeric" min="0" max="100000" step="1" placeholder="定員なしは空欄" class={inputClass} aria-describedby="ev-capacity-error" />
+        <p id="ev-capacity-error" data-error-for="capacity" class={errorClass}></p>
+      </div>
+      <div>
+        <label for="ev-vtarget" class={labelClass}>ボランティア募集目標（人）</label>
+        <input id="ev-vtarget" name="volunteerTarget" type="number" inputmode="numeric" min="0" max="10000" step="1" value="0" class={inputClass} aria-describedby="ev-vtarget-error" />
+        <p id="ev-vtarget-error" data-error-for="volunteerTarget" class={errorClass}></p>
+      </div>
+      <div>
+        <label for="ev-vcount" class={labelClass}>現在のボランティア（人）</label>
+        <input id="ev-vcount" name="volunteerCount" type="number" inputmode="numeric" min="0" max="10000" step="1" value="0" class={inputClass} aria-describedby="ev-vcount-error" />
+        <p id="ev-vcount-error" data-error-for="volunteerCount" class={errorClass}></p>
+      </div>
+    </div>
+    <p class={hintClass}>ボランティアの人数は執行部内の管理用です（公開ページには表示しません）。個人の氏名・連絡先はここには登録しません。</p>
+  </fieldset>
+
+  <fieldset class="card space-y-6 border-2 border-dashed border-black/20">
+    <legend class={legendClass}>内部管理（公開されません）</legend>
+    <p class="rounded-xl bg-brand-ivory px-4 py-3 text-sm text-ink-soft">この欄の内容は執行部ポータルだけで表示し、公開ページ・お知らせには一切表示しません。</p>
+    <div>
+      <label for="ev-person" class={labelClass}>担当者<span class={optionalBadge}>任意</span></label>
+      <input id="ev-person" name="personInCharge" type="text" maxlength={L.personInCharge} class={inputClass} aria-describedby="ev-person-error" />
+      <p id="ev-person-error" data-error-for="personInCharge" class={errorClass}></p>
+    </div>
+    <div>
+      <label for="ev-items" class={labelClass}>必要物品<span class={optionalBadge}>任意</span></label>
+      <textarea id="ev-items" name="requiredItems" rows="3" maxlength={L.requiredItems} class={inputClass} aria-describedby="ev-items-error"></textarea>
+      <p id="ev-items-error" data-error-for="requiredItems" class={errorClass}></p>
+    </div>
+    <div>
+      <label for="ev-notes" class={labelClass}>内部メモ<span class={optionalBadge}>任意</span></label>
+      <textarea id="ev-notes" name="internalNotes" rows="4" maxlength={L.internalNotes} class={inputClass} aria-describedby="ev-notes-error"></textarea>
+      <p id="ev-notes-error" data-error-for="internalNotes" class={errorClass}></p>
+    </div>
+  </fieldset>
+
+  <fieldset class="card">
+    <legend class={legendClass}>最新のお知らせ</legend>
+    <label class="mt-2 flex items-start gap-3 text-base text-ink">
+      <input name="postToNews" type="checkbox" class="mt-1 h-5 w-5 flex-shrink-0 accent-brand-orange-dark" aria-describedby="ev-news-hint" />
+      <span>
+        <span class="font-bold">最新のお知らせにも掲載する</span>
+        <span id="ev-news-hint" class="block text-sm text-ink-soft">
+          一般公開のイベントだけ選べます。カテゴリー「イベント」として1件だけ掲載し、イベントを編集するとお知らせの内容も更新されます。
+          チェックを外す・執行部のみにする・イベントを削除すると、お知らせは非公開になります。
+        </span>
+      </span>
+    </label>
+    <p data-error-for="postToNews" class={errorClass}></p>
+  </fieldset>
+
+  <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+    <a href="/staff/events/" class="btn-secondary justify-center">一覧へ戻る</a>
+    <button type="submit" class="btn-primary justify-center" data-submit>
+      {mode === "create" ? "登録する" : "変更を保存する"}
+    </button>
+  </div>
+</form>

@@ -1,0 +1,135 @@
+---
+// /staff/events/ … イベントの管理一覧（ログイン必須。functions/staff/_middleware.ts が保護）
+// 一覧の内容（担当者などの内部情報を含む）はビルド時には含めず、ブラウザが /staff/api/events から読み込みます。
+// PC（lg以上）は表、スマートフォンはカードで表示します。表の行（<tr>）の中に <form> を置くとブラウザが行の後半を捨てるため、
+// ステータス変更は <form> を使わずボタンのクリックで行います。今後のイベントを上、終了・中止・開催日を過ぎたものを下に分けます。
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import StaffPageHeader from "../../../components/staff/StaffPageHeader.astro";
+import { EVENT_STATUSES, EVENT_STATUS_LABELS } from "../../../types/events";
+
+const th = "px-3 py-3 text-left text-sm font-bold text-ink-soft whitespace-nowrap";
+const td = "px-3 py-3 align-top text-sm text-ink";
+const termClass = "flex-shrink-0 whitespace-nowrap text-xs font-bold text-ink-soft";
+const statusSelectClass = "rounded-lg border border-black/20 bg-white px-2 py-1.5 text-sm";
+const smallButton = "rounded-full border-2 px-3 py-1.5 text-sm font-bold whitespace-nowrap";
+// ステータスの選択肢。表の行（<tr>）の中の <select> に式で <option> を並べると、Astroのコンパイラが行を途中で閉じてしまうため、
+// 先に文字列にして set:html で入れる（値は定数のみ）。
+const statusOptionsHtml = EVENT_STATUSES.map((s) => `<option value="${s}">${EVENT_STATUS_LABELS[s]}</option>`).join("");
+const groups = [
+  { key: "upcoming", title: "今後のイベント", empty: "今後のイベントはありません。" },
+  { key: "ended", title: "終了・中止・開催日を過ぎたイベント", empty: "該当するイベントはありません。" },
+];
+---
+
+<BaseLayout title="イベントの管理｜執行部ポータル" description="イベントを管理します。" path="/staff/events" noindex>
+  <StaffPageHeader
+    title="イベントの管理"
+    description="「一般公開」のイベントだけが、トップページ（今後のイベント・直近3件）とイベント一覧（/events/）に表示されます。担当者・必要物品・内部メモは公開されません。"
+  />
+
+  <section class="py-10 sm:py-14">
+    <div class="section-wrap max-w-6xl space-y-8">
+      <input type="hidden" name="csrf_token" value="" />
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <a href="/staff/events/new/" class="btn-primary justify-center">＋ 新しいイベントを登録</a>
+        <a href="/events/" target="_blank" rel="noopener" class="text-sm font-bold text-ink underline">公開ページを確認する（新しいタブ）</a>
+      </div>
+      <p class="text-sm text-ink-soft">意見交換会は、執行部ポータルの「意見交換会」から登録してください（イベント管理とは別に管理しています）。</p>
+
+      <div data-staff-notice role="status" tabindex="-1" class="hidden rounded-xl px-4 py-3 font-bold"></div>
+      <p data-events-loading class="text-ink-soft">読み込んでいます…</p>
+
+      {groups.map((group) => (
+        <div data-events-group={group.key} class="hidden space-y-4">
+          <h2 class="text-2xl font-bold text-ink">{group.title}</h2>
+          <p data-events-empty class="hidden card text-center text-ink-soft">{group.empty}</p>
+          <div class="hidden lg:block overflow-hidden rounded-2xl bg-white ring-1 ring-black/5">
+            <table class="w-full">
+              <thead class="bg-brand-ivory">
+                <tr>
+                  <th scope="col" class={th}>開催日</th>
+                  <th scope="col" class={th}>イベント名</th>
+                  <th scope="col" class={th}>カテゴリー</th>
+                  <th scope="col" class={th}>ステータス</th>
+                  <th scope="col" class={th}>公開</th>
+                  <th scope="col" class={th}>担当者</th>
+                  <th scope="col" class={th}><span class="sr-only">操作</span></th>
+                </tr>
+              </thead>
+              <tbody data-events-rows class="divide-y divide-black/5"></tbody>
+            </table>
+          </div>
+          <ul data-events-cards class="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-5"></ul>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <template data-event-row-template>
+    <tr>
+      <td class={td}><span data-field="date" class="font-bold whitespace-nowrap"></span><span data-field="time" class="block text-ink-soft whitespace-nowrap"></span></td>
+      <td class={td}><span data-field="title" class="font-bold [overflow-wrap:anywhere]"></span><span data-field="venue" class="block text-ink-soft [overflow-wrap:anywhere]"></span><span data-field="news" class="hidden mt-1 inline-block rounded-full bg-brand-orange-light px-2 py-0.5 text-xs font-bold">お知らせに掲載中</span></td>
+      <td class={td}><span data-field="category" class="whitespace-nowrap"></span></td>
+      <td class={td}>
+        <div data-status-form class="flex items-center gap-1">
+          <select name="status" class={statusSelectClass}><Fragment set:html={statusOptionsHtml} /></select>
+          <button type="button" data-status-submit class={`${smallButton} border-brand-orange-dark text-brand-orange-dark hover:bg-brand-orange-light`}>変更</button>
+        </div>
+      </td>
+      <td class={td}><span data-field="visibility" class="rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"></span></td>
+      <td class={td}><span data-field="person" class="[overflow-wrap:anywhere]"></span></td>
+      <td class={`${td} whitespace-nowrap`}>
+        <a data-edit-link href="/staff/events/" class={`${smallButton} inline-block border-brand-orange-dark text-brand-orange-dark hover:bg-brand-orange-light`}>編集</a>
+        <button type="button" data-delete class={`${smallButton} ml-1 border-red-700 text-red-700 hover:bg-red-50`}>削除</button>
+      </td>
+    </tr>
+  </template>
+
+  <template data-event-card-template>
+    <li class="card min-w-0 flex flex-col gap-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span data-field="category" class="rounded-full bg-brand-orange-light px-2.5 py-1 text-sm font-bold text-ink"></span>
+        <span data-field="visibility" class="ml-auto rounded-full px-3 py-1 text-xs font-bold"></span>
+      </div>
+      <h3 data-field="title" class="text-xl font-bold text-ink [overflow-wrap:anywhere]"></h3>
+      <dl class="grid grid-cols-1 gap-y-2 text-sm text-ink">
+        <div class="flex gap-3"><dt class={termClass}>開催日</dt><dd><span data-field="date" class="font-bold"></span> <span data-field="time"></span></dd></div>
+        <div class="flex gap-3"><dt class={termClass}>会場</dt><dd data-field="venue" class="min-w-0 [overflow-wrap:anywhere]"></dd></div>
+        <div class="flex gap-3"><dt class={termClass}>担当者</dt><dd data-field="person" class="min-w-0 [overflow-wrap:anywhere]"></dd></div>
+        <div data-field="news" class="hidden text-xs font-bold text-brand-orange-dark">最新のお知らせに掲載中</div>
+      </dl>
+      <div data-status-form class="flex flex-wrap items-end gap-2 rounded-xl bg-brand-ivory p-3">
+        <label class="flex-1 min-w-[9rem] text-sm font-bold text-ink">
+          ステータス
+          <select name="status" class="mt-1 block w-full rounded-lg border border-black/20 bg-white px-3 py-2 text-base"><Fragment set:html={statusOptionsHtml} /></select>
+        </label>
+        <button type="button" data-status-submit class="rounded-full border-2 border-brand-orange-dark px-4 py-2 text-base font-bold text-brand-orange-dark hover:bg-brand-orange-light">変更</button>
+      </div>
+      <div class="mt-auto grid grid-cols-2 gap-3">
+        <a data-edit-link href="/staff/events/" class="btn-secondary justify-center text-lg">編集</a>
+        <button type="button" data-delete class="rounded-full border-2 border-red-700 px-6 py-3 text-lg font-bold text-red-700 hover:bg-red-50">削除</button>
+      </div>
+    </li>
+  </template>
+
+  <dialog data-delete-dialog aria-labelledby="event-delete-title" class="w-[calc(100%-2rem)] max-w-md rounded-2xl p-0 backdrop:bg-black/50">
+    <form method="dialog" class="p-6 sm:p-8 space-y-4">
+      <h2 id="event-delete-title" class="text-xl font-bold text-ink">このイベントを削除しますか？</h2>
+      <p class="rounded-xl bg-brand-ivory px-4 py-3 text-ink [overflow-wrap:anywhere]">
+        <span data-delete-date class="block font-bold"></span>
+        <span data-delete-title class="block"></span>
+      </p>
+      <p class="text-sm text-ink-soft leading-relaxed">
+        削除すると、一覧と公開ページから表示されなくなります。このイベントから掲載した「最新のお知らせ」は非公開になります。
+      </p>
+      <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        <button value="cancel" class="btn-secondary justify-center text-lg" autofocus>やめる</button>
+        <button value="confirm" class="rounded-full bg-red-700 px-6 py-3 text-lg font-bold text-white hover:brightness-110">削除する</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    import "../../../scripts/staff/eventList";
+  </script>
+</BaseLayout>

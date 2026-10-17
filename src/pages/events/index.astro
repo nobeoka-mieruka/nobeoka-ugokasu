@@ -1,0 +1,42 @@
+---
+// /events/ … イベント一覧（公開ページ）
+// 執行部ポータル（/staff/events/）で「一般公開」にしたイベントだけを表示します。
+// 静的HTMLには予定なしの案内だけを入れておき、配信時に functions/events/index.ts がD1の内容で
+// [data-events-list] の中身を差し替え、Event構造化データを追加します（HTMLは src/utils/eventCards.ts）。
+// D1に障害がある場合は、この静的HTMLのまま表示されます。
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import HeroSection from "../../components/HeroSection.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import { webPageSchema, organizationSchema } from "../../utils/structuredData";
+import { buildBreadcrumbList } from "../../utils/seo";
+import { renderEventsPage } from "../../utils/eventCards";
+import { todayInJapan } from "../../utils/dialogueEvents";
+
+const title = "イベント｜福富千恵と延岡を動かす会";
+const description = "福富千恵と延岡を動かす会が開催・参加するイベントのご案内です。地域のイベントやボランティア活動など、今後の予定をお知らせします。";
+const breadcrumbItems = [{ name: "イベント", path: "/events" }];
+
+const eventsFallbackHtml = renderEventsPage([], todayInJapan());
+
+const schemas = [
+  webPageSchema({ path: "/events", name: title, description }),
+  organizationSchema(),
+  buildBreadcrumbList(breadcrumbItems),
+];
+---
+
+<BaseLayout title={title} description={description} path="/events" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title="イベント" eyebrow="今後の予定" description="福富千恵と延岡を動かす会が開催・参加するイベントのご案内です。どなたでもお気軽にご参加ください。" />
+
+  <section class="py-14 sm:py-20">
+    <div class="section-wrap max-w-5xl">
+      {/* 見出し階層をh1→h2→h3の順に保つための、視覚的には表示しない見出し */}
+      <h2 class="sr-only">今後のイベント</h2>
+      <div data-events-list set:html={eventsFallbackHtml} />
+      <p class="mt-10 text-center text-sm text-ink-soft">
+        意見交換会の予定は<a href="/dialogue/" class="underline font-bold text-ink">意見交換会のページ</a>でご案内しています。
+      </p>
+    </div>
+  </section>
+</BaseLayout>

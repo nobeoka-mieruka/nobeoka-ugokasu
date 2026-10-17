@@ -109,7 +109,7 @@ export function resetNewsSchemaCache(): void {
   schemaReady = new WeakSet();
 }
 
-async function ensureNewsSchema(db: D1Database): Promise<void> {
+export async function ensureNewsSchema(db: D1Database): Promise<void> {
   if (schemaReady.has(db)) return;
   await db.batch(NEWS_SCHEMA_SQL.map((sql) => db.prepare(sql)));
   schemaReady.add(db);
@@ -309,7 +309,7 @@ export async function getNewsItem(db: D1Database, id: number): Promise<NewsItemR
 
 // ---- 書き込み（すべて操作ログと同じトランザクションで記録する） ----
 
-export type NewsAction = "news.create" | "news.update" | "news.publish" | "news.delete";
+export type NewsAction = "news.create" | "news.update" | "news.publish" | "news.delete" | "news.sync";
 const AUDIT_TARGET = "news_item";
 const logAction = (action: NewsAction, id: number, detail: Record<string, unknown>) => logStaffChange("staff-news-change", action, id, detail);
 
@@ -401,3 +401,67 @@ export async function deleteNewsItem(db: D1Database, id: number, actor: string):
   return true;
 }
 
+
+// ---- 他の機能（イベント管理など）から作るお知らせ ----
+
+/** 他の機能から作るお知らせの内容 */
+export interface SourceNewsContent {
+  publishedOn: string;
+  category: NewsCategoryKey;
+  title: string;
+  summary: string;
+  linkUrl: string;
+}
+
+export type SourceNewsResult = "created" | "updated" | "unpublished" | "none";
+
+/**
+ * 他の機能（例：イベント）に紐づくお知らせを、元のデータに合わせて作成・更新する。
+ * sourceKey（例："event:12"）ごとにお知らせは最大1件（news_items.source_key は一意）なので、重複して作られることはない。
+ *
+ * ・publish = true  … 無ければ作成、あれば内容を更新して公開する（お知らせ側で削除されていた場合も元に戻す）。
+ *                     掲載日は最初に作成した日のまま変えない。
+ * ・publish = false … 公開中なら非公開にする（行は消さない）。無ければ何もしない。
+ */
+export async function syncNewsForSource(
+  db: D1Database,
+  sourceKey: string,
+  content: SourceNewsContent,
+  publish: boolean,
+  actor: string,
+): Promise<SourceNewsResult> {
+  await ensureNewsSchema(db);
+  const row = await db
+    .prepare("SELECT id, is_published, deleted_at FROM news_items WHERE source_key = ?1")
+    .bind(sourceKey)
+    .first<{ id: number; is_published: number; deleted_at: number | null }>();
+  const now = nowSeconds();
+
+  if (publish) {
+    if (!row) {
+      await createNewsItem(db, { ...content, isPublished: true, displayOrder: 0 }, actor, sourceKey);
+      return "created";
+    }
+    const detail = { sourceKey, publish: true };
+    await db.batch([
+      db
+        .prepare(
+          `UPDATE news_items SET category = ?1, title = ?2, summary = ?3, link_url = ?4, is_published = 1,
+             deleted_at = NULL, deleted_by = NULL, updated_at = ?5, updated_by = ?6 WHERE id = ?7`,
+        )
+        .bind(content.category, content.title, content.summary, content.linkUrl, now, actor, row.id),
+      auditStatement(db, "news.sync", AUDIT_TARGET, row.id, actor, detail, now),
+    ]);
+    logAction("news.sync", row.id, detail);
+    return "updated";
+  }
+
+  if (!row || row.deleted_at !== null || row.is_published !== 1) return "none";
+  const detail = { sourceKey, publish: false };
+  await db.batch([
+    db.prepare("UPDATE news_items SET is_published = 0, updated_at = ?1, updated_by = ?2 WHERE id = ?3").bind(now, actor, row.id),
+    auditStatement(db, "news.sync", AUDIT_TARGET, row.id, actor, detail, now),
+  ]);
+  logAction("news.sync", row.id, detail);
+  return "unpublished";
+}

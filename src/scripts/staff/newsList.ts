@@ -30,7 +30,11 @@ function renderCard(item: NewsItemRecord): HTMLElement {
   setText(card, "summary", item.summary);
   setText(card, "link", item.linkUrl || "なし");
   setText(card, "order", String(item.displayOrder));
-  if (item.sourceKey) card.querySelector('[data-field="migrated"]')?.classList.remove("hidden");
+  if (item.sourceKey) {
+    // イベント管理から掲載したお知らせは、イベントを編集すると内容が上書きされる
+    setText(card, "source", item.sourceKey.startsWith("event:") ? "イベント管理から掲載したお知らせです（内容はイベントの編集に合わせて更新されます）" : "既存のお知らせから移行したデータです");
+    card.querySelector('[data-field="source"]')?.classList.remove("hidden");
+  }
 
   const published = card.querySelector<HTMLElement>('[data-field="published"]')!;
   published.textContent = item.isPublished ? "公開中" : "非公開";

@@ -318,6 +318,12 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
 
   <HomeActivityFeedScript />
 
+  <!--
+    今後のイベント（直近3件）：執行部ポータル（/staff/events/）で「一般公開」にしたイベントを、
+    配信時に functions/index.ts が差し込む。該当するイベントが無い場合は何も表示しない。
+  -->
+  <div data-events-home></div>
+
   <!-- 8-7 最新のお知らせ -->
   <section class="py-14 sm:py-16 bg-brand-ivory">
     <div class="section-wrap">
