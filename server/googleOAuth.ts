@@ -8,6 +8,7 @@
 // OpenID Connect Core 3.1.3.7 に従い、署名検証の代わりにTLSによる発行元確認を用いる。
 // そのうえで iss・aud・exp・nonce・email_verified を必ず検証する。
 
+import { SITE_URL } from "../src/config/siteUrl";
 import type { StaffAuthEnv } from "./env";
 import { base64Url, getCookie, randomToken, safeEqual } from "./staffAuth";
 
@@ -19,11 +20,16 @@ export const OAUTH_COOKIE = "staff_oauth";
 const OAUTH_COOKIE_PATH = "/staff/auth";
 const OAUTH_TTL_SECONDS = 10 * 60;
 
-/** コールバックURL。Google Cloud Consoleの「承認済みのリダイレクトURI」に同じ値を登録する */
 export const CALLBACK_PATH = "/staff/auth/callback";
 
-export function callbackUrl(request: Request): string {
-  return `${new URL(request.url).origin}${CALLBACK_PATH}`;
+/**
+ * コールバックURL（https://nobeoka-ugokasu.pages.dev/staff/auth/callback）。
+ * Google Cloud Consoleの「承認済みのリダイレクトURI」に同じ値を登録する。
+ * 本番URLは src/config/siteUrl.ts で一元管理し、アクセス元のホスト名には依存しない
+ * （プレビュー用URL等からのログインは、Google側で登録外のURIとして拒否される）。
+ */
+export function callbackUrl(): string {
+  return `${SITE_URL}${CALLBACK_PATH}`;
 }
 
 export function isGoogleConfigured(env: StaffAuthEnv): boolean {
@@ -42,7 +48,7 @@ export async function beginGoogleLogin(request: Request, env: StaffAuthEnv): Pro
   const verifier = randomToken(48);
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID ?? "",
-    redirect_uri: callbackUrl(request),
+    redirect_uri: callbackUrl(),
     response_type: "code",
     scope: "openid email",
     state,
@@ -99,7 +105,7 @@ export async function completeGoogleLogin(request: Request, env: StaffAuthEnv): 
         code,
         client_id: env.GOOGLE_CLIENT_ID ?? "",
         client_secret: env.GOOGLE_CLIENT_SECRET ?? "",
-        redirect_uri: callbackUrl(request),
+        redirect_uri: callbackUrl(),
         grant_type: "authorization_code",
         code_verifier: verifier,
       }),

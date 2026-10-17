@@ -11,6 +11,8 @@
 // 表示されないようnoindexが自動設定されます）。
 // =============================================================
 
+import { SITE_URL } from "./siteUrl";
+
 export const siteConfig = {
   /** サイト名（ブラウザタブ等に使用） */
   siteName: "福富千恵と延岡を動かす会",
@@ -24,8 +26,8 @@ export const siteConfig = {
   /** 本人氏名のふりがな */
   personNameKana: "ふくとみ ちえ",
 
-  /** 公開予定URL（末尾スラッシュなし） */
-  siteUrl: "https://nobeoka-ugokasu.pages.dev",
+  /** 公開URL（末尾スラッシュなし）。値は src/config/siteUrl.ts で一元管理 */
+  siteUrl: SITE_URL,
 
   /** デフォルトのページタイトル（各ページで個別設定するため通常は使用されない） */
   defaultTitle: "福富千恵と延岡を動かす会｜公式ホームページ",
