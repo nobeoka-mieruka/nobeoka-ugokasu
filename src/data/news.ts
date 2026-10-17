@@ -1,45 +1,30 @@
 // =============================================================
-// お知らせ（新着情報）を一元管理するファイルです。
+// お知らせ（新着情報）のうち、ファイルで管理しているものを集約するファイルです。
 //
-// このファイルに1件追加するだけで、
-//   ・トップページの「最新のお知らせ」（最新3件）
-//   ・お知らせ一覧ページ（/news/）
-// の両方へ自動的に反映されます（新しい日付順に並び替えられます）。
+// 【現在の管理方法】
+// 「最新のお知らせ」は、執行部ポータル（/staff/news/）から登録・編集します（Cloudflare D1 の news_items）。
+// トップページと /news/ は、配信時にD1のお知らせと、このファイルが返すお知らせをまとめて表示します
+//（functions/index.ts・functions/news/index.ts、HTMLは src/utils/newsCards.ts）。
 //
-// -------------------------------------------------------------
-// 【お知らせの2つの管理方法】
+// このファイルが扱うのは次の3つです。
+//   A. 下の newsEntries（短いお知らせ）           … 現在は0件（2026-10 にD1へ移行済み）
+//   B. src/content/news/*.md（本文のある記事）      … 個別ページ /news/<slug>/ が作られます
+//   C. SNS投稿の昇格（src/data/socialNewsPromotions.ts）
 //
-//   A. このファイル（src/data/news.ts）          … 短いお知らせ向け（かんたん・推奨）
-//   B. src/content/news/*.md                     … 本文のある記事向け（個別ページが作られます）
-//
-// AとBは自動的に統合され、日付の新しい順に並びます。
-// 既存のBの記事（公式サイト公開・みんなの声募集開始など）はそのまま動作します。
-//
-// -------------------------------------------------------------
-// 【新しいお知らせを追加する手順】
-// 1. 下の newsEntries 配列に、次の形でオブジェクトを1件追加する
-// 2. npm run build が通ることを確認する
-//
-// 記入例：
-// {
-//   id: "2026-09-07-site-update",
-//   date: "2026-09-07",
-//   title: "ホームページを更新しました",
-//   summary: "活動報告の表示、SNSの自動反映、お問い合わせ先の整理を行いました。",
-//   category: "サイト更新",
-//   href: "/activities/",            // 省略可。関連ページ・SNS投稿へのリンク
-// },
+// 二重表示の防止：D1へ移行したお知らせには、移行元キー（"news:<id>"・"article:<slug>"）が付いています。
+// D1に同じキーがある場合、ファイル側のお知らせは表示されません（D1側で削除・非公開にした場合も同様）。
+// 記事（B）を新しく追加した場合は、D1に無いため自動的に一覧へ表示されます。
 //
 // -------------------------------------------------------------
 // 【入力ルール】
 // ・確認できていない内容・日付は登録しないでください（推測での入力は禁止です）。
-// ・SNSへ投稿した内容をお知らせにする場合は、実際の投稿と食い違わないようにしてください。
 // ・date は必ず "YYYY-MM-DD" 形式。未来の日付はその日が来るまで自動的に非表示になります。
-// ・同じ内容が src/content/news/ にすでにある場合は、重複して登録しないでください。
 // =============================================================
 
 import { getCollection, type CollectionEntry } from "astro:content";
 import { promotedSocialNews } from "./socialNewsPromotions";
+import type { NewsDisplayItem } from "../types/news";
+import { todayInJapan } from "../utils/dialogueEvents";
 
 /** お知らせの分類（src/content/config.ts の news コレクションと同じ選択肢） */
 export type NewsCategory =
@@ -74,40 +59,19 @@ export interface NewsEntry {
  * 実際に行った更新・活動だけを追加してください（架空のお知らせは登録しないでください）。
  */
 export const newsEntries: NewsEntry[] = [
-  {
-    id: "2026-09-07-site-update",
-    date: "2026-09-07",
-    title: "ホームページを更新しました",
-    summary:
-      "活動報告の表示、SNS投稿の自動反映、お問い合わせ先の整理、サイト内情報の見直しを行いました。最新の活動は活動報告ページからご覧いただけます。",
-    category: "サイト更新",
-    href: "/activities/",
-  },
-  {
-    // Facebook投稿（2026-08-25）に基づくお知らせ。内容は投稿と一致させています。
-    id: "2026-08-25-signboards-added",
-    date: "2026-08-25",
-    title: "新たに看板を設置しました",
-    summary:
-      "新たに2か所へ看板を設置しました。設置場所をご提供いただいた皆さま、ご協力いただいた皆さまに御礼申し上げます。地域の皆さまに活動を知っていただけるよう、今後も情報発信を続けていきます。",
-    category: "活動報告",
-    href: "https://www.facebook.com/122103979557398900/posts/122118395127398900",
-  },
-  {
-    // Facebook投稿（2026-08-15）に基づくお知らせ。内容は投稿と一致させています。
-    id: "2026-08-15-signboard-installed",
-    date: "2026-08-15",
-    title: "看板を設置しました",
-    summary:
-      "地域の皆さまに活動を知っていただくため、市内各所に看板を設置しました。設置にご協力いただいた皆さま、ありがとうございます。",
-    category: "活動報告",
-    href: "https://www.facebook.com/122103979557398900/posts/122115573039398900",
-  },
+  // 2026-10：ここにあった3件（ホームページを更新しました・新たに看板を設置しました・看板を設置しました）は、
+  // 内容をそのままD1（news_items）へ移行しました（server/newsItems.ts の MIGRATED_NEWS）。
+  // 以後の追加・編集は執行部ポータル（/staff/news/）から行ってください。
 ];
 
 /** トップページ・一覧ページで共通して使う、表示用に整えたお知らせ1件分 */
 export interface UnifiedNews {
   id: string;
+  /**
+   * 取得元を表すキー。"article:<slug>"（記事）・"news:<id>"（このファイル）・"social:<投稿ID>"（SNS投稿の昇格）。
+   * D1（執行部ポータルのお知らせ）へ移行済みのものは、同じキーで二重表示を防ぎます。
+   */
+  sourceKey: string;
   date: Date;
   title: string;
   summary: string;
@@ -130,6 +94,7 @@ function isExternal(href: string | undefined): boolean {
 function fromCollection(entry: CollectionEntry<"news">): UnifiedNews {
   return {
     id: entry.slug,
+    sourceKey: `article:${entry.slug}`,
     date: entry.data.date,
     title: entry.data.title,
     summary: entry.data.summary,
@@ -160,6 +125,7 @@ export async function getUnifiedNews(now: number = Date.now()): Promise<UnifiedN
       if (date === null || date.getTime() > now) return null;
       return {
         id: entry.id,
+        sourceKey: `news:${entry.id}`,
         date,
         title: entry.title,
         summary: entry.summary,
@@ -185,4 +151,20 @@ export async function getUnifiedNews(now: number = Date.now()): Promise<UnifiedN
 export function getNewsLastUpdated(entries: UnifiedNews[]): string | null {
   if (entries.length === 0) return null;
   return entries[0].date.toISOString();
+}
+
+/**
+ * ファイル由来のお知らせを、公開ページの表示用の共通形（D1のお知らせと同じ形）へ変換して返す。
+ * ビルド時に /news/file-items.json として出力し、配信時に functions がD1のお知らせとまとめる。
+ */
+export async function getFileNewsItems(now: number = Date.now()): Promise<NewsDisplayItem[]> {
+  return (await getUnifiedNews(now)).map((entry) => ({
+    key: entry.sourceKey,
+    date: todayInJapan(entry.date),
+    title: entry.title,
+    summary: entry.summary,
+    category: entry.category,
+    href: entry.href ?? "",
+    displayOrder: 0,
+  }));
 }

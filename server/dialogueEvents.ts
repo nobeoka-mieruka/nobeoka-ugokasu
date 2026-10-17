@@ -7,6 +7,8 @@
 //   サーバーログには操作の種類とIDだけを出す）。
 
 import { DIALOGUE_STATUSES, type DialogueEvent, type DialogueEventRecord, type DialogueStatus } from "../src/types/dialogue";
+import { AUDIT_SCHEMA_SQL, auditLastInsertStatement, auditStatement as sharedAuditStatement, logStaffChange, nowSeconds } from "./auditLog";
+import { boolValue, integerValue, isValidDate, parseId, textField } from "./validation";
 
 export const DIALOGUE_SCHEMA_SQL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS dialogue_events (
@@ -31,16 +33,7 @@ export const DIALOGUE_SCHEMA_SQL: readonly string[] = [
   deleted_by TEXT
 )`,
   "CREATE INDEX IF NOT EXISTS dialogue_events_listing ON dialogue_events (deleted_at, is_published, event_date)",
-  `CREATE TABLE IF NOT EXISTS staff_audit_log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  action TEXT NOT NULL,
-  target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL,
-  actor_email TEXT NOT NULL,
-  detail TEXT NOT NULL DEFAULT '{}',
-  created_at INTEGER NOT NULL
-)`,
-  "CREATE INDEX IF NOT EXISTS staff_audit_log_target ON staff_audit_log (target_type, target_id, created_at)",
+  ...AUDIT_SCHEMA_SQL,
 ];
 
 let schemaReady = new WeakSet<D1Database>();
@@ -86,58 +79,10 @@ export interface DialogueEventInput {
 export type DialogueFieldErrors = Partial<Record<keyof DialogueEventInput, string>>;
 export type ValidationResult<T> = { ok: true; value: T } | { ok: false; errors: DialogueFieldErrors };
 
-const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
-// 改行・タブ以外の制御文字、および文字の向きを変える制御文字（表示の偽装に使われる）は受け付けない
-const FORBIDDEN_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F‪-‮⁦-⁩]/;
 
 function isStatus(value: unknown): value is DialogueStatus {
   return typeof value === "string" && (DIALOGUE_STATUSES as readonly string[]).includes(value);
-}
-
-function isValidDate(value: string): boolean {
-  const match = DATE_PATTERN.exec(value);
-  if (!match) return false;
-  const [, y, m, d] = match.map(Number);
-  if (y < 2020 || y > 2100) return false;
-  const date = new Date(Date.UTC(y, m - 1, d));
-  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
-}
-
-/** 文字数（サロゲートペアの絵文字なども1文字として数える） */
-const length = (value: string) => [...value].length;
-
-function text(
-  raw: Record<string, unknown>,
-  key: keyof DialogueEventInput,
-  label: string,
-  options: { required: boolean; max: number; multiline?: boolean },
-  errors: DialogueFieldErrors,
-): string {
-  const value = raw[key];
-  if (value !== undefined && value !== null && typeof value !== "string") {
-    errors[key] = `${label}の形式が正しくありません。`;
-    return "";
-  }
-  let result = (value ?? "").replace(/\r\n?/g, "\n").trim();
-  if (!options.multiline) result = result.replace(/\s+/g, " ");
-  if (FORBIDDEN_CHARS.test(result)) errors[key] = `${label}に使用できない文字が含まれています。`;
-  else if (options.required && result === "") errors[key] = `${label}を入力してください。`;
-  else if (length(result) > options.max) errors[key] = `${label}は${options.max}文字以内で入力してください。`;
-  return result;
-}
-
-function bool(value: unknown): boolean | null {
-  if (value === true || value === "true" || value === "on" || value === "1" || value === 1) return true;
-  if (value === false || value === "false" || value === "0" || value === 0 || value === undefined || value === null || value === "") return false;
-  return null;
-}
-
-function integer(value: unknown): number | null | "invalid" {
-  if (value === undefined || value === null || value === "") return null;
-  if (typeof value === "number") return Number.isSafeInteger(value) ? value : "invalid";
-  if (typeof value === "string" && /^-?\d{1,6}$/.test(value.trim())) return Number(value.trim());
-  return "invalid";
 }
 
 /** 新規登録・編集の入力値を検証する（サーバー側で必ず実行する） */
@@ -146,10 +91,10 @@ export function validateDialogueInput(raw: unknown): ValidationResult<DialogueEv
   const body = raw as Record<string, unknown>;
   const errors: DialogueFieldErrors = {};
 
-  const title = text(body, "title", "タイトル", { required: true, max: DIALOGUE_LIMITS.title }, errors);
-  const venue = text(body, "venue", "会場", { required: true, max: DIALOGUE_LIMITS.venue }, errors);
-  const address = text(body, "address", "住所", { required: false, max: DIALOGUE_LIMITS.address }, errors);
-  const description = text(body, "description", "説明", { required: false, max: DIALOGUE_LIMITS.description, multiline: true }, errors);
+  const title = textField(body, "title", "タイトル", { required: true, max: DIALOGUE_LIMITS.title }, errors);
+  const venue = textField(body, "venue", "会場", { required: true, max: DIALOGUE_LIMITS.venue }, errors);
+  const address = textField(body, "address", "住所", { required: false, max: DIALOGUE_LIMITS.address }, errors);
+  const description = textField(body, "description", "説明", { required: false, max: DIALOGUE_LIMITS.description, multiline: true }, errors);
 
   const eventDate = typeof body.eventDate === "string" ? body.eventDate.trim() : "";
   if (!isValidDate(eventDate)) errors.eventDate = "開催日を正しく入力してください（例：2026-11-08）。";
@@ -161,19 +106,19 @@ export function validateDialogueInput(raw: unknown): ValidationResult<DialogueEv
   if (endTime !== "" && !TIME_PATTERN.test(endTime)) errors.endTime = "終了時間を正しく入力してください（例：11:30）。";
   else if (endTime !== "" && !errors.startTime && endTime <= startTime) errors.endTime = "終了時間は開始時間より後にしてください。";
 
-  const capacity = integer(body.capacity);
+  const capacity = integerValue(body.capacity);
   if (capacity === "invalid" || (capacity !== null && (capacity < 1 || capacity > DIALOGUE_LIMITS.capacityMax))) {
     errors.capacity = `定員は1〜${DIALOGUE_LIMITS.capacityMax}の整数で入力してください（定員なしの場合は空欄）。`;
   }
 
   if (!isStatus(body.status)) errors.status = "受付状況を選択してください。";
 
-  const applicationOpen = bool(body.applicationOpen);
+  const applicationOpen = boolValue(body.applicationOpen);
   if (applicationOpen === null) errors.applicationOpen = "受付可否の形式が正しくありません。";
-  const isPublished = body.isPublished === undefined ? true : bool(body.isPublished);
+  const isPublished = body.isPublished === undefined ? true : boolValue(body.isPublished);
   if (isPublished === null) errors.isPublished = "公開状態の形式が正しくありません。";
 
-  const displayOrder = integer(body.displayOrder);
+  const displayOrder = integerValue(body.displayOrder);
   if (displayOrder === "invalid" || (displayOrder !== null && Math.abs(displayOrder) > DIALOGUE_LIMITS.displayOrderAbs)) {
     errors.displayOrder = `表示順は-${DIALOGUE_LIMITS.displayOrderAbs}〜${DIALOGUE_LIMITS.displayOrderAbs}の整数で入力してください。`;
   }
@@ -203,17 +148,13 @@ export function validateStatusChange(raw: unknown): ValidationResult<{ status: D
   const body = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   if (!isStatus(body.status)) return { ok: false, errors: { status: "受付状況を選択してください。" } };
   if (body.applicationOpen === undefined) return { ok: true, value: { status: body.status } };
-  const applicationOpen = bool(body.applicationOpen);
+  const applicationOpen = boolValue(body.applicationOpen);
   if (applicationOpen === null) return { ok: false, errors: { applicationOpen: "受付可否の形式が正しくありません。" } };
   return { ok: true, value: { status: body.status, applicationOpen } };
 }
 
 /** URLの :id を検証する（正の整数のみ） */
-export function parseDialogueId(value: unknown): number | null {
-  if (typeof value !== "string" || !/^[1-9]\d{0,9}$/.test(value)) return null;
-  const id = Number(value);
-  return Number.isSafeInteger(id) ? id : null;
-}
+export const parseDialogueId = parseId;
 
 // ---- 読み出し ----
 
@@ -303,20 +244,14 @@ export async function getDialogueEvent(db: D1Database, id: number): Promise<Dial
 
 export type DialogueAction = "dialogue.create" | "dialogue.update" | "dialogue.status" | "dialogue.delete";
 
-const nowSeconds = () => Math.floor(Date.now() / 1000);
+const AUDIT_TARGET = "dialogue_event";
 
-function auditStatement(db: D1Database, action: DialogueAction, targetId: number | string, actor: string, detail: Record<string, unknown>, now: number) {
-  return db
-    .prepare(
-      "INSERT INTO staff_audit_log (action, target_type, target_id, actor_email, detail, created_at) VALUES (?1, 'dialogue_event', ?2, ?3, ?4, ?5)",
-    )
-    .bind(action, String(targetId), actor, JSON.stringify(detail), now);
-}
+const auditStatement = (db: D1Database, action: DialogueAction, targetId: number, actor: string, detail: Record<string, unknown>, now: number) =>
+  sharedAuditStatement(db, action, AUDIT_TARGET, targetId, actor, detail, now);
 
 /** サーバーログ（Cloudflareのログ）には操作の種類・ID・変更した項目名だけを出す（内容・メールアドレスは出さない） */
-function logAction(action: DialogueAction, id: number, detail: Record<string, unknown>): void {
-  console.log(JSON.stringify({ event: "staff-dialogue-change", action, id, ...detail }));
-}
+const logAction = (action: DialogueAction, id: number, detail: Record<string, unknown>) =>
+  logStaffChange("staff-dialogue-change", action, id, detail);
 
 const INPUT_COLUMNS: Record<keyof DialogueEventInput, string> = {
   title: "title",
@@ -364,11 +299,7 @@ export async function createDialogueEvent(db: D1Database, input: DialogueEventIn
       )
       .bind(...columnValues(input), now, actor),
     // 直前のINSERTで採番されたIDを同じトランザクション内で記録する
-    db
-      .prepare(
-        "INSERT INTO staff_audit_log (action, target_type, target_id, actor_email, detail, created_at) VALUES ('dialogue.create', 'dialogue_event', CAST(last_insert_rowid() AS TEXT), ?1, ?2, ?3)",
-      )
-      .bind(actor, JSON.stringify(detail), now),
+    auditLastInsertStatement(db, "dialogue.create", AUDIT_TARGET, actor, detail, now),
   ]);
   const row = inserted?.results?.[0];
   if (!row) throw new Error("dialogue_insert_failed");

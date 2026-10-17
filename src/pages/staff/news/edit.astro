@@ -1,0 +1,20 @@
+---
+// /staff/news/:id/edit/ … お知らせの編集（ログイン必須。functions/staff/_middleware.ts が保護）
+// functions/staff/news/[id]/edit.ts がこのページのHTMLを返し、内容はブラウザがAPIから読み込みます。
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import StaffPageHeader from "../../../components/staff/StaffPageHeader.astro";
+import NewsItemForm from "../../../components/staff/NewsItemForm.astro";
+---
+
+<BaseLayout title="お知らせの編集｜執行部ポータル" description="最新のお知らせを編集します。" path="/staff/news/edit" noindex>
+  <StaffPageHeader title="お知らせの編集" backHref="/staff/news/" backLabel="お知らせの一覧へ戻る" />
+  <section class="py-10 sm:py-14">
+    <div class="section-wrap max-w-3xl space-y-6">
+      <div data-staff-notice role="status" tabindex="-1" class="hidden rounded-xl px-4 py-3 font-bold"></div>
+      <NewsItemForm mode="edit" />
+    </div>
+  </section>
+  <script>
+    import "../../../scripts/staff/newsForm";
+  </script>
+</BaseLayout>

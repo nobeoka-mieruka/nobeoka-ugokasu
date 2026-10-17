@@ -4,37 +4,13 @@
 
 import type { DialogueEventRecord } from "../../types/dialogue";
 import { apiErrorMessage, showNotice, staffApi } from "./api";
+import { clearFieldErrors, showFieldErrors } from "./formErrors";
 
 const form = document.querySelector<HTMLFormElement>("[data-dialogue-form]");
 const notice = document.querySelector<HTMLElement>("[data-staff-notice]");
 
 function field<T extends HTMLElement = HTMLInputElement>(name: string): T {
   return form!.elements.namedItem(name) as unknown as T;
-}
-
-function clearErrors(): void {
-  form?.querySelectorAll<HTMLElement>("[data-error-for]").forEach((el) => {
-    el.textContent = "";
-    el.classList.add("hidden");
-  });
-  form?.querySelectorAll("[aria-invalid]").forEach((el) => el.removeAttribute("aria-invalid"));
-}
-
-function showFieldErrors(fields: Record<string, string>): void {
-  let first: HTMLElement | null = null;
-  for (const [name, message] of Object.entries(fields)) {
-    const error = form?.querySelector<HTMLElement>(`[data-error-for="${CSS.escape(name)}"]`);
-    if (error) {
-      error.textContent = message;
-      error.classList.remove("hidden");
-    }
-    const input = form?.elements.namedItem(name);
-    if (input instanceof HTMLElement) {
-      input.setAttribute("aria-invalid", "true");
-      first ??= input;
-    }
-  }
-  first?.focus();
 }
 
 function readForm() {
@@ -96,7 +72,7 @@ async function init(): Promise<void> {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    clearErrors();
+    clearFieldErrors(form);
     if (submit) submit.disabled = true;
     const result = await staffApi<{ event: DialogueEventRecord }>(id ? `/staff/api/dialogue-events/${id}` : "/staff/api/dialogue-events", {
       method: id ? "PUT" : "POST",
@@ -108,7 +84,7 @@ async function init(): Promise<void> {
       return;
     }
     showNotice(notice, apiErrorMessage(result), "error");
-    if (result.data?.fields) showFieldErrors(result.data.fields);
+    if (result.data?.fields) showFieldErrors(form, result.data.fields);
   });
 }
 

@@ -1,0 +1,81 @@
+---
+// /staff/news/ … 最新のお知らせの管理一覧（ログイン必須。functions/staff/_middleware.ts が保護）
+// 一覧の内容はビルド時には含めず、ブラウザが /staff/api/news-items から読み込みます。
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import StaffPageHeader from "../../../components/staff/StaffPageHeader.astro";
+
+const termClass = "flex-shrink-0 whitespace-nowrap text-xs font-bold text-ink-soft";
+---
+
+<BaseLayout title="お知らせの管理｜執行部ポータル" description="最新のお知らせを管理します。" path="/staff/news" noindex>
+  <StaffPageHeader
+    title="お知らせの管理"
+    description="公開中のお知らせのうち、新しいもの3件がトップページの「最新のお知らせ」に、すべてがお知らせ一覧（/news/）に表示されます。変更はすぐ反映されます。"
+  />
+
+  <section class="py-10 sm:py-14">
+    <div class="section-wrap max-w-5xl space-y-6">
+      <input type="hidden" name="csrf_token" value="" />
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <a href="/staff/news/new/" class="btn-primary justify-center">＋ 新しいお知らせを登録</a>
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
+          <a href="/" target="_blank" rel="noopener" class="text-sm font-bold text-ink underline">トップページを確認する（新しいタブ）</a>
+          <a href="/news/" target="_blank" rel="noopener" class="text-sm font-bold text-ink underline">お知らせ一覧を確認する（新しいタブ）</a>
+        </div>
+      </div>
+
+      <div data-staff-notice role="status" tabindex="-1" class="hidden rounded-xl px-4 py-3 font-bold"></div>
+
+      <p data-news-loading class="text-ink-soft">読み込んでいます…</p>
+      <p data-news-empty class="hidden card text-center text-ink-soft">登録されているお知らせはありません。「新しいお知らせを登録」から追加してください。</p>
+      <ul data-news-admin-list class="grid grid-cols-1 lg:grid-cols-2 gap-5"></ul>
+
+      <p class="text-sm text-ink-soft leading-relaxed">
+        本文のある記事（/news/ の個別ページ）は、引き続きファイル（src/content/news/）で管理しています。記事を新しく追加した場合は、自動的にお知らせ一覧にも表示されます。
+      </p>
+    </div>
+  </section>
+
+  <template data-news-card-template>
+    <li class="card min-w-0 flex flex-col gap-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span data-field="category" class="rounded-full bg-brand-orange-light px-2.5 py-1 text-sm font-bold text-ink"></span>
+        <span data-field="date" class="text-sm text-ink-soft"></span>
+        <span data-field="published" class="ml-auto rounded-full px-3 py-1 text-xs font-bold"></span>
+      </div>
+      <h2 data-field="title" class="text-xl font-bold text-ink [overflow-wrap:anywhere]"></h2>
+      <p data-field="summary" class="text-base text-ink-soft [overflow-wrap:anywhere]"></p>
+      <dl class="grid grid-cols-1 gap-y-2 text-sm text-ink">
+        <div class="flex gap-2"><dt class={termClass}>リンク先</dt><dd data-field="link" class="min-w-0 [overflow-wrap:anywhere]"></dd></div>
+        <div class="flex gap-2"><dt class={termClass}>表示順</dt><dd data-field="order"></dd></div>
+        <div data-field="migrated" class="hidden text-xs text-ink-soft">既存のお知らせから移行したデータです</div>
+      </dl>
+      <div class="mt-auto grid grid-cols-2 gap-3">
+        <button type="button" data-toggle-publish class="col-span-2 rounded-full border-2 border-brand-orange-dark px-4 py-3 text-base font-bold text-brand-orange-dark hover:bg-brand-orange-light"></button>
+        <a data-edit-link href="/staff/news/" class="btn-secondary justify-center text-lg">編集</a>
+        <button type="button" data-delete class="rounded-full border-2 border-red-700 px-6 py-3 text-lg font-bold text-red-700 hover:bg-red-50">削除</button>
+      </div>
+    </li>
+  </template>
+
+  <dialog data-delete-dialog aria-labelledby="news-delete-title" class="w-[calc(100%-2rem)] max-w-md rounded-2xl p-0 backdrop:bg-black/50">
+    <form method="dialog" class="p-6 sm:p-8 space-y-4">
+      <h2 id="news-delete-title" class="text-xl font-bold text-ink">このお知らせを削除しますか？</h2>
+      <p class="rounded-xl bg-brand-ivory px-4 py-3 text-ink [overflow-wrap:anywhere]">
+        <span data-delete-date class="block font-bold"></span>
+        <span data-delete-title class="block"></span>
+      </p>
+      <p class="text-sm text-ink-soft leading-relaxed">
+        削除すると、一覧・トップページ・お知らせ一覧から表示されなくなります。一時的に隠したいだけの場合は「非公開にする」をお使いください。
+      </p>
+      <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        <button value="cancel" class="btn-secondary justify-center text-lg" autofocus>やめる</button>
+        <button value="confirm" class="rounded-full bg-red-700 px-6 py-3 text-lg font-bold text-white hover:brightness-110">削除する</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    import "../../../scripts/staff/newsList";
+  </script>
+</BaseLayout>

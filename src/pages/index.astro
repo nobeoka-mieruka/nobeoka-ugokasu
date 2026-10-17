@@ -13,7 +13,6 @@ import SnsLastUpdated from "../components/SnsLastUpdated.astro";
 import HomeActivityFeedScript from "../components/HomeActivityFeedScript.astro";
 import ActivityFallbackNotice from "../components/ActivityFallbackNotice.astro";
 import SocialFollowCards from "../components/SocialFollowCards.astro";
-import NewsCard from "../components/NewsCard.astro";
 import ContactBanner from "../components/ContactBanner.astro";
 import ContactEmails from "../components/ContactEmails.astro";
 import Icon from "../components/Icon.astro";
@@ -24,7 +23,8 @@ import { videos } from "../data/videos";
 import { organizationSchema, personSchema, websiteSchema, webPageSchema } from "../utils/structuredData";
 import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
 import { getUnifiedActivities } from "../data/activities";
-import { getUnifiedNews } from "../data/news";
+import { getFileNewsItems } from "../data/news";
+import { renderHomeNews, sortNews } from "../utils/newsCards";
 
 const title = "福富千恵と延岡を動かす会｜あなたと、延岡を動かす！";
 const description =
@@ -39,9 +39,10 @@ const ogDescription =
 // を使い、トップページの最新3件が一覧ページの先頭3件と必ず一致するようにする。
 const homeActivities = (await getUnifiedActivities()).slice(0, 3);
 
-// お知らせも活動報告と同じく共通の取得口（src/data/news.ts）を使い、
-// トップの最新3件が /news/ の先頭3件と必ず一致するようにする。
-const news = (await getUnifiedNews()).slice(0, 3);
+// 最新のお知らせ：静的HTMLにはファイル由来のお知らせ（記事など）だけを入れておき、
+// 配信時に functions/index.ts がD1（執行部ポータル /staff/news/ で登録）のお知らせとまとめて差し替える。
+// D1に障害がある場合は、この静的HTMLのまま表示される。HTMLは /news/ と共通（src/utils/newsCards.ts）。
+const homeNewsFallbackHtml = renderHomeNews(sortNews(await getFileNewsItems()));
 
 const featuredVideos = videos.filter((v) => v.featured).slice(0, 3);
 
@@ -321,21 +322,7 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
   <section class="py-14 sm:py-16 bg-brand-ivory">
     <div class="section-wrap">
       <SectionTitle title="最新のお知らせ" align="left" />
-      {news.length > 0 ? (
-        <div class="grid gap-4 sm:grid-cols-3">
-          {news.map((entry) => <NewsCard entry={entry} />)}
-        </div>
-      ) : (
-        <div class="rounded-xl bg-white ring-1 ring-black/5 px-5 py-4 flex items-center gap-3 text-ink-soft">
-          <Icon name="document" class="w-5 h-5 text-brand-orange flex-shrink-0" />
-          <p>新しいお知らせは、公開次第こちらに掲載します。</p>
-        </div>
-      )}
-      {news.length > 0 && (
-        <div class="mt-8 text-center">
-          <a href="/news/" class="btn-secondary">お知らせ一覧を見る</a>
-        </div>
-      )}
+      <div data-news-home set:html={homeNewsFallbackHtml} />
     </div>
   </section>
 

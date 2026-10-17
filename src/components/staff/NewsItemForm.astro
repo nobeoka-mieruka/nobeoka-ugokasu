@@ -1,0 +1,100 @@
+---
+// お知らせの登録・編集フォーム（/staff/news/new/ と /staff/news/:id/edit/ で共用）。
+// 送信は src/scripts/staff/newsForm.ts が /staff/api/news-items へJSONで行います。
+// 入力値の検証はサーバー側（server/newsItems.ts）でも必ず行います。ここでの maxlength 等は入力補助です。
+import { NEWS_CATEGORY_LABELS, SELECTABLE_NEWS_CATEGORIES } from "../../types/news";
+
+interface Props {
+  mode: "create" | "edit";
+}
+
+const { mode } = Astro.props;
+const LIMITS = { title: 100, summary: 300, linkUrl: 500 };
+
+const inputClass =
+  "mt-2 block w-full rounded-xl border border-black/20 bg-white px-4 py-3 text-base text-ink focus:border-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-brand-orange-dark/30";
+const labelClass = "block text-base font-bold text-ink";
+const requiredBadge = "ml-2 rounded bg-brand-orange-dark px-1.5 py-0.5 text-xs font-bold text-white align-middle";
+const optionalBadge = "ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs font-bold text-ink-soft align-middle";
+const errorClass = "mt-1 hidden text-sm font-bold text-red-700";
+const hintClass = "mt-1 text-sm text-ink-soft";
+const linkExamples = [
+  { label: "活動報告", value: "/activities/" },
+  { label: "意見交換会", value: "/dialogue/" },
+  { label: "お知らせ一覧", value: "/news/" },
+];
+---
+
+<form data-news-form data-mode={mode} class="card space-y-6" novalidate>
+  <input type="hidden" name="csrf_token" value="" />
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+    <div>
+      <label for="news-date" class={labelClass}>掲載日<span class={requiredBadge}>必須</span></label>
+      <input id="news-date" name="publishedOn" type="date" required min="2020-01-01" max="2100-12-31" class={inputClass} aria-describedby="news-date-hint news-date-error" />
+      <p id="news-date-hint" class={hintClass}>未来の日付にすると、その日になるまで公開ページには表示されません。</p>
+      <p id="news-date-error" data-error-for="publishedOn" class={errorClass}></p>
+    </div>
+    <div>
+      <label for="news-category" class={labelClass}>カテゴリー<span class={requiredBadge}>必須</span></label>
+      <select id="news-category" name="category" required class={inputClass} aria-describedby="news-category-error">
+        {SELECTABLE_NEWS_CATEGORIES.map((category) => <option value={category}>{NEWS_CATEGORY_LABELS[category]}</option>)}
+      </select>
+      <p id="news-category-error" data-error-for="category" class={errorClass}></p>
+    </div>
+  </div>
+
+  <div>
+    <label for="news-title" class={labelClass}>タイトル<span class={requiredBadge}>必須</span></label>
+    <input id="news-title" name="title" type="text" required maxlength={LIMITS.title} class={inputClass} aria-describedby="news-title-error" />
+    <p id="news-title-error" data-error-for="title" class={errorClass}></p>
+  </div>
+
+  <div>
+    <label for="news-summary" class={labelClass}>概要<span class={requiredBadge}>必須</span></label>
+    <textarea id="news-summary" name="summary" rows="4" required maxlength={LIMITS.summary} class={inputClass} aria-describedby="news-summary-hint news-summary-error"></textarea>
+    <p id="news-summary-hint" class={hintClass}>トップページのカードにそのまま表示されます（{LIMITS.summary}文字以内）。個人情報は書かないでください。</p>
+    <p id="news-summary-error" data-error-for="summary" class={errorClass}></p>
+  </div>
+
+  <div>
+    <label for="news-link" class={labelClass}>リンク先<span class={optionalBadge}>任意</span></label>
+    <input id="news-link" name="linkUrl" type="text" inputmode="url" maxlength={LIMITS.linkUrl} placeholder="例：/activities/ または https://www.facebook.com/…" class={inputClass} aria-describedby="news-link-hint news-link-error" />
+    <p id="news-link-hint" class={hintClass}>
+      サイト内のページは「/」で始まるパス、SNS投稿などは「https://」で始まるURLを入力します。外部のURLは新しいタブで開きます。不要な場合は空欄にしてください。
+    </p>
+    <div class="mt-2 flex flex-wrap gap-2">
+      {linkExamples.map((example) => (
+        <button type="button" data-link-example={example.value} class="rounded-full border border-black/20 bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-brand-orange-light">
+          {example.label}（{example.value}）
+        </button>
+      ))}
+    </div>
+    <p id="news-link-error" data-error-for="linkUrl" class={errorClass}></p>
+  </div>
+
+  <div>
+    <label for="news-order" class={labelClass}>表示順<span class={optionalBadge}>任意</span></label>
+    <input id="news-order" name="displayOrder" type="number" inputmode="numeric" min="-9999" max="9999" step="1" value="0" class={inputClass} aria-describedby="news-order-hint news-order-error" />
+    <p id="news-order-hint" class={hintClass}>通常は 0 のまま（掲載日の新しい順）で構いません。特に上に表示したいお知らせは、0より小さい数字（例：-1）にします。</p>
+    <p id="news-order-error" data-error-for="displayOrder" class={errorClass}></p>
+  </div>
+
+  <fieldset class="rounded-xl bg-brand-ivory p-5">
+    <legend class="sr-only">公開状態</legend>
+    <label class="flex items-start gap-3 text-base text-ink">
+      <input name="isPublished" type="checkbox" checked class="mt-1 h-5 w-5 flex-shrink-0 accent-brand-orange-dark" />
+      <span>
+        <span class="font-bold">公開する（トップページ・お知らせ一覧に表示）</span>
+        <span class="block text-sm text-ink-soft">チェックを外すと非公開として保存され、公開ページには表示されません。</span>
+      </span>
+    </label>
+  </fieldset>
+
+  <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+    <a href="/staff/news/" class="btn-secondary justify-center">一覧へ戻る</a>
+    <button type="submit" class="btn-primary justify-center" data-submit>
+      {mode === "create" ? "登録する" : "変更を保存する"}
+    </button>
+  </div>
+</form>

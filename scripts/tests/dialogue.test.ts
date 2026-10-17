@@ -372,7 +372,7 @@ await test("9b. その他の入力値検証（文字数・日時形式・制御�
     [{ endTime: "09:00" }, "endTime"],
     [{ endTime: "10:00" }, "endTime"],
     [{ title: "意見\u0000交換会" }, "title"],
-    [{ title: "意見‮交換会" }, "title"],
+    [{ title: "意見\u202E交換会" }, "title"],
     [{ title: ["配列"] }, "title"],
     [{ displayOrder: "99999" }, "displayOrder"],
     [{ applicationOpen: "yes" }, "applicationOpen"],

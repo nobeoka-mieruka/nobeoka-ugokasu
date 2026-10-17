@@ -20,8 +20,8 @@ export class FakeStatement {
     return { results: this.db.prepare(this.sql).all(...(this.params as never[])).map((row) => ({ ...row })) as T[], success: true };
   }
   async run() {
-    // RETURNING 付きの文は結果の行も返す（D1の batch と同じ）
-    if (/\bRETURNING\b/i.test(this.sql)) return this.all();
+    // SELECT 文・RETURNING 付きの文は結果の行も返す（D1の batch と同じ）
+    if (/^\s*SELECT\b/i.test(this.sql) || /\bRETURNING\b/i.test(this.sql)) return this.all();
     this.db.prepare(this.sql).run(...(this.params as never[]));
     return { results: [], success: true };
   }

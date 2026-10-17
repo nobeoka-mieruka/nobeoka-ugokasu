@@ -98,6 +98,7 @@ export function promotedSocialNews(now: number = Date.now()): UnifiedNews[] {
 
       return {
         id: `social-${post.id}`,
+        sourceKey: `social:${post.id}`,
         date,
         title: promotion.title ?? post.title,
         summary: promotion.summary ?? buildSummary(post.description),

@@ -2,18 +2,18 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import HeroSection from "../../components/HeroSection.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
-import NewsCard from "../../components/NewsCard.astro";
-import Icon from "../../components/Icon.astro";
 import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
-import { getUnifiedNews } from "../../data/news";
+import { getFileNewsItems } from "../../data/news";
+import { renderNewsList, sortNews } from "../../utils/newsCards";
 
 const title = "お知らせ｜福富千恵と延岡を動かす会";
 const description = "福富千恵と延岡を動かす会からのお知らせ一覧です。活動予定、意見交換会、サイト更新情報などをお伝えします。";
 const breadcrumbItems = [{ name: "お知らせ", path: "/news" }];
 
-// トップページと共通の取得口（src/data/news.ts）を使う
-const news = await getUnifiedNews();
+// 静的HTMLにはファイル由来のお知らせ（記事など）だけを入れておき、配信時に functions/news/index.ts が
+// D1（執行部ポータル /staff/news/ で登録）のお知らせとまとめて差し替える（HTMLはトップページと共通）。
+const newsFallbackHtml = renderNewsList(sortNews(await getFileNewsItems()));
 
 const schemas = [
   webPageSchema({ path: "/news", name: title, description }),
@@ -29,16 +29,7 @@ const schemas = [
     <div class="section-wrap">
       {/* 見出し階層をh1→h2→h3の順に保つための、視覚的には表示しない見出し（13章） */}
       <h2 class="sr-only">お知らせ一覧</h2>
-      {news.length > 0 ? (
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {news.map((entry) => <NewsCard entry={entry} />)}
-        </div>
-      ) : (
-        <div class="card text-center py-16 text-ink-soft flex flex-col items-center gap-3">
-          <Icon name="document" class="w-10 h-10 text-brand-orange" />
-          <p class="text-lg">新しいお知らせは、公開次第こちらに掲載します。</p>
-        </div>
-      )}
+      <div data-news-list set:html={newsFallbackHtml} />
     </div>
   </section>
 </BaseLayout>

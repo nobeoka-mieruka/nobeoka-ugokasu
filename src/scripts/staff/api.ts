@@ -31,10 +31,10 @@ export async function staffApi<T>(path: string, init: { method?: string; body?: 
 }
 
 /** 失敗時に画面へ表示する文言（内部の情報は表示しない） */
-export function apiErrorMessage(result: ApiResult<unknown>): string {
+export function apiErrorMessage(result: ApiResult<unknown>, subject = "意見交換会"): string {
   if (result.status === 401) return "ログインの有効期限が切れました。ページを再読み込みして、もう一度ログインしてください。";
   if (result.status === 403) return "操作を受け付けられませんでした。ページを再読み込みしてからやり直してください。";
-  if (result.status === 404) return "対象の意見交換会が見つかりません。すでに削除された可能性があります。";
+  if (result.status === 404) return `対象の${subject}が見つかりません。すでに削除された可能性があります。`;
   if (result.status === 422) return "入力内容を確認してください。";
   if (result.status === 413) return "入力内容が長すぎます。";
   if (result.status === 0) return "通信できませんでした。インターネット接続を確認してから、もう一度お試しください。";

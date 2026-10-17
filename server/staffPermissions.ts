@@ -7,11 +7,11 @@
 
 import type { StaffSession } from "./staffAuth";
 
-export type StaffPermission = "dialogue:read" | "dialogue:write";
+export type StaffPermission = "dialogue:read" | "dialogue:write" | "news:read" | "news:write";
 export type StaffRole = "admin";
 
 const ROLE_PERMISSIONS: Record<StaffRole, readonly StaffPermission[]> = {
-  admin: ["dialogue:read", "dialogue:write"],
+  admin: ["dialogue:read", "dialogue:write", "news:read", "news:write"],
 };
 
 /** ログイン中の方の役割（現在は全員 admin） */
