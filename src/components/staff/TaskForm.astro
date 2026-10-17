@@ -1,0 +1,93 @@
+---
+// タスクの登録・編集フォーム（/staff/tasks/new/ と /staff/tasks/:id/edit/ で共用）。
+// 送信は src/scripts/staff/taskForm.ts が /staff/api/tasks へJSONで行います。
+// 入力値の検証はサーバー側（server/tasks.ts）でも必ず行います。ここでの maxlength 等は入力補助です。
+//
+// 担当者は自由記入です。将来メンバー管理を追加する場合は、下の「担当者」の入力欄を <select> に差し替え、
+// server/tasks.ts の validateTaskInput の担当者の検証を選択肢のチェックに変えてください。
+import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_PROGRESS_STEPS } from "../../types/tasks";
+
+interface Props {
+  mode: "create" | "edit";
+}
+
+const { mode } = Astro.props;
+const L = { title: 100, assignee: 50, notes: 2000 };
+
+const inputClass =
+  "mt-2 block w-full rounded-xl border border-black/20 bg-white px-4 py-3 text-base text-ink focus:border-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-brand-orange-dark/30";
+const labelClass = "block text-base font-bold text-ink";
+const requiredBadge = "ml-2 rounded bg-brand-orange-dark px-1.5 py-0.5 text-xs font-bold text-white align-middle";
+const optionalBadge = "ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs font-bold text-ink-soft align-middle";
+const errorClass = "mt-1 hidden text-sm font-bold text-red-700";
+const hintClass = "mt-1 text-sm text-ink-soft";
+---
+
+<form data-task-form data-mode={mode} class="card space-y-6" novalidate>
+  <input type="hidden" name="csrf_token" value="" />
+
+  <div>
+    <label for="task-title" class={labelClass}>タスク名<span class={requiredBadge}>必須</span></label>
+    <input id="task-title" name="title" type="text" required maxlength={L.title} class={inputClass} aria-describedby="task-title-error" />
+    <p id="task-title-error" data-error-for="title" class={errorClass}></p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+    <div>
+      <label for="task-assignee" class={labelClass}>担当者<span class={optionalBadge}>任意</span></label>
+      <input id="task-assignee" name="assignee" type="text" maxlength={L.assignee} placeholder="例：盛武、事務局、広報担当" class={inputClass} aria-describedby="task-assignee-hint task-assignee-error" />
+      <p id="task-assignee-hint" class={hintClass}>名前や係の名称を自由に入力できます（{L.assignee}文字以内）。</p>
+      <p id="task-assignee-error" data-error-for="assignee" class={errorClass}></p>
+    </div>
+    <div>
+      <label for="task-due" class={labelClass}>期限<span class={optionalBadge}>任意</span></label>
+      <input id="task-due" name="dueDate" type="date" min="2020-01-01" max="2100-12-31" class={inputClass} aria-describedby="task-due-error" />
+      <p id="task-due-error" data-error-for="dueDate" class={errorClass}></p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+    <div>
+      <label for="task-priority" class={labelClass}>優先度<span class={requiredBadge}>必須</span></label>
+      <select id="task-priority" name="priority" required class={inputClass} aria-describedby="task-priority-error">
+        {TASK_PRIORITIES.map((priority) => <option value={priority} selected={priority === "medium"}>{TASK_PRIORITY_LABELS[priority]}</option>)}
+      </select>
+      <p id="task-priority-error" data-error-for="priority" class={errorClass}></p>
+    </div>
+    <div>
+      <label for="task-progress" class={labelClass}>進捗<span class={requiredBadge}>必須</span></label>
+      <select id="task-progress" name="progress" required class={inputClass} aria-describedby="task-progress-hint task-progress-error">
+        {TASK_PROGRESS_STEPS.map((step) => <option value={String(step)}>{step}%</option>)}
+      </select>
+      <p id="task-progress-hint" class={hintClass}>100% は「完了」にしたときだけになります。</p>
+      <p id="task-progress-error" data-error-for="progress" class={errorClass}></p>
+    </div>
+  </div>
+
+  <div>
+    <label for="task-notes" class={labelClass}>メモ<span class={optionalBadge}>任意</span></label>
+    <textarea id="task-notes" name="notes" rows="5" maxlength={L.notes} class={inputClass} aria-describedby="task-notes-error"></textarea>
+    <p id="task-notes-error" data-error-for="notes" class={errorClass}></p>
+  </div>
+
+  <fieldset class="rounded-xl bg-brand-ivory p-5">
+    <legend class="sr-only">完了／未完了</legend>
+    <label class="flex items-start gap-3 text-base text-ink">
+      <input name="completed" type="checkbox" class="mt-1 h-5 w-5 flex-shrink-0 accent-brand-orange-dark" />
+      <span>
+        <span class="font-bold">完了にする</span>
+        <span class="block text-sm text-ink-soft">完了にすると進捗は100%になり、完了日時と完了した人が記録されます。</span>
+      </span>
+    </label>
+    <p data-error-for="completed" class={errorClass}></p>
+  </fieldset>
+
+  <p class="text-sm text-ink-soft">タスクの内容は執行部ポータルの中だけで表示し、公開ページには表示しません。</p>
+
+  <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+    <a href="/staff/tasks/" class="btn-secondary justify-center">一覧へ戻る</a>
+    <button type="submit" class="btn-primary justify-center" data-submit>
+      {mode === "create" ? "登録する" : "変更を保存する"}
+    </button>
+  </div>
+</form>

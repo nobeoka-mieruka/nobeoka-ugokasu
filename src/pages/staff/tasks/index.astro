@@ -1,0 +1,137 @@
+---
+// /staff/tasks/ … タスクの管理一覧（ログイン必須。functions/staff/_middleware.ts が保護）
+// 一覧の内容はビルド時には含めず、ブラウザが /staff/api/tasks から読み込みます（公開ページには一切出しません）。
+// PC（lg以上）は表、スマートフォンはカード。未完了を上（期限切れ → 期限が近い → 優先度「高」→ 期限あり → 期限なし）、
+// 完了済みを下に分けます（並び順は src/utils/taskOrder.ts）。
+// 表の行（<tr>）の中では <form> を使わず、<select> の選択肢は set:html で入れる（Astroのコンパイラが行を途中で閉じるのを避けるため）。
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import StaffPageHeader from "../../../components/staff/StaffPageHeader.astro";
+import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_PROGRESS_STEPS } from "../../../types/tasks";
+
+const priorityOptionsHtml = TASK_PRIORITIES.map((p) => `<option value="${p}">優先度：${TASK_PRIORITY_LABELS[p]}</option>`).join("");
+const progressOptionsHtml = TASK_PROGRESS_STEPS.map((s) => `<option value="${s}">進捗：${s}%</option>`).join("");
+
+const th = "px-3 py-3 text-left text-sm font-bold text-ink-soft whitespace-nowrap";
+const td = "px-3 py-3 align-top text-sm text-ink";
+const termClass = "flex-shrink-0 whitespace-nowrap text-xs font-bold text-ink-soft";
+const selectClass = "rounded-lg border border-black/20 bg-white px-2 py-1.5 text-sm";
+const smallButton = "rounded-full border-2 px-3 py-1.5 text-sm font-bold whitespace-nowrap";
+const filters = [
+  { key: "open", label: "未完了" },
+  { key: "overdue", label: "期限切れ" },
+  { key: "all", label: "すべて" },
+];
+const groups = [
+  { key: "open", title: "未完了のタスク", empty: "未完了のタスクはありません。" },
+  { key: "done", title: "完了済みのタスク", empty: "完了済みのタスクはありません。" },
+];
+---
+
+<BaseLayout title="タスクの管理｜執行部ポータル" description="執行部内のタスクを管理します。" path="/staff/tasks" noindex>
+  <StaffPageHeader title="タスクの管理" description="執行部内のやること・担当・期限を管理します。ここの内容は公開ページには表示されません。" />
+
+  <section class="py-10 sm:py-14">
+    <div class="section-wrap max-w-6xl space-y-8">
+      <input type="hidden" name="csrf_token" value="" />
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <a href="/staff/tasks/new/" class="btn-primary justify-center">＋ 新しいタスクを登録</a>
+        <div role="group" aria-label="表示するタスク" class="flex flex-wrap gap-2">
+          {filters.map((filter) => (
+            <button type="button" data-filter={filter.key} aria-pressed={filter.key === "open" ? "true" : "false"} class="min-h-[44px] rounded-full px-4 py-2 text-sm font-bold ring-1 ring-black/10 aria-pressed:bg-brand-orange-dark aria-pressed:text-white bg-white text-ink">
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div data-staff-notice role="status" tabindex="-1" class="hidden rounded-xl px-4 py-3 font-bold"></div>
+      <p data-tasks-loading class="text-ink-soft">読み込んでいます…</p>
+
+      {groups.map((group) => (
+        <div data-tasks-group={group.key} class="hidden space-y-4">
+          <h2 class="text-2xl font-bold text-ink">{group.title}<span data-tasks-count class="ml-2 text-base font-normal text-ink-soft"></span></h2>
+          <p data-tasks-empty class="hidden card text-center text-ink-soft">{group.empty}</p>
+          <div data-tasks-table class="hidden lg:block overflow-hidden rounded-2xl bg-white ring-1 ring-black/5">
+            <table class="w-full">
+              <thead class="bg-brand-ivory">
+                <tr>
+                  <th scope="col" class={th}>期限</th>
+                  <th scope="col" class={th}>タスク名・担当者</th>
+                  <th scope="col" class={th}>優先度</th>
+                  <th scope="col" class={th}>進捗</th>
+                  <th scope="col" class={th}>優先度・進捗の変更</th>
+                  <th scope="col" class={th}><span class="sr-only">操作</span></th>
+                </tr>
+              </thead>
+              <tbody data-tasks-rows class="divide-y divide-black/5"></tbody>
+            </table>
+          </div>
+          <ul data-tasks-cards class="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-5"></ul>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <template data-task-row-template>
+    <tr>
+      <td class={td}><span data-field="due" class="font-bold whitespace-nowrap"></span><span data-field="dueState" class="hidden mt-1 block w-fit rounded-full px-2 py-0.5 text-xs font-bold whitespace-nowrap"></span></td>
+      <td class={td}><span data-field="title" class="font-bold [overflow-wrap:anywhere]"></span><span data-field="assignee" class="block text-ink-soft [overflow-wrap:anywhere]"></span><span data-field="notesFlag" class="hidden text-xs text-ink-soft">メモあり</span></td>
+      <td class={td}><span data-field="priority" class="rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"></span></td>
+      <td class={td}><span data-field="progress" class="font-bold"></span><span class="mt-1 block h-2 w-24 rounded-full bg-black/10"><span data-field="progressBar" class="block h-2 rounded-full bg-brand-orange-dark"></span></span></td>
+      <td class={td}>
+        <div data-quick-change class="flex flex-wrap items-center gap-1">
+          <select name="priority" class={selectClass}><Fragment set:html={priorityOptionsHtml} /></select>
+          <select name="progress" class={selectClass}><Fragment set:html={progressOptionsHtml} /></select>
+          <button type="button" data-quick-submit class={`${smallButton} border-brand-orange-dark text-brand-orange-dark hover:bg-brand-orange-light`}>変更</button>
+        </div>
+      </td>
+      <td class={`${td} whitespace-nowrap`}>
+        <button type="button" data-toggle-complete class={`${smallButton} border-brand-orange-dark bg-brand-orange-dark text-white`}></button>
+        <a data-edit-link href="/staff/tasks/" class={`${smallButton} ml-1 inline-block border-brand-orange-dark text-brand-orange-dark hover:bg-brand-orange-light`}>編集</a>
+        <button type="button" data-delete class={`${smallButton} ml-1 border-red-700 text-red-700 hover:bg-red-50`}>削除</button>
+      </td>
+    </tr>
+  </template>
+
+  <template data-task-card-template>
+    <li class="card min-w-0 flex flex-col gap-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span data-field="priority" class="rounded-full px-2.5 py-1 text-xs font-bold"></span>
+        <span data-field="dueState" class="hidden rounded-full px-2.5 py-1 text-xs font-bold"></span>
+      </div>
+      <h3 data-field="title" class="text-xl font-bold text-ink [overflow-wrap:anywhere]"></h3>
+      <dl class="grid grid-cols-1 gap-y-2 text-sm text-ink">
+        <div class="flex gap-3"><dt class={termClass}>担当者</dt><dd data-field="assignee" class="min-w-0 [overflow-wrap:anywhere]"></dd></div>
+        <div class="flex gap-3"><dt class={termClass}>期限</dt><dd data-field="due" class="font-bold"></dd></div>
+        <div class="flex items-center gap-3"><dt class={termClass}>進捗</dt><dd class="flex flex-1 items-center gap-2"><span data-field="progress" class="font-bold"></span><span class="block h-2 flex-1 rounded-full bg-black/10"><span data-field="progressBar" class="block h-2 rounded-full bg-brand-orange-dark"></span></span></dd></div>
+        <div data-field="notes" class="hidden whitespace-pre-line rounded-xl bg-brand-ivory px-3 py-2 text-ink-soft [overflow-wrap:anywhere]"></div>
+      </dl>
+      <div data-quick-change class="grid grid-cols-2 gap-2 rounded-xl bg-brand-ivory p-3">
+        <label class="text-xs font-bold text-ink">優先度<select name="priority" class="mt-1 block w-full rounded-lg border border-black/20 bg-white px-2 py-2 text-base"><Fragment set:html={priorityOptionsHtml} /></select></label>
+        <label class="text-xs font-bold text-ink">進捗<select name="progress" class="mt-1 block w-full rounded-lg border border-black/20 bg-white px-2 py-2 text-base"><Fragment set:html={progressOptionsHtml} /></select></label>
+        <button type="button" data-quick-submit class="col-span-2 rounded-full border-2 border-brand-orange-dark px-4 py-2 text-base font-bold text-brand-orange-dark hover:bg-brand-orange-light">優先度・進捗を変更</button>
+      </div>
+      <div class="mt-auto grid grid-cols-2 gap-3">
+        <button type="button" data-toggle-complete class="col-span-2 rounded-full bg-brand-orange-dark px-4 py-3 text-lg font-bold text-white hover:brightness-110"></button>
+        <a data-edit-link href="/staff/tasks/" class="btn-secondary justify-center text-lg">編集</a>
+        <button type="button" data-delete class="rounded-full border-2 border-red-700 px-6 py-3 text-lg font-bold text-red-700 hover:bg-red-50">削除</button>
+      </div>
+    </li>
+  </template>
+
+  <dialog data-delete-dialog aria-labelledby="task-delete-title" class="w-[calc(100%-2rem)] max-w-md rounded-2xl p-0 backdrop:bg-black/50">
+    <form method="dialog" class="p-6 sm:p-8 space-y-4">
+      <h2 id="task-delete-title" class="text-xl font-bold text-ink">このタスクを削除しますか？</h2>
+      <p data-delete-title class="rounded-xl bg-brand-ivory px-4 py-3 font-bold text-ink [overflow-wrap:anywhere]"></p>
+      <p class="text-sm text-ink-soft leading-relaxed">削除すると一覧に表示されなくなります。終わったタスクは「完了にする」をお使いください。</p>
+      <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        <button value="cancel" class="btn-secondary justify-center text-lg" autofocus>やめる</button>
+        <button value="confirm" class="rounded-full bg-red-700 px-6 py-3 text-lg font-bold text-white hover:brightness-110">削除する</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    import "../../../scripts/staff/taskList";
+  </script>
+</BaseLayout>

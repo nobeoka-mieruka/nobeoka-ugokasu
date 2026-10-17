@@ -44,7 +44,14 @@ export const STAFF_SECTIONS: readonly StaffSection[] = [
     icon: "clock",
     href: "/staff/events/",
   },
-  { key: "tasks", label: "タスク", cardTitle: "タスク", description: "執行部内のやること・担当の管理", icon: "check" },
+  {
+    key: "tasks",
+    label: "タスク",
+    cardTitle: "タスク",
+    description: "執行部内のやること・担当者・期限・優先度・進捗の管理",
+    icon: "check",
+    href: "/staff/tasks/",
+  },
   { key: "sns", label: "SNS", cardTitle: "SNS", description: "SNS投稿の同期状況の確認", icon: "megaphone" },
   { key: "documents", label: "資料", cardTitle: "資料", description: "執行部内の資料の共有", icon: "document" },
 ];
