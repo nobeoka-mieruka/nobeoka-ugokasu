@@ -1,0 +1,19 @@
+---
+// /staff/dialogue/new/ … 意見交換会の新規登録（ログイン必須。functions/staff/_middleware.ts が保護）
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import StaffPageHeader from "../../../components/staff/StaffPageHeader.astro";
+import DialogueEventForm from "../../../components/staff/DialogueEventForm.astro";
+---
+
+<BaseLayout title="意見交換会の新規登録｜執行部ポータル" description="意見交換会の開催予定を登録します。" path="/staff/dialogue/new" noindex>
+  <StaffPageHeader title="意見交換会の新規登録" backHref="/staff/dialogue/" backLabel="意見交換会の一覧へ戻る" />
+  <section class="py-10 sm:py-14">
+    <div class="section-wrap max-w-3xl space-y-6">
+      <div data-staff-notice role="status" tabindex="-1" class="hidden rounded-xl px-4 py-3 font-bold"></div>
+      <DialogueEventForm mode="create" />
+    </div>
+  </section>
+  <script>
+    import "../../../scripts/staff/dialogueForm";
+  </script>
+</BaseLayout>

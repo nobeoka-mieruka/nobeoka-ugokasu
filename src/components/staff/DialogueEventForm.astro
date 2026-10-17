@@ -1,0 +1,114 @@
+---
+// 意見交換会の登録・編集フォーム（/staff/dialogue/new/ と /staff/dialogue/:id/edit/ で共用）。
+// 送信は src/scripts/staff/dialogueForm.ts が /staff/api/dialogue-events へJSONで行います。
+// 入力値の検証はサーバー側（server/dialogueEvents.ts）でも必ず行います。ここでの maxlength 等は入力補助です。
+import { DIALOGUE_STATUSES, DIALOGUE_STATUS_LABELS } from "../../types/dialogue";
+
+interface Props {
+  mode: "create" | "edit";
+}
+
+const { mode } = Astro.props;
+const LIMITS = { title: 100, venue: 100, address: 200, description: 2000 };
+
+const inputClass =
+  "mt-2 block w-full rounded-xl border border-black/20 bg-white px-4 py-3 text-base text-ink focus:border-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-brand-orange-dark/30";
+const labelClass = "block text-base font-bold text-ink";
+const requiredBadge = "ml-2 rounded bg-brand-orange-dark px-1.5 py-0.5 text-xs font-bold text-white align-middle";
+const optionalBadge = "ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs font-bold text-ink-soft align-middle";
+const errorClass = "mt-1 hidden text-sm font-bold text-red-700";
+---
+
+<form data-dialogue-form data-mode={mode} class="card space-y-6" novalidate>
+  <input type="hidden" name="csrf_token" value="" />
+
+  <div>
+    <label for="dlg-title" class={labelClass}>タイトル<span class={requiredBadge}>必須</span></label>
+    <input id="dlg-title" name="title" type="text" required maxlength={LIMITS.title} value="意見交換会" class={inputClass} aria-describedby="dlg-title-error" />
+    <p id="dlg-title-error" data-error-for="title" class={errorClass}></p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+    <div>
+      <label for="dlg-date" class={labelClass}>開催日<span class={requiredBadge}>必須</span></label>
+      <input id="dlg-date" name="eventDate" type="date" required min="2020-01-01" max="2100-12-31" class={inputClass} aria-describedby="dlg-date-error" />
+      <p id="dlg-date-error" data-error-for="eventDate" class={errorClass}></p>
+    </div>
+    <div>
+      <label for="dlg-start" class={labelClass}>開始時間<span class={requiredBadge}>必須</span></label>
+      <input id="dlg-start" name="startTime" type="time" required class={inputClass} aria-describedby="dlg-start-error" />
+      <p id="dlg-start-error" data-error-for="startTime" class={errorClass}></p>
+    </div>
+    <div>
+      <label for="dlg-end" class={labelClass}>終了時間<span class={optionalBadge}>任意</span></label>
+      <input id="dlg-end" name="endTime" type="time" class={inputClass} aria-describedby="dlg-end-error" />
+      <p id="dlg-end-error" data-error-for="endTime" class={errorClass}></p>
+    </div>
+  </div>
+
+  <div>
+    <label for="dlg-venue" class={labelClass}>会場<span class={requiredBadge}>必須</span></label>
+    <input id="dlg-venue" name="venue" type="text" required maxlength={LIMITS.venue} placeholder="例：○○公民館" class={inputClass} aria-describedby="dlg-venue-error" />
+    <p id="dlg-venue-error" data-error-for="venue" class={errorClass}></p>
+  </div>
+
+  <div>
+    <label for="dlg-address" class={labelClass}>住所<span class={optionalBadge}>任意</span></label>
+    <input id="dlg-address" name="address" type="text" maxlength={LIMITS.address} placeholder="例：宮崎県延岡市○○町1-2-3" class={inputClass} aria-describedby="dlg-address-error" />
+    <p id="dlg-address-error" data-error-for="address" class={errorClass}></p>
+  </div>
+
+  <div>
+    <label for="dlg-description" class={labelClass}>説明<span class={optionalBadge}>任意</span></label>
+    <textarea id="dlg-description" name="description" rows="5" maxlength={LIMITS.description} class={inputClass} aria-describedby="dlg-description-hint dlg-description-error"></textarea>
+    <p id="dlg-description-hint" class="mt-1 text-sm text-ink-soft">公開ページにそのまま表示されます。参加者の氏名・電話番号などの個人情報は書かないでください。</p>
+    <p id="dlg-description-error" data-error-for="description" class={errorClass}></p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+    <div>
+      <label for="dlg-capacity" class={labelClass}>定員（人）<span class={optionalBadge}>任意</span></label>
+      <input id="dlg-capacity" name="capacity" type="number" inputmode="numeric" min="1" max="10000" step="1" placeholder="定員なしの場合は空欄" class={inputClass} aria-describedby="dlg-capacity-error" />
+      <p id="dlg-capacity-error" data-error-for="capacity" class={errorClass}></p>
+    </div>
+    <div>
+      <label for="dlg-order" class={labelClass}>表示順<span class={optionalBadge}>任意</span></label>
+      <input id="dlg-order" name="displayOrder" type="number" inputmode="numeric" min="-9999" max="9999" step="1" value="0" class={inputClass} aria-describedby="dlg-order-hint dlg-order-error" />
+      <p id="dlg-order-hint" class="mt-1 text-sm text-ink-soft">小さい数字ほど先に表示されます。通常は 0 のまま（開催日順）で構いません。</p>
+      <p id="dlg-order-error" data-error-for="displayOrder" class={errorClass}></p>
+    </div>
+  </div>
+
+  <div>
+    <label for="dlg-status" class={labelClass}>受付状況<span class={requiredBadge}>必須</span></label>
+    <select id="dlg-status" name="status" required class={inputClass} aria-describedby="dlg-status-error">
+      {DIALOGUE_STATUSES.map((status) => <option value={status}>{DIALOGUE_STATUS_LABELS[status]}</option>)}
+    </select>
+    <p id="dlg-status-error" data-error-for="status" class={errorClass}></p>
+  </div>
+
+  <fieldset class="space-y-4 rounded-xl bg-brand-ivory p-5">
+    <legend class="sr-only">公開ページでの表示</legend>
+    <label class="flex items-start gap-3 text-base text-ink">
+      <input name="applicationOpen" type="checkbox" checked class="mt-1 h-5 w-5 flex-shrink-0 accent-brand-orange-dark" />
+      <span>
+        <span class="font-bold">参加申込を受け付ける</span>
+        <span class="block text-sm text-ink-soft">受付状況が「受付中」で、ここにチェックがある間だけ、公開ページに「参加を申し込む」ボタンを表示します。</span>
+      </span>
+    </label>
+    <label class="flex items-start gap-3 text-base text-ink">
+      <input name="isPublished" type="checkbox" checked class="mt-1 h-5 w-5 flex-shrink-0 accent-brand-orange-dark" />
+      <span>
+        <span class="font-bold">公開ページ（/dialogue/）に表示する</span>
+        <span class="block text-sm text-ink-soft">チェックを外すと下書きとして保存され、公開ページには表示されません。</span>
+      </span>
+    </label>
+  </fieldset>
+
+  <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+    <a href="/staff/dialogue/" class="btn-secondary justify-center">一覧へ戻る</a>
+    <button type="submit" class="btn-primary justify-center" data-submit>
+      {mode === "create" ? "登録する" : "変更を保存する"}
+    </button>
+  </div>
+</form>

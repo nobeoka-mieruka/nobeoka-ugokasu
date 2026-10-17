@@ -1,0 +1,20 @@
+---
+// 執行部ポータル内の各画面の見出し（パンくず代わりの「ポータルへ戻る」リンク付き）。
+interface Props {
+  title: string;
+  description?: string;
+  backHref?: string;
+  backLabel?: string;
+}
+
+const { title, description, backHref = "/staff/", backLabel = "執行部ポータルへ戻る" } = Astro.props;
+---
+
+<div class="bg-brand-orange-light">
+  <div class="section-wrap max-w-5xl py-8 sm:py-10">
+    <a href={backHref} class="inline-flex min-h-[44px] items-center text-sm font-bold text-ink underline">← {backLabel}</a>
+    <h1 class="mt-1 text-3xl sm:text-4xl font-bold text-ink">{title}</h1>
+    {description && <p class="mt-3 text-base text-ink-soft leading-relaxed">{description}</p>}
+    <p class="mt-3 text-sm text-ink-soft [overflow-wrap:anywhere]">ログイン中：<span data-staff-email></span></p>
+  </div>
+</div>

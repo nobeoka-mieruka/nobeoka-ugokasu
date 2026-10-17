@@ -16,7 +16,9 @@
     "dev:pages": "npm run build && wrangler pages dev dist --kv SOCIAL_POSTS_KV --compatibility-date=2026-07-01",
     "seo:check": "node scripts/seo-check.mjs",
     "test:social": "esbuild scripts/tests/social-sync.test.ts --bundle --platform=node --format=esm --external:sharp --outfile=.astro/test/social-sync.test.mjs --log-level=warning && node .astro/test/social-sync.test.mjs",
-    "test:staff-auth": "esbuild scripts/tests/staff-auth.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/staff-auth.test.mjs --log-level=warning && node --no-warnings .astro/test/staff-auth.test.mjs"
+    "test:staff-auth": "esbuild scripts/tests/staff-auth.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/staff-auth.test.mjs --log-level=warning && node --no-warnings .astro/test/staff-auth.test.mjs",
+    "test:dialogue": "esbuild scripts/tests/dialogue.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/dialogue.test.mjs --log-level=warning && node --no-warnings .astro/test/dialogue.test.mjs",
+    "d1:migrate": "wrangler d1 execute nobeoka-staff --remote --file migrations/0002_dialogue_events.sql"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

@@ -23,9 +23,8 @@ interface PortalCard {
   href?: string;
 }
 
-// 将来の想定：意見交換会 → 日程をD1へ登録 → 公開ページ /dialogue/ へ反映
 const cards: PortalCard[] = [
-  { title: "意見交換会", description: "開催日程の登録・申込状況の確認", icon: "users" },
+  { title: "意見交換会", description: "開催予定の登録・編集・受付状況の変更（公開ページ /dialogue/ へ反映）", icon: "users", href: "/staff/dialogue/" },
   { title: "イベント", description: "活動予定・イベントの管理", icon: "clock" },
   { title: "タスク", description: "執行部内のやること・担当の管理", icon: "check" },
   { title: "SNS", description: "SNS投稿の同期状況の確認", icon: "megaphone" },
@@ -53,14 +52,18 @@ const cards: PortalCard[] = [
               <div class="flex items-center justify-center w-12 h-12 rounded-full bg-brand-orange-light">
                 <Icon name={card.icon} class="w-6 h-6 text-brand-orange-dark" />
               </div>
-              {!card.href && (
+              {card.href ? (
+                <span class="rounded-full bg-brand-orange-dark px-3 py-1 text-xs font-bold text-white">利用可能</span>
+              ) : (
                 <span class="rounded-full bg-black/5 px-3 py-1 text-xs font-bold text-ink-soft">準備中</span>
               )}
             </div>
             <h2 class="mt-4 text-xl font-bold text-ink">{card.title}</h2>
             <p class="mt-2 text-sm text-ink-soft leading-relaxed">{card.description}</p>
             {card.href && (
-              <a href={card.href} class="btn-secondary mt-auto pt-3 self-start">開く</a>
+              <div class="mt-auto pt-4">
+                <a href={card.href} class="btn-secondary">開く</a>
+              </div>
             )}
           </li>
         ))}

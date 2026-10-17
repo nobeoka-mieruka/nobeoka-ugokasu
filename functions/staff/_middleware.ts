@@ -68,6 +68,14 @@ export const onRequest: PagesFunction<StaffAuthEnv> = async (context) => {
   }
 
   if (!SAFE_METHODS.has(request.method) && !(await isValidCsrf(request, session))) {
+    if (path.startsWith("/staff/api/")) {
+      return withStaffHeaders(
+        new Response(JSON.stringify({ ok: false, error: "csrf_failed" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        }),
+      );
+    }
     return withStaffHeaders(new Response("不正なリクエストです。ページを再読み込みしてからやり直してください。", { status: 403 }));
   }
 

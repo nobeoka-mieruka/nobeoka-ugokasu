@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { DatabaseSync } from "node:sqlite";
+import { FakeD1 } from "./helpers/fakeD1";
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import type { StaffAuthEnv } from "../../server/env";
 import { parseAllowlist, resetSchemaCache, SESSION_TTL_SECONDS } from "../../server/staffAuth";
@@ -15,44 +15,6 @@ import { onRequestGet as googleStart } from "../../functions/staff/auth/google";
 import { onRequestGet as googleCallback } from "../../functions/staff/auth/callback";
 import { onRequestPost as logoutPost } from "../../functions/staff/logout";
 import { resetGoogleJwksCache } from "../../server/googleOAuth";
-
-// ---- D1互換のラッパー（node:sqlite） ----
-class FakeStatement {
-  constructor(
-    private db: DatabaseSync,
-    public sql: string,
-    private params: unknown[] = [],
-  ) {}
-  bind(...params: unknown[]) {
-    return new FakeStatement(this.db, this.sql, params);
-  }
-  async first<T>() {
-    return (this.db.prepare(this.sql).get(...(this.params as never[])) ?? null) as T | null;
-  }
-  async run() {
-    this.db.prepare(this.sql).run(...(this.params as never[]));
-    return { success: true };
-  }
-}
-class FakeD1 {
-  queries = 0;
-  constructor(public sqlite = new DatabaseSync(":memory:")) {}
-  prepare(sql: string) {
-    this.queries++;
-    return new FakeStatement(this.sqlite, sql);
-  }
-  async batch(statements: FakeStatement[]) {
-    this.sqlite.exec("BEGIN");
-    try {
-      for (const s of statements) await s.run();
-      this.sqlite.exec("COMMIT");
-    } catch (err) {
-      this.sqlite.exec("ROLLBACK");
-      throw err;
-    }
-    return [];
-  }
-}
 
 // HTMLRewriterはWorkers専用のため、単体テストでは素通しにする（差し込みはwrangler上の結合テストで確認）
 (globalThis as Record<string, unknown>).HTMLRewriter = class {

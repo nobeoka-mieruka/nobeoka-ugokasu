@@ -1,9 +1,10 @@
 import { siteConfig } from "../config/siteConfig";
+import { ORGANIZATION_ID } from "../config/siteIdentity";
 import { getConfirmedSocialLinks } from "../data/socialLinks";
 import { absoluteUrl } from "./seo";
 
 /** サイト全体で使い回す@id（WebSiteとOrganizationを相互参照させるため） */
-export const organizationId = `${siteConfig.siteUrl}/#organization`;
+export const organizationId = ORGANIZATION_ID;
 export const websiteId = `${siteConfig.siteUrl}/#website`;
 
 /** ロゴの実寸法（public/images/logo/kouenkainamaeirilogo.png） */

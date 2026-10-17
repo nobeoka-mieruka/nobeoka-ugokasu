@@ -80,3 +80,13 @@ export interface StaffAuthEnv {
   /** ログインを許可するメールアドレス（カンマ・空白・改行区切り。Secretとして登録する） */
   STAFF_ALLOWED_EMAILS?: string;
 }
+
+/** 公開ページ /dialogue/ が開催予定を読み込むための設定（執行部ポータルと同じD1を読み取り専用で使う） */
+export interface DialogueEnv {
+  STAFF_DB?: D1Database;
+}
+
+/** 静的ファイル（ビルド成果物）を取得するためのPages標準バインディング */
+export interface AssetsEnv {
+  ASSETS: Fetcher;
+}

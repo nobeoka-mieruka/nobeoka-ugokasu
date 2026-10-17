@@ -12,13 +12,14 @@
 // =============================================================
 
 import { SITE_URL } from "./siteUrl";
+import { ORGANIZATION_NAME } from "./siteIdentity";
 
 export const siteConfig = {
   /** サイト名（ブラウザタブ等に使用） */
   siteName: "福富千恵と延岡を動かす会",
 
   /** 団体の正式名称。サイト内で必ずこの名称に統一してください。 */
-  organizationName: "福富千恵と延岡を動かす会",
+  organizationName: ORGANIZATION_NAME,
 
   /** 本人氏名 */
   personName: "福富 千恵",
