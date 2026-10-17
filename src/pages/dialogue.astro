@@ -1,0 +1,263 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HeroSection from "../components/HeroSection.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+import Icon from "../components/Icon.astro";
+import ContactEmails from "../components/ContactEmails.astro";
+import { dialogueConfig } from "../config/dialogueConfig";
+import { dialogueEvents, type DialogueEvent, type DialogueEventStatus } from "../data/dialogueEvents";
+import { webPageSchema, organizationSchema } from "../utils/structuredData";
+import { buildBreadcrumbList } from "../utils/seo";
+import { dialogueEventSchemas, formatDialogueDate, formatDialogueTime } from "../utils/dialogueEvents";
+
+const title = "意見交換会｜福富千恵と延岡を動かす会";
+const description =
+  "福富千恵と延岡を動かす会では、延岡市の皆さまと直接お話しする意見交換会を開催しています。暮らしや地域の課題、延岡のこれからについて、皆さまの声をお聞かせください。";
+const breadcrumbItems = [{ name: "意見交換会", path: "/dialogue" }];
+
+// 日付順に並べ、開催済みの回は「これまでの意見交換会」へ分ける
+const byDate = (a: DialogueEvent, b: DialogueEvent) =>
+  (a.date || "9999").localeCompare(b.date || "9999") || a.startTime.localeCompare(b.startTime);
+const upcomingEvents = dialogueEvents.filter((e) => e.status !== "開催済み").sort(byDate);
+const pastEvents = dialogueEvents
+  .filter((e) => e.status === "開催済み")
+  .sort(byDate)
+  .reverse();
+
+const schemas = [
+  webPageSchema({ path: "/dialogue", name: title, description }),
+  organizationSchema(),
+  buildBreadcrumbList(breadcrumbItems),
+  ...dialogueEventSchemas(dialogueEvents),
+];
+
+const statusBadgeClass: Record<DialogueEventStatus, string> = {
+  受付中: "bg-brand-orange-dark text-white",
+  受付終了: "bg-black/10 text-ink",
+  開催済み: "bg-black/5 text-ink-soft",
+  日程調整中: "bg-brand-orange-light text-brand-orange-dark",
+};
+
+const FORM_SECTION_ID = "dialogue-form";
+
+const heroDescription = `福富千恵と延岡を動かす会では、
+地域の皆さまと直接お話しする「意見交換会」を開催しています。
+
+暮らしの中で感じていること、地域の困りごと、
+延岡をもっと良くするためのアイデアなど、
+皆さまの声をお聞かせください。
+
+一方的にお話しする場ではなく、
+皆さまと一緒に延岡のこれからを考える場を目指しています。`;
+---
+
+<BaseLayout title={title} description={description} path="/dialogue" schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+  <HeroSection title="あなたの声を、聞かせてください。" eyebrow="意見交換会" description={heroDescription} />
+
+  <!-- 今後の意見交換会 -->
+  <section class="py-14 sm:py-20" aria-labelledby="upcoming-heading">
+    <div class="section-wrap max-w-5xl">
+      <div id="upcoming-heading">
+        <SectionTitle title="今後の意見交換会" />
+      </div>
+
+      {upcomingEvents.length > 0 ? (
+        <ul class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {upcomingEvents.map((event) => {
+            const dateLabel = formatDialogueDate(event.date);
+            const timeLabel = formatDialogueTime(event);
+            const canApply = event.status === "受付中" && event.applicationOpen;
+            return (
+              <li class="card min-w-0 flex flex-col">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <h3 class="text-xl font-bold text-ink">{event.title}</h3>
+                  <span class:list={["rounded-full px-3 py-1 text-sm font-bold", statusBadgeClass[event.status]]}>
+                    {event.status}
+                  </span>
+                </div>
+
+                <dl class="mt-5 space-y-3 text-ink">
+                  <div class="flex items-start gap-3">
+                    <dt class="flex-shrink-0">
+                      <Icon name="clock" class="w-5 h-5 mt-1 text-brand-orange-dark" />
+                      <span class="sr-only">日時</span>
+                    </dt>
+                    <dd class="min-w-0">
+                      <p class="text-lg font-bold">{dateLabel ?? "日程調整中"}</p>
+                      {timeLabel && <p class="text-ink-soft">{timeLabel}</p>}
+                    </dd>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <dt class="flex-shrink-0">
+                      <Icon name="location" class="w-5 h-5 mt-1 text-brand-orange-dark" />
+                      <span class="sr-only">会場</span>
+                    </dt>
+                    <dd class="min-w-0 [overflow-wrap:anywhere]">
+                      <p class="font-bold">{event.venue || "会場調整中"}</p>
+                      {event.address && <p class="text-sm text-ink-soft">{event.address}</p>}
+                    </dd>
+                  </div>
+                  {event.capacity && (
+                    <div class="flex items-start gap-3">
+                      <dt class="flex-shrink-0">
+                        <Icon name="users" class="w-5 h-5 mt-0.5 text-brand-orange-dark" />
+                        <span class="sr-only">定員</span>
+                      </dt>
+                      <dd>定員 {event.capacity}名</dd>
+                    </div>
+                  )}
+                </dl>
+
+                {event.description && (
+                  <p class="mt-5 text-ink-soft leading-relaxed whitespace-pre-line">{event.description}</p>
+                )}
+
+                <div class="mt-auto pt-6">
+                  {canApply ? (
+                    <a href={`#${FORM_SECTION_ID}`} data-scroll-to-form class="btn-primary w-full justify-center">
+                      参加を申し込む
+                    </a>
+                  ) : (
+                    <p class="rounded-xl bg-brand-ivory px-4 py-3 text-center text-sm font-bold text-ink-soft">
+                      {event.status === "受付終了" ? "お申し込みの受付は終了しました" : "お申し込み開始までお待ちください"}
+                    </p>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div class="card max-w-3xl mx-auto text-center flex flex-col items-center gap-4">
+          <div class="flex items-center justify-center w-14 h-14 rounded-full bg-brand-orange-light">
+            <Icon name="users" class="w-7 h-7 text-brand-orange-dark" />
+          </div>
+          <p class="text-lg font-bold text-ink">現在、新しい意見交換会の日程を調整しています。</p>
+          <p class="text-ink-soft leading-relaxed">
+            開催をご希望の方は、下記の申込フォームからご希望の日程をお知らせください。
+          </p>
+          <a href={`#${FORM_SECTION_ID}`} data-scroll-to-form class="btn-secondary mt-2">
+            申込フォームへ
+            <Icon name="chevron-down" class="w-5 h-5" />
+          </a>
+        </div>
+      )}
+
+      {pastEvents.length > 0 && (
+        <div class="mt-12">
+          <h3 class="text-xl font-bold text-ink mb-4">これまでの意見交換会</h3>
+          <ul class="divide-y divide-black/5 rounded-2xl bg-white ring-1 ring-black/5">
+            {pastEvents.map((event) => (
+              <li class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-5 py-4 text-ink-soft">
+                <span class="font-bold text-ink">{formatDialogueDate(event.date) ?? "日付未記載"}</span>
+                <span class="min-w-0 [overflow-wrap:anywhere]">{event.venue}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- 意見交換会 参加申込 -->
+  <section id={FORM_SECTION_ID} class="py-14 sm:py-20 bg-brand-ivory scroll-mt-24" aria-labelledby="form-heading">
+    <div class="section-wrap max-w-3xl">
+      <div id="form-heading">
+        <SectionTitle title="意見交換会 参加申込" />
+      </div>
+      <div class="space-y-4 text-lg text-ink-soft leading-relaxed">
+        <p>意見交換会への参加をご希望の方は、下記フォームからお申し込みください。</p>
+        <p>開催希望日時は第3希望までお知らせいただけます。</p>
+        <p>お申し込み内容を確認後、必要に応じて後援会事務局からご連絡いたします。</p>
+      </div>
+
+      <p class="mt-6 inline-flex items-center gap-2 rounded-xl bg-white ring-1 ring-black/5 px-4 py-3 text-sm font-bold text-ink">
+        <Icon name="check" class="w-5 h-5 flex-shrink-0 text-brand-orange-dark" />
+        希望日を第3希望まで入力できます
+      </p>
+
+      <div class="mt-8 text-center">
+        <a
+          href={dialogueConfig.formUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn-primary w-full sm:w-auto justify-center"
+        >
+          フォームを別画面で開く
+          <Icon name="external-link" class="w-5 h-5" />
+          <span class="sr-only">（新しいタブで開く）</span>
+        </a>
+      </div>
+
+      <p class="mt-6 rounded-xl bg-white ring-1 ring-black/5 px-4 py-3 text-sm text-ink-soft leading-relaxed">
+        ご入力いただいた個人情報は、意見交換会のご連絡および運営のために使用します。詳しくは
+        <a href="/privacy/" class="underline font-bold text-ink">プライバシーポリシー</a>
+        をご確認ください。
+      </p>
+
+      <div class="mt-6 rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white w-full">
+        <iframe
+          src={dialogueConfig.formEmbedUrl}
+          title={dialogueConfig.formTitle}
+          width="100%"
+          class="dialogue-form-frame w-full max-w-full block"
+          style="border: 0;"
+          loading="lazy"
+        >
+          フォームを読み込んでいます…
+        </iframe>
+      </div>
+
+      <p class="mt-3 text-center text-sm text-ink-soft">
+        フォームが正しく表示されない場合は、
+        <a href={dialogueConfig.formUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
+          こちらから申込フォームを開いてください
+          <span class="sr-only">（新しいタブで開く）</span>
+        </a>
+        。
+      </p>
+
+      <div class="mt-10 card border-l-4 border-brand-orange">
+        <h3 class="font-bold text-ink mb-2">意見交換会に関するお問い合わせ</h3>
+        <p class="text-sm text-ink-soft leading-relaxed">
+          開催内容や申込についてのご質問は、後援会事務局までご連絡ください。
+        </p>
+        <div class="mt-3">
+          <ContactEmails variant="compact" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    /*
+     * Googleフォーム全体をiframe内でスクロールせずに見渡せる高さ（実測：PC約2,720px／スマホ約3,080px）。
+     * 設問を増減した場合はこの値も見直してください。
+     */
+    .dialogue-form-frame {
+      height: 3150px;
+    }
+    @media (min-width: 640px) {
+      .dialogue-form-frame {
+        height: 2800px;
+      }
+    }
+  </style>
+
+  <script>
+    // 「参加を申し込む」から申込フォームへスムーズスクロールする。
+    // 動きを減らす設定の利用者には即時移動にし、JavaScript無効時は通常のページ内リンクとして動作する。
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.querySelectorAll<HTMLAnchorElement>("[data-scroll-to-form]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        const target = document.getElementById(link.hash.slice(1));
+        if (!target) return;
+        event.preventDefault();
+        target.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+        history.replaceState(null, "", link.hash);
+      });
+    });
+  </script>
+</BaseLayout>

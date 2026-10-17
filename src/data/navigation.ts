@@ -22,12 +22,14 @@ const videoNavItem: NavItem = { label: "動画", href: "/videos/" };
 
 const cityGuideNavItem: NavItem = { label: "市役所案内", href: "/city-guide/" };
 const photosNavItem: NavItem = { label: "活動写真", href: "/photos/" };
+const dialogueNavItem: NavItem = { label: "意見交換会", href: "/dialogue/" };
 
 export const headerNav: NavItem[] = [
   { label: "ホーム", href: "/" },
   { label: "福富千恵について", href: "/profile/" },
   { label: "私たちの提言", href: "/vision/" },
   { label: "活動報告", href: "/activities/" },
+  dialogueNavItem,
   { label: "みんなの声", href: "/voices/" },
   ...(hasPublishedVideos ? [videoNavItem] : []),
   cityGuideNavItem,
@@ -42,6 +44,7 @@ export const footerNav: NavItem[] = [
   { label: "私たちの提言", href: "/vision/" },
   { label: "活動報告", href: "/activities/" },
   photosNavItem,
+  dialogueNavItem,
   { label: "みんなの声", href: "/voices/" },
   ...(hasPublishedVideos ? [videoNavItem] : []),
   cityGuideNavItem,

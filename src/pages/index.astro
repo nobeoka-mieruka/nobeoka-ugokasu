@@ -359,6 +359,29 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
         <a href="/voices/submit/" class="btn-primary">声を届ける</a>
         <a href="/voices/" class="btn-secondary">みんなの声を見る</a>
       </div>
+
+      {/* 意見交換会への入口。上の2つのCTAと競合しないよう、小さめの補足カードにしている */}
+      <aside
+        aria-labelledby="home-dialogue-heading"
+        class="mt-10 max-w-2xl mx-auto rounded-2xl bg-brand-ivory ring-1 ring-black/5 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4"
+      >
+        <div class="flex items-center justify-center w-12 h-12 flex-shrink-0 rounded-full bg-white ring-1 ring-black/5">
+          <Icon name="users" class="w-6 h-6 text-brand-orange-dark" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <h3 id="home-dialogue-heading" class="text-lg font-bold text-ink">直接話してみませんか？</h3>
+          <p class="mt-1 text-sm text-ink-soft leading-relaxed">
+            福富千恵と延岡を動かす会では、地域の皆さまと直接お話しする「意見交換会」を開催しています。暮らしのこと、地域のこと、延岡のこれからについて、ぜひ皆さまの声をお聞かせください。
+          </p>
+        </div>
+        <a
+          href="/dialogue/"
+          class="inline-flex items-center justify-center gap-1 self-start sm:self-center flex-shrink-0 rounded-full bg-white ring-1 ring-brand-orange-dark/40 px-4 py-2.5 text-base font-bold text-brand-orange-dark transition-colors hover:bg-brand-orange-light"
+        >
+          意見交換会を見る
+          <Icon name="chevron-right" class="w-4 h-4" />
+        </a>
+      </aside>
     </div>
   </section>
 
