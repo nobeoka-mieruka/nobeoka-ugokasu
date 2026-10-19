@@ -34,6 +34,8 @@ const resolvedOgTitle = ogTitle ?? title;
 const resolvedOgDescription = ogDescription ?? description;
 
 const canonicalUrl = absoluteUrl(path);
+// 執行部ポータル（/staff 配下）はGoogle Analyticsの計測対象外（管理者の操作を一般のアクセス解析に含めない）
+const isStaffPage = path === "/staff" || path.startsWith("/staff/");
 const ogImageUrl = ogImage.startsWith("http") ? ogImage : absoluteUrl(ogImage);
 const isNoindex = shouldNoindex(noindex);
 ---
@@ -71,7 +73,7 @@ const isNoindex = shouldNoindex(noindex);
   <meta name="msvalidate.01" content={seoConfig.bingVerification} />
 )}
 
-{seoConfig.ga4Id && (
+{seoConfig.ga4Id && !isStaffPage && (
   <script>
     // 実際の読み込み判定（本番ホストか・計測に同意しているか）と主要リンクの自動計測は
     // src/scripts/analyticsBootstrap.ts が行う。ここでは1ページにつき1回だけ読み込む。
