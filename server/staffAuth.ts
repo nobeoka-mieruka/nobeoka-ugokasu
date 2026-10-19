@@ -262,14 +262,33 @@ export async function isValidCsrf(request: Request, session: StaffSession): Prom
 // ---- 応答 ----
 
 /**
- * /staff 配下のすべての応答に付ける（共有キャッシュ禁止・検索エンジン登録禁止）。
- * no-transform は、Cloudflare Web Analytics の計測タグを管理画面へ自動挿入させないため
- * （Cloudflareは no-transform の応答を書き換えない。公開ページは従来どおり計測される）。
+ * /staff 配下のすべての応答に付ける（共有キャッシュ禁止・検索エンジン登録禁止・アクセス解析の対象外）。
+ * no-transform は、Cloudflareのエッジによる応答の書き換え（ゾーン単位の計測タグ自動挿入など）を防ぐ。
  */
 export const STAFF_CACHE_CONTROL = "private, no-store, no-transform";
 
+/**
+ * Cloudflare Pages の Web Analytics が静的HTMLへ自動で挿入する計測タグ。
+ * 管理者の操作を一般閲覧者のアクセス解析に含めないよう、/staff 配下のHTMLからはサーバー側で取り除く
+ * （ブラウザには最初から届かない。公開ページは従来どおり計測される）。
+ */
+const ANALYTICS_BEACON = 'script[src^="https://static.cloudflareinsights.com/"]';
+
+function withoutAnalytics(response: Response): Response {
+  if (!(response.headers.get("Content-Type") ?? "").includes("text/html")) return response;
+  return new HTMLRewriter()
+    .on(ANALYTICS_BEACON, {
+      element(el) {
+        el.remove();
+      },
+    })
+    .transform(response);
+}
+
 export function withStaffHeaders(response: Response): Response {
-  const res = new Response(response.body, response);
+  const res = new Response(withoutAnalytics(response).body, response);
+  // 計測タグを取り除くと長さが変わるため、元の Content-Length は使わない
+  if ((res.headers.get("Content-Type") ?? "").includes("text/html")) res.headers.delete("Content-Length");
   res.headers.set("Cache-Control", STAFF_CACHE_CONTROL);
   res.headers.set("X-Robots-Tag", "noindex, nofollow");
   return res;
