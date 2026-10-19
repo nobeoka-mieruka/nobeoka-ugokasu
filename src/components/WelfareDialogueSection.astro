@@ -1,0 +1,222 @@
+---
+// 意見交換会ページ（/dialogue/）の「福祉の現場の声を聴く 意見交換会」（全3回）の開催案内。
+// 掲載内容は src/data/welfareDialogue.ts（出典：案内チラシPDF）にまとめています。
+// 日時・会場・対象・締切などはPDFだけに頼らず、すべてHTMLの本文として掲載します。
+import Icon from "./Icon.astro";
+import InlineRelatedLinks from "./InlineRelatedLinks.astro";
+import { dialogueConfig } from "../config/dialogueConfig";
+import {
+  WELFARE_DIALOGUE_DEADLINE,
+  WELFARE_DIALOGUE_DURATION,
+  WELFARE_DIALOGUE_NOTICE,
+  WELFARE_DIALOGUE_PDF_URL,
+  WELFARE_DIALOGUE_SECTION_ID,
+  WELFARE_DIALOGUE_SESSIONS,
+  WELFARE_DIALOGUE_TARGET,
+  WELFARE_DIALOGUE_TITLE,
+  WELFARE_DIALOGUE_TOPICS,
+  welfareSessionLabels,
+} from "../data/welfareDialogue";
+import { ORGANIZATION_NAME } from "../config/siteIdentity";
+
+const sessions = WELFARE_DIALOGUE_SESSIONS.map((session) => ({ ...session, ...welfareSessionLabels(session) }));
+
+const relatedLinks = [
+  { title: "福富千恵について", href: "/profile/" },
+  { title: "活動報告", href: "/activities/" },
+  { title: "後援会について", href: "/supporters/" },
+  { title: "お問い合わせ", href: "/contact/" },
+];
+
+// 「参加を申し込む」は最も目立つ塗りボタン、「案内チラシを見る（PDF）」は一段控えめな枠線ボタン
+const applyButtonClass = "btn-primary w-full sm:w-auto min-h-[60px] px-6 sm:px-10 text-xl shadow-md";
+const pdfButtonClass = "btn-secondary w-full sm:w-auto min-h-[52px] px-4 sm:px-6 text-base sm:text-lg bg-white";
+---
+
+<section
+  id={WELFARE_DIALOGUE_SECTION_ID}
+  class="py-14 sm:py-20 scroll-mt-24"
+  aria-labelledby="welfare-dialogue-heading"
+  data-welfare-dialogue
+>
+  <div class="section-wrap max-w-6xl">
+    <!-- スマートフォンでは左右の余白を詰めるため、背景を画面幅いっぱいに広げる -->
+    <div class="-mx-4 sm:mx-0 rounded-none sm:rounded-3xl bg-brand-ivory ring-1 ring-black/5 px-4 py-10 sm:px-10 sm:py-12">
+      <!-- 開催案内 -->
+      <div class="text-center">
+        <p class="inline-flex flex-wrap items-center justify-center gap-2 text-sm font-bold">
+          <span class="rounded-full bg-brand-orange-dark px-3 py-1 text-white">参加者募集中</span>
+          <span class="rounded-full bg-white px-3 py-1 text-brand-orange-dark ring-1 ring-brand-orange-dark/30">
+            福祉のお仕事に携わる方へ
+          </span>
+        </p>
+        <h2 id="welfare-dialogue-heading" class="mt-5 text-[1.625rem] sm:text-4xl font-bold text-ink leading-snug">
+          福祉の現場の声を聴く<br class="sm:hidden" /> 意見交換会
+        </h2>
+        <p class="mt-3 text-base sm:text-lg font-bold text-ink-soft [word-break:keep-all]">
+          2026年11月～12月・<wbr />延岡市内の3会場で開催
+        </p>
+      </div>
+
+      <div class="mt-8 max-w-3xl mx-auto space-y-4 text-lg text-ink-soft leading-relaxed">
+        <p>
+          延岡市で福祉のお仕事に携わる皆さまを対象に、福祉の現場の声をお聴きする意見交換会を、会場を変えて全3回開催します。
+        </p>
+        <p>
+          日々の仕事で感じていることや、これからの福祉について語り合う場です。支援を必要とする方はもちろん、福祉の現場で働く方々も、安心して働き、幸せを感じられる地域にしたいと考えています。
+        </p>
+        <p class="font-bold text-ink">
+          職種や立場、経験年数にかかわらず、気軽にご参加ください。話を聴くだけのご参加も歓迎です。
+        </p>
+      </div>
+
+      <!-- 申込ボタン（上部） -->
+      <div class="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4">
+        <a href={dialogueConfig.formUrl} target="_blank" rel="noopener noreferrer" class={applyButtonClass} data-welfare-apply>
+          参加を申し込む
+          <Icon name="external-link" class="w-5 h-5" />
+          <span class="sr-only">：{WELFARE_DIALOGUE_TITLE}（申込フォームが新しいタブで開きます）</span>
+        </a>
+        <a href={WELFARE_DIALOGUE_PDF_URL} target="_blank" rel="noopener" class={pdfButtonClass} data-welfare-pdf>
+          <Icon name="document" class="w-5 h-5" />
+          案内チラシを見る（PDF）
+          <span class="sr-only">：{WELFARE_DIALOGUE_TITLE}（新しいタブで開きます）</span>
+        </a>
+      </div>
+
+      <!-- 開催日程 -->
+      <div class="mt-12">
+        <h3 class="text-xl sm:text-2xl font-bold text-ink text-center">開催日程</h3>
+        <ol class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {sessions.map((session) => (
+            <li class="card !p-5 lg:!p-6 min-w-0 flex flex-col border-t-4 border-brand-orange" data-welfare-session>
+              <p class="self-start rounded-full bg-brand-orange-light px-3 py-1 text-sm font-bold text-brand-orange-dark">
+                第{session.round}回
+              </p>
+              <dl class="mt-4 space-y-4 text-ink">
+                <div class="flex items-start gap-3">
+                  <dt class="flex-shrink-0">
+                    <Icon name="clock" class="w-6 h-6 mt-0.5 text-brand-orange-dark" />
+                    <span class="sr-only">日時</span>
+                  </dt>
+                  <dd class="min-w-0">
+                    <p class="text-lg font-bold leading-snug [word-break:keep-all]">
+                      <time datetime={`${session.eventDate}T${session.startTime}+09:00`}>{session.date}</time>
+                    </p>
+                    <p class="text-2xl font-bold text-brand-orange-dark">{session.time}</p>
+                  </dd>
+                </div>
+                <div class="flex items-start gap-3">
+                  <dt class="flex-shrink-0">
+                    <Icon name="location" class="w-6 h-6 mt-0.5 text-brand-orange-dark" />
+                    <span class="sr-only">会場</span>
+                  </dt>
+                  <dd class="min-w-0 [overflow-wrap:anywhere]">
+                    <p class="text-lg font-bold leading-snug [word-break:keep-all]">{session.facility}</p>
+                    <p class="text-ink-soft">{session.room}</p>
+                  </dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+        </ol>
+        <p class="mt-4 text-center text-ink-soft">{WELFARE_DIALOGUE_DURATION}</p>
+      </div>
+
+      <!-- こんなお話をお聞かせください -->
+      <div class="mt-12">
+        <h3 class="text-xl sm:text-2xl font-bold text-ink text-center">こんなお話をお聞かせください</h3>
+        <ul class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto">
+          {WELFARE_DIALOGUE_TOPICS.map((topic) => (
+            <li class="flex items-center gap-3 rounded-xl bg-white ring-1 ring-black/5 px-4 sm:px-5 py-4 text-base sm:text-lg font-bold text-ink">
+              <span class="flex items-center justify-center w-9 h-9 flex-shrink-0 rounded-full bg-brand-orange-light">
+                <Icon name="heart" class="w-5 h-5 text-brand-orange-dark" />
+              </span>
+              <span class="min-w-0">{topic}</span>
+            </li>
+          ))}
+        </ul>
+        <p class="mt-4 max-w-3xl mx-auto text-ink-soft leading-relaxed">
+          お互いの想いを大切にしながら、気軽に話せる場にしたいと思っています。皆さまの率直なお声をお聞かせください。
+        </p>
+      </div>
+
+      <!-- 開催概要 -->
+      <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="rounded-2xl bg-white ring-1 ring-black/5 p-5">
+          <h3 class="flex items-center gap-2 text-lg font-bold text-ink">
+            <Icon name="users" class="w-5 h-5 text-brand-orange-dark" />対象
+          </h3>
+          <p class="mt-2 text-ink">{WELFARE_DIALOGUE_TARGET}</p>
+          <p class="mt-1 text-sm text-ink-soft">職種・立場・経験年数は問いません</p>
+        </div>
+        <div class="rounded-2xl bg-white ring-1 ring-black/5 p-5">
+          <h3 class="flex items-center gap-2 text-lg font-bold text-ink">
+            <Icon name="form" class="w-5 h-5 text-brand-orange-dark" />申込締切
+          </h3>
+          <p class="mt-2 text-ink">{WELFARE_DIALOGUE_DEADLINE}</p>
+        </div>
+        <div class="rounded-2xl bg-white ring-1 ring-black/5 p-5">
+          <h3 class="flex items-center gap-2 text-lg font-bold text-ink">
+            <Icon name="handshake" class="w-5 h-5 text-brand-orange-dark" />主催
+          </h3>
+          <p class="mt-2 text-ink">{ORGANIZATION_NAME}</p>
+        </div>
+      </div>
+
+      <p class="mt-4 flex items-start gap-3 rounded-2xl bg-white border-l-4 border-brand-orange px-5 py-4 text-ink" role="note">
+        <Icon name="check" class="w-6 h-6 flex-shrink-0 text-brand-orange-dark" />
+        <span><span class="font-bold">ご参加にあたってのお願い：</span>{WELFARE_DIALOGUE_NOTICE}</span>
+      </p>
+
+      <!-- 参加申込（下部） -->
+      <div class="mt-12 rounded-2xl bg-white ring-1 ring-black/5 px-4 py-6 sm:p-8 text-center">
+        <h3 class="text-xl sm:text-2xl font-bold text-ink">参加申込</h3>
+        <div class="mt-4 max-w-2xl mx-auto space-y-3 text-left text-ink-soft leading-relaxed">
+          <p>
+            参加をご希望の方は、意見交換会参加申込フォームからお申し込みください（締切：{WELFARE_DIALOGUE_DEADLINE}）。
+          </p>
+          <p>
+            フォームの「第1希望日時」「第1希望場所」には、参加を希望する回の日時と会場（例：11月14日 18:00 東海コミュニティセンター）をご入力ください。
+          </p>
+        </div>
+        <div class="mt-6">
+          <a href={dialogueConfig.formUrl} target="_blank" rel="noopener noreferrer" class={applyButtonClass} data-welfare-apply>
+            参加を申し込む
+            <Icon name="external-link" class="w-5 h-5" />
+            <span class="sr-only">：{WELFARE_DIALOGUE_TITLE}（申込フォームが新しいタブで開きます）</span>
+          </a>
+        </div>
+        <p class="mt-4 text-sm text-ink-soft">
+          <a href={dialogueConfig.formUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
+            福祉従事者向け意見交換会に参加を申し込む（Googleフォーム）
+            <span class="sr-only">（新しいタブで開きます）</span>
+          </a>
+        </p>
+      </div>
+
+      <!-- 案内チラシ -->
+      <div class="mt-8 text-center">
+        <h3 class="text-xl font-bold text-ink">案内チラシ</h3>
+        <p class="mt-2 text-ink-soft">
+          <a href={WELFARE_DIALOGUE_PDF_URL} target="_blank" rel="noopener" class="underline font-bold text-ink">
+            福祉の現場の声を聴く 意見交換会 案内チラシ（PDF）
+            <span class="sr-only">（新しいタブで開きます）</span>
+          </a>
+          は、印刷や職場でのご案内にご利用いただけます。
+        </p>
+        <div class="mt-4">
+          <a href={WELFARE_DIALOGUE_PDF_URL} target="_blank" rel="noopener" class={pdfButtonClass} data-welfare-pdf>
+            <Icon name="document" class="w-5 h-5" />
+            案内チラシを見る（PDF）
+            <span class="sr-only">：{WELFARE_DIALOGUE_TITLE}（新しいタブで開きます）</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-10 max-w-3xl mx-auto">
+        <InlineRelatedLinks heading="関連ページ" items={relatedLinks} />
+      </div>
+    </div>
+  </div>
+</section>

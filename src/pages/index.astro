@@ -25,6 +25,8 @@ import fukutomiChiePortrait from "../assets/images/profile/fukutomi-chie.jpg";
 import { getUnifiedActivities } from "../data/activities";
 import { getFileNewsItems } from "../data/news";
 import { renderHomeNews, sortNews } from "../utils/newsCards";
+import { WELFARE_DIALOGUE_SECTION_ID, WELFARE_DIALOGUE_SESSIONS, WELFARE_DIALOGUE_TITLE } from "../data/welfareDialogue";
+import { todayInJapan } from "../utils/dialogueEvents";
 
 const title = "福富千恵と延岡を動かす会｜あなたと、延岡を動かす！";
 const description =
@@ -68,6 +70,10 @@ const heroImageAvifVariants = await Promise.all(
   heroImageWidths.map((width) => getImage({ src: fukutomiChiePortrait, format: "avif", width })),
 );
 const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${heroImageWidths[i]}w`).join(", ");
+
+// 「福祉の現場の声を聴く 意見交換会」への案内は、最終回の開催日までビルドしたときだけ表示する
+const lastWelfareSession = WELFARE_DIALOGUE_SESSIONS[WELFARE_DIALOGUE_SESSIONS.length - 1];
+const showWelfareDialogue = todayInJapan() <= lastWelfareSession.eventDate;
 ---
 
 <BaseLayout
@@ -366,6 +372,13 @@ const heroImageSrcset = heroImageAvifVariants.map((img, i) => `${img.src} ${hero
           <p class="mt-1 text-sm text-ink-soft leading-relaxed">
             福富千恵と延岡を動かす会では、地域の皆さまと直接お話しする「意見交換会」を開催しています。暮らしのこと、地域のこと、延岡のこれからについて、ぜひ皆さまの声をお聞かせください。
           </p>
+          {showWelfareDialogue && (
+            <p class="mt-2 text-sm">
+              <a href={`/dialogue/#${WELFARE_DIALOGUE_SECTION_ID}`} class="underline font-bold text-ink">
+                福祉のお仕事に携わる方へ：「{WELFARE_DIALOGUE_TITLE}」（全3回）の参加者を募集しています
+              </a>
+            </p>
+          )}
         </div>
         <a
           href="/dialogue/"

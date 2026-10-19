@@ -88,7 +88,7 @@ export function dialogueEventSchemas(events: DialogueEvent[], today: string) {
         },
       },
       ...(event.capacity ? { maximumAttendeeCapacity: event.capacity } : {}),
-      organizer: { "@id": ORGANIZATION_ID },
+      organizer: { "@type": "Organization", "@id": ORGANIZATION_ID, name: ORGANIZATION_NAME, url: SITE_URL },
       url: DIALOGUE_PAGE_URL,
     }));
 }
