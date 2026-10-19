@@ -16,9 +16,11 @@ interface Props {
    * ・footer  … 濃い背景のフッター用（文字を小さくし、縦に長くなりすぎないようにする）
    */
   variant?: "card" | "compact" | "footer";
+  /** 窓口名の見出しレベル。h3の見出しの下に置く場合は "h4" を指定する（フッターでは見出しにしない） */
+  headingLevel?: "h3" | "h4";
 }
 
-const { align = "left", variant = "card" } = Astro.props;
+const { align = "left", variant = "card", headingLevel = "h3" } = Astro.props;
 
 // 見出しは「福富千恵本人」「後援会事務局」と「へのお問い合わせ」の2つのまとまりに分け、
 // 狭い画面でも「本人へ／のお問い合わせ」のような不自然な位置で改行されないようにする
@@ -56,14 +58,17 @@ const styles = {
     icon: "text-brand-orange",
   },
 }[variant];
+
+// フッターでは見出しにしない（全ページの見出し構造に h3 が紛れ込むのを防ぐ）
+const HeadingTag = variant === "footer" ? "p" : headingLevel;
 ---
 
 <div class:list={["grid gap-3 sm:grid-cols-2", variant === "card" && "sm:gap-4", align === "center" ? "text-center" : "text-left"]}>
   {entries.map((entry) => (
     <div class:list={["min-w-0", styles.box]}>
-      <h3 class:list={[styles.heading]}>
+      <HeadingTag class:list={[styles.heading]}>
         <span class="inline-block">【{entry.heading.lead}</span><span class="inline-block">{entry.heading.suffix}】</span>
-      </h3>
+      </HeadingTag>
       <p class:list={[styles.description]}>{entry.description}</p>
       <div class:list={[variant === "footer" ? "" : "mt-2", align === "center" && "flex justify-center"]}>
         <MailLink to={entry.to} showLabel={false} class={styles.link} iconClass={styles.icon} />

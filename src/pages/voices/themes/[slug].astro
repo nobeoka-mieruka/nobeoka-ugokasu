@@ -22,7 +22,17 @@ const { slug } = Astro.params;
 const theme = getVoiceTheme(slug!)!;
 
 const title = `${theme.title}に関するご意見｜みんなの声｜福富千恵と延岡を動かす会`;
-const description = `${theme.title}に関する市民の皆さまのご意見を募集しています。${theme.description}`;
+// テーマごとに内容が分かる説明文にする（同じ定型文の繰り返しで各ページが似通わないように）
+function themeDescription(): string {
+  if (theme.slug === "other") {
+    return "延岡市の暮らしや地域について、ほかのテーマに当てはまらないご意見・ご提案を募集しています。どんな小さなことでもお寄せください。";
+  }
+  if (theme.examples) {
+    return `延岡市の「${theme.title}」に関するご意見を募集しています。${theme.examples}について、日頃のお困りごとや改善してほしいことをお寄せください。`;
+  }
+  return `${theme.title}に関する市民の皆さまのご意見を募集しています。${theme.description}`;
+}
+const description = themeDescription();
 const path = `/voices/themes/${theme.slug}`;
 const breadcrumbItems = [
   { name: "みんなの声", path: "/voices" },
