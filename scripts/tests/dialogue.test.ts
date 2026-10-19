@@ -450,7 +450,8 @@ await test("12. 日程調整中の表示が正しい", () => {
   assert.equal(renderDialogueSchemaScripts([publicEvent({ status: "scheduling" })], "2026-10-17"), "", "日程調整中は構造化データを出さない");
   const empty = renderDialogueSchedule([], "2026-10-17");
   assert.ok(empty.includes("意見交換会を随時開催していきます。"), "予定が無いときは随時開催の案内");
-  assert.ok(empty.includes("申込フォームへ"));
+  assert.ok(empty.includes('href="/contact/"') && empty.includes("意見交換会について<wbr />問い合わせる"), "開催の希望はお問い合わせページへ案内する");
+  assert.ok(!empty.includes("申込フォームから"));
 });
 
 await test("13. 開催済み・開催日を過ぎた回は「今後」に出さず「これまでの意見交換会」に表示する", () => {

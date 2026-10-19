@@ -27,6 +27,7 @@ const ICON_PATHS = {
   users:
     '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14c2.5.3 4.5 2.5 4.5 6"/>',
   "chevron-down": '<polyline points="6 9 12 15 18 9"/>',
+  "chevron-right": '<polyline points="9 6 15 12 9 18"/>',
 } as const;
 
 function icon(name: keyof typeof ICON_PATHS, className: string): string {
@@ -95,11 +96,11 @@ function upcomingCardHtml(event: DialogueEvent): string {
 </li>`;
 }
 
-const EMPTY_STATE_HTML = `<div class="card max-w-3xl mx-auto text-center flex flex-col items-center gap-4" data-dialogue-empty>
+const EMPTY_STATE_HTML = `<div class="card !px-5 sm:!px-8 max-w-3xl mx-auto text-center flex flex-col items-center gap-4" data-dialogue-empty>
   <div class="flex items-center justify-center w-14 h-14 rounded-full bg-brand-orange-light">${icon("users", "w-7 h-7 text-brand-orange-dark")}</div>
   <p class="text-lg font-bold text-ink leading-relaxed">福祉分野以外についても、地域の皆さまと直接お話しする意見交換会を随時開催していきます。</p>
-  <p class="text-ink-soft leading-relaxed">開催をご希望の方は、申込フォームからご希望の日程等をお知らせください。</p>
-  <a href="#${DIALOGUE_FORM_SECTION_ID}" data-scroll-to-form class="btn-secondary mt-2">申込フォームへ${icon("chevron-down", "w-5 h-5")}</a>
+  <p class="text-ink-soft leading-relaxed">地域での意見交換会の開催をご希望の方は、お問い合わせページよりお気軽にご連絡ください。</p>
+  <a href="/contact/" class="btn-secondary mt-2 w-full sm:w-auto px-4 sm:px-6 text-base sm:text-xl leading-snug text-center [word-break:keep-all]">意見交換会について<wbr />問い合わせる${icon("chevron-right", "w-5 h-5 flex-shrink-0")}</a>
 </div>`;
 
 function pastListHtml(events: DialogueEvent[]): string {
