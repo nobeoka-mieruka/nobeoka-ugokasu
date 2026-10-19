@@ -16,8 +16,12 @@ import { getAnalyticsConsent, isProductionHost, trackEvent, trackOutboundClick }
 
 function loadGtag(measurementId: string): void {
   window.dataLayer = window.dataLayer || [];
-  function gtag(...args: unknown[]) {
-    window.dataLayer?.push(args);
+  // Google公式のスニペットどおり arguments オブジェクトをそのまま積む。
+  // 配列（...args）を積むと gtag.js がコマンドとして処理せず、page_view 等が送信されない。
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function gtag(..._args: unknown[]) {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer?.push(arguments);
   }
   window.gtag = gtag;
   gtag("js", new Date());

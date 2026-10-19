@@ -233,6 +233,20 @@ for (const file of allDistFiles) {
   }
 }
 
+// ---- _headers：PDF用CSPがサイト全体のCSPと frame-ancestors 以外で一致しているか ----
+
+const headersPath = path.join(distDir, "_headers");
+if (existsSync(headersPath)) {
+  const headersText = readFileSync(headersPath, "utf8");
+  const csps = [...headersText.matchAll(/^\s+Content-Security-Policy: (.+)$/gm)].map((m) => m[1].trim());
+  const [siteCsp, pdfCsp] = csps;
+  if (csps.length !== 2 || !siteCsp.includes("frame-ancestors 'none'")) {
+    fail("_headers のCSPが想定（サイト全体 /* と /pdfs/* の2つ）と異なります。");
+  } else if (pdfCsp !== siteCsp.replace("frame-ancestors 'none'", "frame-ancestors 'self'")) {
+    fail("_headers の /pdfs/* のCSPが、/* のCSPと frame-ancestors 以外で一致していません。");
+  }
+}
+
 // ---- 結果表示 ----
 
 console.log(`検査対象: ${htmlFiles.length}ページ`);
