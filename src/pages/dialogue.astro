@@ -69,7 +69,10 @@ const heroDescription = `あなたの声を、聞かせてください。
   <section class="py-14 sm:py-20 bg-white border-t border-black/5" aria-labelledby="upcoming-heading">
     <div class="section-wrap max-w-5xl">
       <div id="upcoming-heading">
-        <SectionTitle title="地域の意見交換会" subtitle="地域の皆さまと直接お話しする意見交換会の予定です。" />
+        <SectionTitle
+          title="地域の意見交換会"
+          subtitle="「福祉の現場の声を聴く 意見交換会」とは別に開催する、一般の方・地域の皆さま向けの意見交換会です。"
+        />
       </div>
 
       <div data-dialogue-schedule set:html={scheduleFallbackHtml} />
@@ -84,13 +87,13 @@ const heroDescription = `あなたの声を、聞かせてください。
       </div>
       <div class="space-y-4 text-lg text-ink-soft leading-relaxed">
         <p>意見交換会への参加をご希望の方は、下記フォームからお申し込みください。</p>
-        <p>開催希望日時は第3希望までお知らせいただけます。</p>
+        <p>フォームでは、3回の日程それぞれについて「参加する」「参加しない」をお選びいただけます。複数回の参加も可能です。</p>
         <p>お申し込み内容を確認後、必要に応じて後援会事務局からご連絡いたします。</p>
       </div>
 
       <p class="mt-6 inline-flex items-center gap-2 rounded-xl bg-white ring-1 ring-black/5 px-4 py-3 text-sm font-bold text-ink">
         <Icon name="check" class="w-5 h-5 flex-shrink-0 text-brand-orange-dark" />
-        希望日を第3希望まで入力できます
+        3回の日程それぞれ「参加する」「参加しない」を選べます
       </p>
 
       <div class="mt-8 text-center">
@@ -148,15 +151,15 @@ const heroDescription = `あなたの声を、聞かせてください。
 
   <style>
     /*
-     * Googleフォーム全体をiframe内でスクロールせずに見渡せる高さ（実測：PC約2,720px／スマホ約3,080px）。
+     * Googleフォーム全体をiframe内でスクロールせずに見渡せる高さ（実測：PC約2,130px／スマホ約2,580px。2026年10月の各回参加方式のフォーム）。
      * 設問を増減した場合はこの値も見直してください。
      */
     .dialogue-form-frame {
-      height: 3150px;
+      height: 2700px;
     }
     @media (min-width: 640px) {
       .dialogue-form-frame {
-        height: 2800px;
+        height: 2250px;
       }
     }
   </style>

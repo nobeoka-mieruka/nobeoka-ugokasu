@@ -97,8 +97,8 @@ function upcomingCardHtml(event: DialogueEvent): string {
 
 const EMPTY_STATE_HTML = `<div class="card max-w-3xl mx-auto text-center flex flex-col items-center gap-4" data-dialogue-empty>
   <div class="flex items-center justify-center w-14 h-14 rounded-full bg-brand-orange-light">${icon("users", "w-7 h-7 text-brand-orange-dark")}</div>
-  <p class="text-lg font-bold text-ink">現在、新しい意見交換会の日程を調整しています。</p>
-  <p class="text-ink-soft leading-relaxed">開催をご希望の方は、下記の申込フォームからご希望の日程をお知らせください。</p>
+  <p class="text-lg font-bold text-ink leading-relaxed">福祉分野以外についても、地域の皆さまと直接お話しする意見交換会を随時開催していきます。</p>
+  <p class="text-ink-soft leading-relaxed">開催をご希望の方は、申込フォームからご希望の日程等をお知らせください。</p>
   <a href="#${DIALOGUE_FORM_SECTION_ID}" data-scroll-to-form class="btn-secondary mt-2">申込フォームへ${icon("chevron-down", "w-5 h-5")}</a>
 </div>`;
 

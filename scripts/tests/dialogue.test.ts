@@ -449,7 +449,7 @@ await test("12. 日程調整中の表示が正しい", () => {
   assert.ok(!html.includes("参加を申し込む"));
   assert.equal(renderDialogueSchemaScripts([publicEvent({ status: "scheduling" })], "2026-10-17"), "", "日程調整中は構造化データを出さない");
   const empty = renderDialogueSchedule([], "2026-10-17");
-  assert.ok(empty.includes("現在、新しい意見交換会の日程を調整しています。"), "予定が無いときは従来どおりの案内");
+  assert.ok(empty.includes("意見交換会を随時開催していきます。"), "予定が無いときは随時開催の案内");
   assert.ok(empty.includes("申込フォームへ"));
 });
 
@@ -469,7 +469,7 @@ await test("13. 開催済み・開催日を過ぎた回は「今後」に出さ�
   assert.ok(past.indexOf("日付が過ぎた回") < past.indexOf("開催済みの回"), "これまでの回は新しい順");
   assert.ok(!past.includes("参加を申し込む"));
   const onlyPast = renderDialogueSchedule([publicEvent({ status: "completed", eventDate: "2026-09-01" })], "2026-10-17");
-  assert.ok(onlyPast.includes("現在、新しい意見交換会の日程を調整しています。"), "今後の回が無ければ調整中の案内");
+  assert.ok(onlyPast.includes("意見交換会を随時開催していきます。"), "今後の回が無ければ随時開催の案内");
 });
 
 await test("XSS対策：登録内容はHTMLエスケープし、構造化データからも抜け出せない", () => {
