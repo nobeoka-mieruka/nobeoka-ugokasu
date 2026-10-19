@@ -371,7 +371,7 @@ await test("3・4. 未ログインでは /staff/ 以下へ入れず、HTMLも返
       assert.equal(res.status, 302, path);
       assert.equal(res.headers.get("Location"), "/staff/login/", path);
     }
-    assert.equal(res.headers.get("Cache-Control"), "private, no-store");
+    assert.equal(res.headers.get("Cache-Control"), "private, no-store, no-transform", "管理画面は計測タグの自動挿入対象外");
     assert.equal(res.headers.get("X-Robots-Tag"), "noindex, nofollow");
   }
   for (const cookie of ["staff_session=forged", `staff_session=${"A".repeat(43)}`]) {

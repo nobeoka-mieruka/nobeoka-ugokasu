@@ -261,10 +261,16 @@ export async function isValidCsrf(request: Request, session: StaffSession): Prom
 
 // ---- 応答 ----
 
-/** /staff 配下のすべての応答に付ける（共有キャッシュ禁止・検索エンジン登録禁止） */
+/**
+ * /staff 配下のすべての応答に付ける（共有キャッシュ禁止・検索エンジン登録禁止）。
+ * no-transform は、Cloudflare Web Analytics の計測タグを管理画面へ自動挿入させないため
+ * （Cloudflareは no-transform の応答を書き換えない。公開ページは従来どおり計測される）。
+ */
+export const STAFF_CACHE_CONTROL = "private, no-store, no-transform";
+
 export function withStaffHeaders(response: Response): Response {
   const res = new Response(response.body, response);
-  res.headers.set("Cache-Control", "private, no-store");
+  res.headers.set("Cache-Control", STAFF_CACHE_CONTROL);
   res.headers.set("X-Robots-Tag", "noindex, nofollow");
   return res;
 }

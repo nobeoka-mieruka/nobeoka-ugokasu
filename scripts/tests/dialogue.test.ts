@@ -222,7 +222,7 @@ await test("2. ログイン済みで一覧を表示できる（noindex・キャ�
   const list = await call(env, "/staff/api/dialogue-events", auth);
   assert.equal(list.res.status, 200);
   assert.deepEqual(list.json, { ok: true, events: [] });
-  assert.equal(list.res.headers.get("Cache-Control"), "private, no-store");
+  assert.equal(list.res.headers.get("Cache-Control"), "private, no-store, no-transform");
 });
 
 await test("3. 新規登録でき、作成者・操作ログが記録される（サーバーログにメールアドレスを出さない）", async () => {
