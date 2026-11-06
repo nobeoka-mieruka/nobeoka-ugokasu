@@ -24,6 +24,7 @@ const cityGuideNavItem: NavItem = { label: "市役所案内", href: "/city-guide
 const photosNavItem: NavItem = { label: "活動写真", href: "/photos/" };
 const dialogueNavItem: NavItem = { label: "意見交換会", href: "/dialogue/" };
 const eventsNavItem: NavItem = { label: "イベント", href: "/events/" };
+const voicePostNavItem: NavItem = { label: "みんなの声ポスト", href: "/voice-post/" };
 
 export const headerNav: NavItem[] = [
   { label: "ホーム", href: "/" },
@@ -32,6 +33,7 @@ export const headerNav: NavItem[] = [
   { label: "活動報告", href: "/activities/" },
   dialogueNavItem,
   { label: "みんなの声", href: "/voices/" },
+  voicePostNavItem,
   ...(hasPublishedVideos ? [videoNavItem] : []),
   cityGuideNavItem,
   { label: "後援会について", href: "/supporters/" },
@@ -48,6 +50,7 @@ export const footerNav: NavItem[] = [
   dialogueNavItem,
   eventsNavItem,
   { label: "みんなの声", href: "/voices/" },
+  voicePostNavItem,
   ...(hasPublishedVideos ? [videoNavItem] : []),
   cityGuideNavItem,
   { label: "後援会について", href: "/supporters/" },

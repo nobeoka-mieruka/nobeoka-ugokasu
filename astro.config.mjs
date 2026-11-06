@@ -3,6 +3,7 @@ import tailwind from "@astrojs/tailwind";
 import sitemap from "@astrojs/sitemap";
 import { siteConfig } from "./src/config/siteConfig.ts";
 import { videos } from "./src/data/videos.ts";
+import { voicePostConfig } from "./src/config/voicePostConfig.ts";
 
 // 掲載できる動画が1本も無い間は /videos/ をサイトマップから外す（ページ・URLは残す）。
 // src/data/videos.ts へ動画を追加すれば、自動的にサイトマップへ戻る（7章）。
@@ -28,7 +29,9 @@ export default defineConfig({
         !page.includes("/issues/") &&
         !page.includes("/404") &&
         !page.includes("/staff/") &&
-        (hasPublishedVideos || !page.includes("/videos")),
+        (hasPublishedVideos || !page.includes("/videos")) &&
+        // 専用フォームの準備が整うまで /voice-post/ はnoindexのため、サイトマップからも外す
+        (voicePostConfig.formUrl !== null || !page.includes("/voice-post")),
     }),
   ],
   image: {

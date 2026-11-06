@@ -1,0 +1,206 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import Icon from "../components/Icon.astro";
+import { VOICE_POST_NOTICES, VOICE_POST_OPTIONS, voicePostConfig } from "../config/voicePostConfig";
+import { webPageSchema } from "../utils/structuredData";
+import { buildBreadcrumbList } from "../utils/seo";
+
+const title = "みんなの声ポスト｜福富千恵と延岡を動かす会";
+const description =
+  "福富千恵と延岡を動かす会が、福祉に関するご意見・ご疑問・改善のご提案を年間を通じて募集するページです。お名前は不要です。回答前に、管理主体と利用目的をご確認いただけます。";
+const breadcrumbItems = [{ name: "みんなの声ポスト", path: "/voice-post" }];
+const schemas = [webPageSchema({ path: "/voice-post", name: title, description }), buildBreadcrumbList(breadcrumbItems)];
+
+// URLが未設定のあいだは null（送信への導線を出力せず、検索エンジンにも登録しない）
+const { formUrl, formEmbedUrl, formTitle } = voicePostConfig;
+
+const steps = [
+  formUrl ? "このページの下にある回答フォーム（Googleフォーム）をご利用ください。" : "回答フォーム（Googleフォーム）を開きます。",
+  "「困っていること」「疑問に思うこと」「こうなったらいいな！」から、当てはまるものを選びます。いくつ選んでもかまいません。",
+  "自由記入欄に、感じていることをご記入ください。",
+  "「送信」ボタンを押すと、回答が届きます。",
+];
+---
+
+<BaseLayout title={title} description={description} path="/voice-post" noindex={!formUrl} schemas={schemas}>
+  <Breadcrumb items={breadcrumbItems} />
+
+  <section class="bg-brand-ivory py-10 sm:py-16" aria-labelledby="voice-post-heading">
+    <div class="section-wrap max-w-4xl grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-8">
+      <div class="text-center lg:text-left">
+        <h1 id="voice-post-heading" class="text-3xl min-[400px]:text-4xl sm:text-5xl font-bold text-brand-orange-dark leading-tight [word-break:keep-all]">
+          <span aria-hidden="true">📮</span> みんなの声ポスト
+        </h1>
+        <p class="mt-5 text-xl sm:text-2xl font-bold text-ink leading-relaxed [word-break:keep-all]">延岡のふくし、<wbr />こうなったらいいな！</p>
+        <p class="mt-4 text-lg sm:text-xl text-ink leading-relaxed">
+          福富千恵と延岡を動かす会では、福祉に関するご意見・ご疑問・改善のご提案を、年間を通じて募集しています。
+        </p>
+      </div>
+      {/* 郵便ポストと、声を届ける人たちのイラスト */}
+      <svg class="mx-auto w-56 sm:w-64 h-auto" viewBox="0 0 220 220" fill="none" aria-hidden="true" focusable="false">
+        <circle cx="110" cy="110" r="106" fill="#FFF0E3" />
+        <path d="M60 204c3-16 10-24 22-28 0 15-8 24-22 28Z" class="voice-post-leaf" />
+        <path d="M160 204c-3-16-10-24-22-28 0 15 8 24 22 28Z" class="voice-post-leaf" />
+        <g transform="translate(34 30) scale(.69)">
+          <rect x="102" y="150" width="16" height="50" fill="#D9530B" />
+          <rect x="58" y="72" width="104" height="84" rx="20" fill="#ED6A1A" />
+          <rect x="78" y="92" width="64" height="9" rx="4.5" fill="#262626" opacity=".7" />
+          <rect x="76" y="34" width="68" height="46" rx="7" fill="#FFFFFF" stroke="#D9530B" stroke-width="3" transform="rotate(-6 110 57)" />
+          <path d="M110 68c-11-7-16-12-16-18 0-8 11-11 16-3 5-8 16-5 16 3 0 6-5 11-16 18Z" fill="#ED6A1A" />
+          <circle cx="90" cy="124" r="4" fill="#FFF9EF" />
+          <circle cx="130" cy="124" r="4" fill="#FFF9EF" />
+          <path d="M98 130c6 7 18 7 24 0" stroke="#FFF9EF" stroke-width="4" stroke-linecap="round" />
+        </g>
+        {/* 左の人物 */}
+        <rect x="26" y="122" width="30" height="50" rx="14" class="voice-post-leaf" />
+        <rect x="31" y="164" width="8" height="26" rx="4" fill="#5C4A3A" />
+        <rect x="43" y="164" width="8" height="26" rx="4" fill="#5C4A3A" />
+        <path d="M50 134c8-2 14-6 20-12" stroke="#F6C9A4" stroke-width="7" stroke-linecap="round" />
+        <circle cx="41" cy="104" r="16" fill="#F6C9A4" />
+        <path d="M25 104c-1-14 8-20 16-20s17 6 16 20c-5-1-10-5-13-10-3 5-11 9-19 10Z" fill="#5C4A3A" />
+        <circle cx="36" cy="107" r="1.8" fill="#262626" />
+        <circle cx="47" cy="107" r="1.8" fill="#262626" />
+        <path d="M37 112c2 2.5 6 2.5 8 0" stroke="#262626" stroke-width="1.6" stroke-linecap="round" />
+        {/* 右の人物（高齢の方） */}
+        <rect x="164" y="122" width="30" height="50" rx="14" fill="#F4A261" />
+        <rect x="169" y="164" width="8" height="26" rx="4" fill="#5C4A3A" />
+        <rect x="181" y="164" width="8" height="26" rx="4" fill="#5C4A3A" />
+        <path d="M166 134c-7-2-12-6-17-12" stroke="#F6C9A4" stroke-width="7" stroke-linecap="round" />
+        <circle cx="179" cy="104" r="16" fill="#F6C9A4" />
+        <path d="M163 103c0-13 8-19 16-19s16 6 16 19c-6-6-11-9-16-9s-10 3-16 9Z" fill="#E4E0D8" />
+        <circle cx="174" cy="107" r="1.8" fill="#262626" />
+        <circle cx="185" cy="107" r="1.8" fill="#262626" />
+        <path d="M175 112c2 2.5 6 2.5 8 0" stroke="#262626" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+    </div>
+  </section>
+
+  <!-- 管理主体と利用目的は、回答の導線より前に表示する -->
+  <section class="py-12 sm:py-16 bg-white" aria-labelledby="voice-post-notice-heading">
+    <div class="section-wrap max-w-3xl">
+      <h2 id="voice-post-notice-heading" class="text-2xl sm:text-3xl font-bold text-ink text-center">
+        回答の前にご確認ください
+      </h2>
+      <ul class="mt-8 space-y-4" data-voice-post-notices>
+        {VOICE_POST_NOTICES.map((notice) => (
+          <li class="rounded-2xl bg-brand-ivory border-l-4 border-brand-orange p-5 sm:p-6 text-lg sm:text-xl font-bold text-ink leading-relaxed">
+            {notice}
+          </li>
+        ))}
+      </ul>
+      <p class="mt-6 text-center text-lg text-ink leading-relaxed">
+        取り扱いの詳細は
+        <a href="/privacy/" class="underline font-bold text-ink">プライバシーポリシー</a>
+        をご確認ください。
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 sm:py-16 bg-brand-ivory" aria-labelledby="voice-post-answer-heading">
+    <div class="section-wrap max-w-3xl">
+      <h2 id="voice-post-answer-heading" class="text-2xl sm:text-3xl font-bold text-ink text-center">回答のしかた</h2>
+      {!formUrl && (
+        <p class="mt-4 text-center text-lg sm:text-xl font-bold text-ink leading-relaxed">
+          回答フォームの準備が整いましたら、次の流れでご回答いただけます。
+        </p>
+      )}
+
+      <ol class="mt-6 space-y-3" data-voice-post-steps>
+        {steps.map((step, index) => (
+          <li class="flex items-start gap-4 rounded-2xl bg-white ring-1 ring-black/5 p-4 sm:p-5 text-lg text-ink leading-relaxed">
+            <span class="flex items-center justify-center w-10 h-10 flex-shrink-0 rounded-full bg-brand-orange-dark font-bold text-white">
+              {index + 1}
+            </span>
+            <span class="min-w-0">{step}</span>
+          </li>
+        ))}
+      </ol>
+
+      <p class="mt-4 text-lg text-ink leading-relaxed">氏名・住所・電話番号・メールアドレス・所属施設などの入力欄はありません。</p>
+
+      {/* 回答の内容を示す見本です。入力欄ではありません（入力できるのは専用フォームだけです） */}
+      <h3 class="mt-10 text-xl sm:text-2xl font-bold text-ink">回答項目（複数選択できます）</h3>
+      <p class="mt-2 text-lg text-ink">{formUrl ? "見本です。ご回答は、下の回答フォームにご入力ください。" : "見本です。このページには入力できません。"}</p>
+      <ul class="mt-4 grid grid-cols-1 gap-3" data-voice-post-options>
+        {VOICE_POST_OPTIONS.map((option) => (
+          <li class="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/5 px-4 py-4 text-lg font-bold text-ink">
+            <span class="voice-post-check flex items-center justify-center w-9 h-9 flex-shrink-0 rounded-lg text-ink">
+              <Icon name="check" class="w-6 h-6" />
+            </span>
+            <span class="min-w-0">{option}</span>
+          </li>
+        ))}
+      </ul>
+
+      <h3 class="mt-8 text-xl sm:text-2xl font-bold text-ink">自由記入欄</h3>
+      <div class="voice-post-paper mt-3 h-36 sm:h-44 rounded-2xl bg-white ring-1 ring-black/5" aria-hidden="true"></div>
+
+      {formUrl ? (
+        <div class="mt-12" data-voice-post-form-section>
+          <h2 class="text-2xl sm:text-3xl font-bold text-ink text-center">回答フォーム</h2>
+          <div class="mt-6 rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white w-full">
+            <iframe
+              src={formEmbedUrl}
+              title={formTitle}
+              width="100%"
+              class="voice-post-form-frame w-full max-w-full block"
+              style="border: 0;"
+              loading="lazy"
+            >
+              フォームを読み込んでいます…
+            </iframe>
+          </div>
+          <div class="mt-6 text-center">
+            <p class="text-lg text-ink leading-relaxed">フォームが表示されない場合や、大きな画面で入力したい場合はこちらから開けます。</p>
+            <a
+              href={formUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-secondary bg-white mt-4 w-full sm:w-auto min-h-[60px] px-3 sm:px-10 text-lg sm:text-xl"
+              data-voice-post-form
+            >
+              フォームを別のタブで開く
+              <Icon name="external-link" class="w-5 h-5" />
+              <span class="sr-only">（新しいタブで開きます）</span>
+            </a>
+          </div>
+        </div>
+      ) : (
+        <p class="mt-8 rounded-2xl bg-white ring-1 ring-black/5 px-5 py-5 text-center text-lg sm:text-xl font-bold text-ink" data-voice-post-pending>
+          現在、回答フォームを準備しています。
+        </p>
+      )}
+    </div>
+  </section>
+
+  <style>
+    .voice-post-leaf {
+      fill: #a5d04f;
+    }
+    .voice-post-check {
+      background-color: #a5d04f;
+    }
+    /* Googleフォーム全体をiframe内でスクロールせずに見渡せる高さ。設問を増減した場合は見直してください。 */
+    .voice-post-form-frame {
+      height: 1650px;
+    }
+    @media (min-width: 400px) {
+      .voice-post-form-frame {
+        height: 1400px;
+      }
+    }
+    @media (min-width: 640px) {
+      .voice-post-form-frame {
+        height: 1200px;
+      }
+    }
+    /* 自由記入欄の見本（罫線入りの用紙） */
+    .voice-post-paper {
+      background-image: repeating-linear-gradient(to bottom, transparent 0 38px, #a5d04f 38px 40px);
+      background-origin: content-box;
+      background-clip: content-box;
+      padding: 8px 20px;
+    }
+  </style>
+</BaseLayout>
