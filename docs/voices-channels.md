@@ -24,7 +24,7 @@
 | イベント | 押された場所 | content_type |
 |---|---|---|
 | `voices_entry_click` | /voices/ の入口カード | `general` / `welfare` |
-| `voice_form_click` | /voices/submit/ のフォームを開くボタン | `general` / `general_bottom` |
+| `voices_form_click` | /voices/submit/ のフォームを開くボタン | `general` / `general_bottom` |
 | `voice_post_click` | /voice-post/ のフォームを開くボタン | `top` / `bottom` |
 
 ## 分析・活用のルール

@@ -54,7 +54,7 @@ export function renderWelfareSessionStatus(session: WelfareDialogueState["sessio
 }
 
 function applyButton(position: string): string {
-  return `<a href="${escapeHtml(dialogueConfig.formUrl)}" target="_blank" rel="noopener noreferrer" class="${WELFARE_APPLY_BUTTON_CLASS}" data-welfare-apply data-track="dialogue_apply_click" data-track-type="${escapeHtml(position)}">参加を申し込む${EXTERNAL_ICON}<span class="sr-only">：${escapeHtml(WELFARE_DIALOGUE_TITLE)}（申込フォームが新しいタブで開きます）</span></a>`;
+  return `<a href="${escapeHtml(dialogueConfig.formUrl)}" target="_blank" rel="noopener noreferrer" class="${WELFARE_APPLY_BUTTON_CLASS}" data-welfare-apply data-track="welfare_apply_click" data-track-type="${escapeHtml(position)}">参加を申し込む${EXTERNAL_ICON}<span class="sr-only">：${escapeHtml(WELFARE_DIALOGUE_TITLE)}（申込フォームが新しいタブで開きます）</span></a>`;
 }
 
 /**

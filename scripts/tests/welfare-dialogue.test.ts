@@ -110,7 +110,7 @@ test("第1回の締切後も、残る日程（第2回・第3回）の申込案�
   assert.match(top, /受付中：第2回（11月25日（水））・第3回（12月6日（日））/);
   assert.equal((top.match(/data-welfare-apply /g) ?? []).length, 1, "申込ボタンは1つ");
   assert.ok(top.includes(`href="${dialogueConfig.formUrl}"`), "申込先は既存のGoogleフォームのまま");
-  assert.ok(top.includes('data-track="dialogue_apply_click"') && top.includes('data-track-type="top"'), "GA4の計測（位置だけ。個人情報なし）");
+  assert.ok(top.includes('data-track="welfare_apply_click"') && top.includes('data-track-type="top"'), "GA4の計測（位置だけ。個人情報なし）");
   assert.match(renderWelfareBadge(state), /参加者募集中/);
   assert.match(renderWelfareSessionStatus(state.sessions[0]), /受付終了/);
   assert.match(renderWelfareSessionStatus(state.sessions[1]), /受付中.*申込締切：11月23日（月）まで/);

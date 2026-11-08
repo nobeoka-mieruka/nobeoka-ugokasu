@@ -1,0 +1,214 @@
+---
+// /staff/analytics/ … アクセス解析（ログイン必須。functions/staff/_middleware.ts が保護）
+// GA4のデータを、ブラウザが /staff/api/analytics から読み込んで表示します（server/ga4Analytics.ts）。
+// 数値はGA4から取得した実データだけです。未設定・取得失敗のときは数値を表示しません。
+// 値は src/scripts/staff/analytics.ts が textContent で表示します（XSS対策）。
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import StaffPageHeader from "../../../components/staff/StaffPageHeader.astro";
+
+const ranges = [
+  { key: "today", label: "今日" },
+  { key: "7d", label: "過去7日" },
+  { key: "30d", label: "過去30日" },
+  { key: "90d", label: "過去90日" },
+  { key: "custom", label: "期間指定" },
+];
+const summaries = [
+  { key: "pageViews", label: "表示回数", note: "ページが表示された回数" },
+  { key: "users", label: "ユーザー数", note: "訪れた人のおおよその数" },
+  { key: "sessions", label: "訪問数", note: "サイトを訪れた回数（セッション）" },
+];
+const tableWrap = "overflow-x-auto -mx-1 px-1";
+const th = "py-2 pr-3 text-left font-bold text-ink whitespace-nowrap";
+const thNum = "py-2 pl-3 text-right font-bold text-ink whitespace-nowrap";
+---
+
+<BaseLayout title="アクセス解析｜執行部ポータル" description="ホームページのアクセス状況を確認します。" path="/staff/analytics" noindex>
+  <StaffPageHeader
+    title="アクセス解析"
+    description="ホームページの閲覧数・流入元・端末と、申込フォームを開くボタンなどのクリック数を、期間を選んで確認できます（Googleアナリティクス4のデータ）。"
+  />
+
+  <section class="py-8 sm:py-12">
+    <div class="section-wrap max-w-5xl space-y-6">
+      <div data-staff-notice role="status" tabindex="-1" class="hidden rounded-xl px-4 py-3 font-bold"></div>
+
+      <!-- 期間の切り替え -->
+      <div class="card p-5 sm:p-8 space-y-4">
+        <h2 class="text-lg font-bold text-ink" id="analytics-range-heading">集計期間</h2>
+        <div class="flex flex-wrap gap-2" role="group" aria-labelledby="analytics-range-heading">
+          {
+            ranges.map((range) => (
+              <button
+                type="button"
+                data-range={range.key}
+                aria-pressed="false"
+                class="min-h-[44px] rounded-full border-2 border-brand-orange-dark px-4 py-2 text-base font-bold text-brand-orange-dark aria-pressed:bg-brand-orange-dark aria-pressed:text-white"
+              >
+                {range.label}
+              </button>
+            ))
+          }
+        </div>
+        <form data-custom-range class="hidden flex-col sm:flex-row sm:items-end gap-3" novalidate>
+          <label class="flex flex-col gap-1 text-sm font-bold text-ink">
+            開始日
+            <input type="date" name="start" required class="min-h-[44px] rounded-lg border border-black/20 px-3 text-base font-normal" />
+          </label>
+          <label class="flex flex-col gap-1 text-sm font-bold text-ink">
+            終了日
+            <input type="date" name="end" required class="min-h-[44px] rounded-lg border border-black/20 px-3 text-base font-normal" />
+          </label>
+          <button type="submit" class="btn-secondary min-h-[44px] py-2 text-base">この期間で表示</button>
+        </form>
+        <p data-custom-error class="hidden text-sm font-bold text-red-800" role="alert"></p>
+        <div class="space-y-1 text-sm text-ink-soft">
+          <p>集計期間：<span data-range-text class="font-bold text-ink">—</span>（比較：<span data-prev-text>—</span>）</p>
+          <p>最終データ更新日時：<span data-fetched-at class="font-bold text-ink">—</span></p>
+          <p>「過去7日・30日・90日」は昨日までの集計です。「今日」は途中までの集計のため、昨日との比較は参考程度にご覧ください。データの反映には数時間かかることがあります。</p>
+        </div>
+      </div>
+
+      <p data-analytics-loading class="text-ink-soft" role="status">読み込んでいます…</p>
+
+      <!-- 未設定：設定手順だけを表示（数値は出さない） -->
+      <div data-analytics-setup class="hidden card p-5 sm:p-8 space-y-4 text-ink">
+        <h2 class="text-xl font-bold">アクセス解析はまだ設定されていません</h2>
+        <p data-setup-issue class="hidden rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+          GA4_PROPERTY_ID には、GA4の「プロパティID」（数字のみ）を登録してください。G- で始まる「測定ID」ではありません。
+        </p>
+        <p class="text-ink-soft">管理者が次の手順で設定すると、この画面に数値が表示されます（詳しくは docs/analytics-dashboard.md）。</p>
+        <ol class="list-decimal space-y-2 pl-6 text-sm leading-relaxed">
+          <li>GA4の「管理 → プロパティの詳細」で、数字のプロパティIDを確認する。</li>
+          <li>GA4の「管理 → カスタム定義」で、イベントスコープのカスタムディメンション <code>content_type</code> を登録する（設置場所の内訳に使います）。</li>
+          <li>Google Cloudでプロジェクトを作り、「Google Analytics Data API」を有効にする。</li>
+          <li>サービスアカウントを作り（プロジェクトの役割は付けない）、JSONキーを作成する。</li>
+          <li>GA4の「管理 → プロパティのアクセス管理」で、サービスアカウントのメールアドレスを「閲覧者」として追加する。</li>
+          <li>Cloudflare Pagesの本番環境に、GA4_PROPERTY_ID・GA4_SERVICE_ACCOUNT_EMAIL・GA4_SERVICE_ACCOUNT_PRIVATE_KEY を「暗号化」して登録し、再デプロイする。</li>
+        </ol>
+      </div>
+
+      <!-- 取得失敗：数値は出さない -->
+      <div data-analytics-unavailable class="hidden card p-5 sm:p-8 space-y-2 text-ink">
+        <h2 class="text-xl font-bold">データは未取得です</h2>
+        <p class="text-ink-soft">
+          Googleアナリティクスからデータを取得できませんでした。時間をおいて再度お試しください。続く場合は、サービスアカウントの権限（GA4の「閲覧者」）と、Cloudflareに登録した設定を管理者が確認してください。
+        </p>
+        <button type="button" data-analytics-retry class="btn-secondary min-h-[44px] py-2 text-base">もう一度読み込む</button>
+      </div>
+
+      <div data-analytics-content class="hidden space-y-6">
+        <div class="flex justify-end">
+          <button type="button" data-analytics-csv class="btn-secondary min-h-[44px] py-2 text-base w-full sm:w-auto">CSVでダウンロード</button>
+        </div>
+
+        <!-- 合計と前期間比 -->
+        <ul class="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-label="期間の合計">
+          {
+            summaries.map((s) => (
+              <li class="card p-5 sm:p-6 space-y-1" data-summary={s.key}>
+                <p class="text-sm font-bold text-ink-soft">{s.label}</p>
+                <p class="text-3xl font-bold text-ink tabular-nums" data-field="value">—</p>
+                <p class="text-sm text-ink" data-field="change">—</p>
+                <p class="text-xs text-ink-soft">{s.note}</p>
+              </li>
+            ))
+          }
+        </ul>
+
+        <!-- 日別の推移 -->
+        <div class="card p-5 sm:p-8 space-y-3">
+          <h2 class="text-lg font-bold text-ink" id="analytics-daily-heading">日別の表示回数</h2>
+          <div data-daily-chart class="w-full"></div>
+          <details class="text-sm">
+            <summary class="cursor-pointer min-h-[44px] flex items-center font-bold text-ink underline">日別の数値を表で見る</summary>
+            <div class={tableWrap}>
+              <table class="w-full text-sm" aria-labelledby="analytics-daily-heading">
+                <thead>
+                  <tr class="border-b border-black/10">
+                    <th scope="col" class={th}>日付</th>
+                    <th scope="col" class={thNum}>表示回数</th>
+                    <th scope="col" class={thNum}>ユーザー数</th>
+                    <th scope="col" class={thNum}>訪問数</th>
+                  </tr>
+                </thead>
+                <tbody data-daily-table></tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
+        <!-- ページ -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="card p-5 sm:p-8 space-y-3 min-w-0">
+            <h2 class="text-lg font-bold text-ink">ページのまとまりごとの表示回数</h2>
+            <div data-bars="pageGroups"></div>
+          </div>
+          <div class="card p-5 sm:p-8 space-y-3 min-w-0">
+            <h2 class="text-lg font-bold text-ink" id="analytics-pages-heading">よく見られたページ（上位20）</h2>
+            <div class={tableWrap}>
+              <table class="w-full text-sm" aria-labelledby="analytics-pages-heading">
+                <thead>
+                  <tr class="border-b border-black/10">
+                    <th scope="col" class={th}>順位</th>
+                    <th scope="col" class={th}>ページ</th>
+                    <th scope="col" class={thNum}>表示回数</th>
+                  </tr>
+                </thead>
+                <tbody data-top-pages></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 流入元・端末 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="card p-5 sm:p-8 space-y-3 min-w-0">
+            <h2 class="text-lg font-bold text-ink">どこから来たか（訪問数）</h2>
+            <div data-bars="channels"></div>
+          </div>
+          <div class="card p-5 sm:p-8 space-y-3 min-w-0">
+            <h2 class="text-lg font-bold text-ink">使われた端末（訪問数）</h2>
+            <div data-bars="devices"></div>
+          </div>
+        </div>
+
+        <!-- ボタンのクリック -->
+        <div class="card p-5 sm:p-8 space-y-3">
+          <h2 class="text-lg font-bold text-ink" id="analytics-events-heading">ボタン・リンクのクリック数</h2>
+          <p data-content-type-missing class="hidden rounded-xl bg-brand-orange-light px-4 py-3 text-sm text-ink">
+            設置場所の内訳は未設定です（GA4でカスタムディメンション <code>content_type</code> を登録すると、登録後のクリックから表示されます）。
+          </p>
+          <div class={tableWrap}>
+            <table class="w-full text-sm" aria-labelledby="analytics-events-heading">
+              <thead>
+                <tr class="border-b border-black/10">
+                  <th scope="col" class={th}>ボタン</th>
+                  <th scope="col" class={th}>設置場所</th>
+                  <th scope="col" class={thNum}>クリック数</th>
+                </tr>
+              </thead>
+              <tbody data-events></tbody>
+            </table>
+          </div>
+          <p data-events-empty class="hidden text-sm text-ink-soft">この期間に記録されたクリックはありません。</p>
+        </div>
+
+        <!-- 申込への遷移（参考） -->
+        <div class="card p-5 sm:p-8 space-y-3">
+          <h2 class="text-lg font-bold text-ink" id="analytics-transitions-heading">申込への遷移（参考）</h2>
+          <p class="text-sm text-ink-soft leading-relaxed">
+            遷移率＝そのページで申込フォームを開くボタンが押された回数 ÷ ページの表示回数 × 100。
+            <strong class="text-ink">申込が完了した割合（申込完了率）ではありません。</strong>
+            同じ人が何度も押した場合も数えます。Googleフォームの回答数はホームページと連携していないため「未連携」と表示します。
+          </p>
+          <ul data-transitions class="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-labelledby="analytics-transitions-heading"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    import "../../../scripts/staff/analytics";
+  </script>
+</BaseLayout>
