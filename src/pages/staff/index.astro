@@ -39,6 +39,11 @@ const cards = STAFF_SECTIONS.filter((section) => section.key !== "top").map((sec
 
   <section class="py-12 sm:py-16">
     <div class="section-wrap max-w-5xl">
+      <!-- サイトの状態に失敗・要確認があるときだけ表示する（src/scripts/staff/portalStatusBanner.ts） -->
+      <div data-portal-status role="status" class="hidden mb-8 card border-l-4 border-brand-orange flex flex-col sm:flex-row sm:items-center gap-3">
+        <p class="min-w-0 flex-1 text-ink"><span class="font-bold">サイトの状態：</span><span data-portal-status-text></span>の項目があります。</p>
+        <a href="/staff/status/" class="btn-secondary justify-center">サイトの状態を見る</a>
+      </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {cards.map((card) => (
           <li class="card min-w-0 flex flex-col">
@@ -86,4 +91,7 @@ const cards = STAFF_SECTIONS.filter((section) => section.key !== "top").map((sec
       </div>
     </div>
   </section>
+  <script>
+    import "../../scripts/staff/portalStatusBanner";
+  </script>
 </BaseLayout>

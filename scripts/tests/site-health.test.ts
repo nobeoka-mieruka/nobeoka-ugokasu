@@ -371,5 +371,53 @@ await test("17. 新しいチェック（sns_build・dialogue_form）を受け付
   assert.equal(byKey(later, "sns_last_sync").state, "warning", "15分以上同期していない");
 });
 
+// ---- 執行部ポータルの強化（夜間作業） ----
+
+await test("18. 異常の記録：正常から異常になったときの記録を新しい順に表示する（秘密情報なし・最大10件）", async () => {
+  const env = await statusEnv();
+  await recordMonitorChecks(env.STAFF_DB, [ok("deploy"), ok("site_update"), ok("rss")], NOW);
+  await recordMonitorChecks(env.STAFF_DB, [{ key: "deploy", status: "error", summary: "反映されていません" }, ok("site_update"), ok("rss")], NOW + 3600);
+  await recordMonitorChecks(env.STAFF_DB, [ok("deploy"), ok("site_update"), { key: "rss", status: "warning", summary: "件数が違います" }], NOW + 7200);
+  const status = await readSiteStatus(env, ORIGIN, NOW + 7300);
+  assert.deepEqual(
+    status.history.map((h) => [h.key, h.label, h.state, h.summary]),
+    [
+      ["rss", "RSS・お知らせ一覧の一致", "warning", "件数が違います"],
+      ["deploy", "本番デプロイ状態", "error", "反映されていません"],
+    ],
+  );
+  assert.equal(status.history[0].at, new Date((NOW + 7200) * 1000).toISOString());
+  assert.ok(!JSON.stringify(status).includes(META_TOKEN));
+  // 記録は「正常→異常」になったときだけ残るため、正常と要確認を交互に24回（異常になるのは12回）
+  for (let i = 0; i < 24; i++) {
+    await recordMonitorChecks(env.STAFF_DB, [{ key: "rss", status: i % 2 ? "warning" : "ok", summary: `記録${i}` }], NOW + 10000 + i * 3600);
+  }
+  assert.equal((await readSiteStatus(env, ORIGIN, NOW + 60000)).history.length, 10);
+});
+
+await test("19. お知らせの公開状況：公開中・非公開（下書き）の件数を表示する", async () => {
+  const env = await statusEnv();
+  const input = { publishedOn: "2026-11-08", category: "notice" as const, title: "お知らせ", summary: "", linkUrl: "", isPublished: true, displayOrder: 0 };
+  await createNewsItem(env.STAFF_DB, input, "staff@example.com");
+  await createNewsItem(env.STAFF_DB, { ...input, isPublished: false }, "staff@example.com");
+  const item = byKey(await readSiteStatus(env, ORIGIN, NOW), "news_publication");
+  assert.equal(item.state, "ok");
+  // 移行済みのお知らせ（公開中）も件数に含まれる
+  assert.match(item.summary, /公開中 \d+件／非公開（下書きを含む） 1件/);
+});
+
+await test("20. 画面：失敗・要確認の項目から、内容を入れたタスクの新規登録画面を開ける（保存は登録画面で行う）。ポータルTOPに異常の件数を出す", () => {
+  const script = readFileSync("src/scripts/staff/siteStatus.ts", "utf8");
+  assert.ok(script.includes("/staff/tasks/new/?") && script.includes('item.state !== "ok"'));
+  assert.ok(!/staffApi[^\n]*tasks/.test(script), "サイトの状態の画面からタスクを直接登録しない");
+  const taskForm = readFileSync("src/scripts/staff/taskForm.ts", "utf8");
+  assert.ok(taskForm.includes("prefillFromQuery") && taskForm.includes(".value = value.slice(0, max)"), "初期値は .value で入れ、長さの上限を守る");
+  assert.ok(!/innerHTML/.test(taskForm + script), "HTMLとして解釈しない");
+  const top = readFileSync("src/pages/staff/index.astro", "utf8");
+  assert.ok(top.includes("data-portal-status") && top.includes('href="/staff/status/"'));
+  const banner = readFileSync("src/scripts/staff/portalStatusBanner.ts", "utf8");
+  assert.ok(banner.includes("/staff/api/site-status") && banner.includes("textContent"));
+});
+
 logs.restore();
 done();

@@ -155,11 +155,34 @@ export interface HealthItem {
   at: string | null;
 }
 
+/** 異常の記録（定期チェックが「正常」から「要確認」「失敗」になったときに staff_audit_log へ残した記録） */
+export interface HealthHistoryEntry {
+  at: string;
+  key: string;
+  label: string;
+  state: HealthState;
+  summary: string;
+}
+
 export interface SiteStatus {
   items: HealthItem[];
   counts: Record<HealthState, number>;
+  /** 最近の異常の記録（新しい順・最大 HISTORY_LIMIT 件） */
+  history: HealthHistoryEntry[];
   generatedAt: string;
 }
+
+/** 異常の記録の表示件数 */
+export const HISTORY_LIMIT = 10;
+
+/** 定期チェックの種類の表示名（異常の記録に使う） */
+const MONITOR_LABELS: Record<MonitorCheckKey, string> = {
+  deploy: "本番デプロイ状態",
+  site_update: "サイト更新（自動処理）",
+  rss: "RSS・お知らせ一覧の一致",
+  sns_build: "SNSの公開中HTML（検索エンジン向け）",
+  dialogue_form: "意見交換会の申込フォーム",
+};
 
 export type SiteStatusEnv = AssetsEnv & Partial<SocialSyncEnv> & { STAFF_DB: D1Database };
 
@@ -213,9 +236,16 @@ export async function readSiteStatus(env: SiteStatusEnv, origin: string, now = n
   const db = env.STAFF_DB;
   await ensureSchema(db);
   await ensureNewsSchema(db);
-  const [checkRows, newsRow, pendingRow, liveBuild, latestArticleDate, sns, snsBuild] = await Promise.all([
+  const [checkRows, newsRow, pendingRow, liveBuild, latestArticleDate, sns, snsBuild, historyRows] = await Promise.all([
     db.prepare("SELECT check_key, status, summary, since, checked_at FROM site_health_checks").all<CheckRow>(),
-    db.prepare("SELECT MAX(updated_at) AS updated_at FROM news_items WHERE deleted_at IS NULL").first<{ updated_at: number | null }>(),
+    db
+      .prepare(
+        `SELECT MAX(updated_at) AS updated_at,
+                SUM(CASE WHEN is_published = 1 THEN 1 ELSE 0 END) AS published,
+                SUM(CASE WHEN is_published = 0 THEN 1 ELSE 0 END) AS unpublished
+         FROM news_items WHERE deleted_at IS NULL`,
+      )
+      .first<{ updated_at: number | null; published: number | null; unpublished: number | null }>(),
     db
       .prepare("SELECT COUNT(*) AS n FROM news_items WHERE deleted_at IS NULL AND is_published = 0 AND source_key LIKE 'page:%'")
       .first<{ n: number }>(),
@@ -223,6 +253,9 @@ export async function readSiteStatus(env: SiteStatusEnv, origin: string, now = n
     readLatestFileNewsDate(env, origin),
     env.SOCIAL_POSTS_KV ? readSnsStatus(env as SocialSyncEnv, db).catch(() => null) : Promise.resolve(null),
     readSnsBuildManifest(env, origin),
+    db
+      .prepare(`SELECT target_id, detail, created_at FROM staff_audit_log WHERE action = 'site.health' ORDER BY id DESC LIMIT ${HISTORY_LIMIT}`)
+      .all<{ target_id: string; detail: string; created_at: number }>(),
   ]);
   const checks = new Map((checkRows.results ?? []).map((row) => [row.check_key, row]));
   const monitorRun = checks.get(MONITOR_RUN_KEY);
@@ -247,8 +280,15 @@ export async function readSiteStatus(env: SiteStatusEnv, origin: string, now = n
     key: "news_updated",
     label: "最新のお知らせ更新",
     state: "ok",
-    summary: `執行部ポータルでの最終更新：${newsUpdatedAt ? "右の日時" : "記録なし"}／記事ファイルの最新掲載日：${latestArticleDate ?? "不明"}`,
+    summary: `${newsUpdatedAt ? "執行部ポータルでお知らせを最後に更新した日時です。" : "執行部ポータルでの更新記録はありません。"}記事ファイルの最新掲載日：${latestArticleDate ?? "不明"}`,
     at: newsUpdatedAt,
+  });
+  items.push({
+    key: "news_publication",
+    label: "お知らせの公開状況",
+    state: "ok",
+    summary: `執行部ポータルのお知らせ：公開中 ${newsRow?.published ?? 0}件／非公開（下書きを含む） ${newsRow?.unpublished ?? 0}件。記事ファイルのお知らせは別に公開しています。`,
+    at: null,
   });
 
   const facebook = sns?.platforms.find((p) => p.platform === "facebook");
@@ -339,5 +379,25 @@ export async function readSiteStatus(env: SiteStatusEnv, origin: string, now = n
 
   const counts: Record<HealthState, number> = { ok: 0, warning: 0, error: 0 };
   for (const item of items) counts[item.state]++;
-  return { items, counts, generatedAt: new Date(now * 1000).toISOString() };
+  const history: HealthHistoryEntry[] = (historyRows.results ?? []).flatMap((row) => {
+    let detail: { status?: unknown; summary?: unknown } = {};
+    try {
+      detail = JSON.parse(row.detail) as typeof detail;
+    } catch {
+      return [];
+    }
+    const state = detail.status === "error" || detail.status === "warning" ? detail.status : null;
+    if (!state) return [];
+    return [
+      {
+        at: new Date(row.created_at * 1000).toISOString(),
+        key: row.target_id,
+        label: MONITOR_LABELS[row.target_id as MonitorCheckKey] ?? row.target_id,
+        state,
+        summary: typeof detail.summary === "string" ? detail.summary : "",
+      },
+    ];
+  });
+
+  return { items, counts, history, generatedAt: new Date(now * 1000).toISOString() };
 }
