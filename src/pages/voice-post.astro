@@ -13,14 +13,9 @@ const breadcrumbItems = [{ name: "みんなの声ポスト", path: "/voice-post"
 const schemas = [webPageSchema({ path: "/voice-post", name: title, description }), buildBreadcrumbList(breadcrumbItems)];
 
 // URLが未設定のあいだは null（送信への導線を出力せず、検索エンジンにも登録しない）
-const { formUrl, formEmbedUrl, formTitle } = voicePostConfig;
+const { formUrl } = voicePostConfig;
 
-const steps = [
-  formUrl ? "このページの下にある回答フォーム（Googleフォーム）をご利用ください。" : "回答フォーム（Googleフォーム）を開きます。",
-  "「困っていること」「疑問に思うこと」「こうなったらいいな！」から、当てはまるものを選びます。いくつ選んでもかまいません。",
-  "自由記入欄に、感じていることをご記入ください。",
-  "「送信」ボタンを押すと、回答が届きます。",
-];
+const steps = ["あてはまる項目を選ぶ", "あなたの思いを書く", "送信する"];
 ---
 
 <BaseLayout title={title} description={description} path="/voice-post" noindex={!formUrl} schemas={schemas}>
@@ -36,6 +31,22 @@ const steps = [
         <p class="mt-4 text-lg sm:text-xl text-ink leading-relaxed">
           福富千恵と延岡を動かす会では、福祉に関するご意見・ご疑問・改善のご提案を、年間を通じて募集しています。
         </p>
+        {formUrl && (
+          <>
+            <a
+              href={formUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-primary mt-6 w-full sm:w-auto min-h-[64px] px-4 sm:px-12 text-xl sm:text-2xl shadow-md"
+              data-voice-post-form="top"
+            >
+              <span aria-hidden="true">📮</span> みんなの声を届ける
+              <Icon name="external-link" class="w-6 h-6" />
+              <span class="sr-only">（新しいタブで開きます）</span>
+            </a>
+            <p class="mt-3 text-lg text-ink [word-break:keep-all]">Googleフォームが<wbr />新しいタブで開きます。</p>
+          </>
+        )}
       </div>
       {/* 郵便ポストと、声を届ける人たちのイラスト */}
       <svg class="mx-auto w-56 sm:w-64 h-auto" viewBox="0 0 220 220" fill="none" aria-hidden="true" focusable="false">
@@ -76,7 +87,7 @@ const steps = [
     </div>
   </section>
 
-  <!-- 管理主体と利用目的は、回答の導線より前に表示する -->
+  <!-- 管理主体と利用目的は、このページでも確認できるようにする（フォームの説明文にも同じ内容がある） -->
   <section class="py-12 sm:py-16 bg-white" aria-labelledby="voice-post-notice-heading">
     <div class="section-wrap max-w-3xl">
       <h2 id="voice-post-notice-heading" class="text-2xl sm:text-3xl font-bold text-ink text-center">
@@ -100,11 +111,9 @@ const steps = [
   <section class="py-12 sm:py-16 bg-brand-ivory" aria-labelledby="voice-post-answer-heading">
     <div class="section-wrap max-w-3xl">
       <h2 id="voice-post-answer-heading" class="text-2xl sm:text-3xl font-bold text-ink text-center">回答のしかた</h2>
-      {!formUrl && (
-        <p class="mt-4 text-center text-lg sm:text-xl font-bold text-ink leading-relaxed">
-          回答フォームの準備が整いましたら、次の流れでご回答いただけます。
-        </p>
-      )}
+      <p class="mt-4 text-center text-lg sm:text-xl font-bold text-ink leading-relaxed">
+        {formUrl ? "ボタンからGoogleフォームを開き、次の流れでご回答ください。" : "回答フォームの準備が整いましたら、次の流れでご回答いただけます。"}
+      </p>
 
       <ol class="mt-6 space-y-3" data-voice-post-steps>
         {steps.map((step, index) => (
@@ -117,54 +126,35 @@ const steps = [
         ))}
       </ol>
 
-      <p class="mt-4 text-lg text-ink leading-relaxed">氏名・住所・電話番号・メールアドレス・所属施設などの入力欄はありません。</p>
-
-      {/* 回答の内容を示す見本です。入力欄ではありません（入力できるのは専用フォームだけです） */}
-      <h3 class="mt-10 text-xl sm:text-2xl font-bold text-ink">回答項目（複数選択できます）</h3>
-      <p class="mt-2 text-lg text-ink">{formUrl ? "見本です。ご回答は、下の回答フォームにご入力ください。" : "見本です。このページには入力できません。"}</p>
-      <ul class="mt-4 grid grid-cols-1 gap-3" data-voice-post-options>
+      {/* 入力欄と誤解されないよう、チェックボックスや枠に見える形にせず、箇条書きの説明にしている */}
+      <h3 class="mt-10 text-xl sm:text-2xl font-bold text-ink">フォームでお聞きする項目</h3>
+      <p class="mt-2 text-lg text-ink leading-relaxed">次の3つから、あてはまるものを選びます。いくつ選んでもかまいません。</p>
+      <ul class="mt-3 space-y-2" data-voice-post-options>
         {VOICE_POST_OPTIONS.map((option) => (
-          <li class="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/5 px-4 py-4 text-lg font-bold text-ink">
-            <span class="voice-post-check flex items-center justify-center w-9 h-9 flex-shrink-0 rounded-lg text-ink">
-              <Icon name="check" class="w-6 h-6" />
-            </span>
+          <li class="flex items-center gap-3 text-lg font-bold text-ink">
+            <span class="voice-post-dot w-3 h-3 flex-shrink-0 rounded-full" aria-hidden="true"></span>
             <span class="min-w-0">{option}</span>
           </li>
         ))}
       </ul>
-
-      <h3 class="mt-8 text-xl sm:text-2xl font-bold text-ink">自由記入欄</h3>
-      <div class="voice-post-paper mt-3 h-36 sm:h-44 rounded-2xl bg-white ring-1 ring-black/5" aria-hidden="true"></div>
+      <p class="mt-4 text-lg text-ink leading-relaxed">このページに入力欄はありません。回答は、Googleフォームで受け付けます。</p>
+      <p class="mt-2 text-lg text-ink leading-relaxed">氏名・住所・電話番号・メールアドレス・所属施設などの入力欄はありません。</p>
 
       {formUrl ? (
-        <div class="mt-12" data-voice-post-form-section>
-          <h2 class="text-2xl sm:text-3xl font-bold text-ink text-center">回答フォーム</h2>
-          <div class="mt-6 rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white w-full">
-            <iframe
-              src={formEmbedUrl}
-              title={formTitle}
-              width="100%"
-              class="voice-post-form-frame w-full max-w-full block"
-              style="border: 0;"
-              loading="lazy"
-            >
-              フォームを読み込んでいます…
-            </iframe>
-          </div>
-          <div class="mt-6 text-center">
-            <p class="text-lg text-ink leading-relaxed">フォームが表示されない場合や、大きな画面で入力したい場合はこちらから開けます。</p>
-            <a
-              href={formUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="btn-secondary bg-white mt-4 w-full sm:w-auto min-h-[60px] px-3 sm:px-10 text-lg sm:text-xl"
-              data-voice-post-form
-            >
-              フォームを別のタブで開く
-              <Icon name="external-link" class="w-5 h-5" />
-              <span class="sr-only">（新しいタブで開きます）</span>
-            </a>
-          </div>
+        <div class="mt-10 rounded-2xl bg-brand-orange-light px-4 py-8 sm:px-8 text-center" data-voice-post-form-section>
+          <p class="text-lg min-[360px]:text-xl sm:text-2xl font-bold text-ink leading-relaxed [word-break:keep-all]">みんなの声は、<wbr />いつでも受け付けています。</p>
+          <a
+            href={formUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-primary mt-5 w-full sm:w-auto min-h-[64px] px-4 sm:px-12 text-xl sm:text-2xl shadow-md"
+            data-voice-post-form="bottom"
+          >
+            <span aria-hidden="true">📮</span> みんなの声を届ける
+            <Icon name="external-link" class="w-6 h-6" />
+            <span class="sr-only">（新しいタブで開きます）</span>
+          </a>
+          <p class="mt-3 text-lg text-ink [word-break:keep-all]">Googleフォームが<wbr />新しいタブで開きます。</p>
         </div>
       ) : (
         <p class="mt-8 rounded-2xl bg-white ring-1 ring-black/5 px-5 py-5 text-center text-lg sm:text-xl font-bold text-ink" data-voice-post-pending>
@@ -178,29 +168,8 @@ const steps = [
     .voice-post-leaf {
       fill: #a5d04f;
     }
-    .voice-post-check {
+    .voice-post-dot {
       background-color: #a5d04f;
-    }
-    /* Googleフォーム全体をiframe内でスクロールせずに見渡せる高さ。設問を増減した場合は見直してください。 */
-    .voice-post-form-frame {
-      height: 1650px;
-    }
-    @media (min-width: 400px) {
-      .voice-post-form-frame {
-        height: 1400px;
-      }
-    }
-    @media (min-width: 640px) {
-      .voice-post-form-frame {
-        height: 1200px;
-      }
-    }
-    /* 自由記入欄の見本（罫線入りの用紙） */
-    .voice-post-paper {
-      background-image: repeating-linear-gradient(to bottom, transparent 0 38px, #a5d04f 38px 40px);
-      background-origin: content-box;
-      background-clip: content-box;
-      padding: 8px 20px;
     }
   </style>
 </BaseLayout>

@@ -38,13 +38,9 @@ const formUrl = resolveVoicePostFormUrl(VOICE_POST_FORM_URL);
 export const voicePostConfig = {
   /** 専用フォームの回答用URL。未設定なら null */
   formUrl,
-  /** ページ内のiframeに埋め込む表示用URL。未設定なら null */
-  formEmbedUrl: formUrl ? `${formUrl}?embedded=true` : null,
-  /** iframeのtitle属性（スクリーンリーダー向けの名称） */
-  formTitle: "福富千恵と延岡を動かす会 みんなの声ポスト 回答フォーム",
 } as const;
 
-/** 回答項目（専用フォームでは複数選択の設問にします。フォームと文言を合わせてください） */
+/** フォームの回答項目。ページでは説明として表示します（入力欄にはしません）。フォームと文言を合わせてください */
 export const VOICE_POST_OPTIONS = ["困っていること", "疑問に思うこと", "こうなったらいいな！"] as const;
 
 /** 回答の前に表示する説明文（指定の文言のため、変更する場合は主催者に確認してください） */
