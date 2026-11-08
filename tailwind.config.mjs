@@ -7,7 +7,7 @@ export default {
         // 仕様書4章：ブランドカラー
         brand: {
           orange: "#ED6A1A",
-          "orange-dark": "#D9530B",
+          "orange-dark": "#BF4708",
           "orange-light": "#FFF0E3",
           ivory: "#FFF9EF",
         },
