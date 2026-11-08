@@ -48,7 +48,7 @@ const news = defineCollection({
     title: z.string(),
     date: z.date(),
     updatedDate: z.date().optional(),
-    category: z.enum(["お知らせ", "活動予定", "意見交換会", "活動報告", "後援会", "サイト更新"]),
+    category: z.enum(["お知らせ", "活動予定", "意見交換会", "開催案内", "活動報告", "後援会", "サイト更新"]),
     summary: z.string(),
     published: z.boolean().default(false),
   }),

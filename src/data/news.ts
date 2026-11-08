@@ -19,6 +19,8 @@
 // 【入力ルール】
 // ・確認できていない内容・日付は登録しないでください（推測での入力は禁止です）。
 // ・date は必ず "YYYY-MM-DD" 形式。未来の日付はその日が来るまで自動的に非表示になります。
+// ・並び順は掲載日の新しい順です。同じ掲載日の記事は、ファイル名（slug）の昇順で並びます
+//   （例：2026-11-08-a.md → 2026-11-08-b.md）。先に表示したい記事ほど、ファイル名を前にしてください。
 // =============================================================
 
 import { getCollection, type CollectionEntry } from "astro:content";
@@ -31,6 +33,7 @@ export type NewsCategory =
   | "お知らせ"
   | "活動予定"
   | "意見交換会"
+  | "開催案内"
   | "活動報告"
   | "後援会"
   | "サイト更新";
@@ -80,6 +83,11 @@ export interface UnifiedNews {
   href?: string;
   /** 外部サイトへのリンクかどうか（別タブで開くかの判定に使用） */
   external: boolean;
+}
+
+/** 同じ掲載日のお知らせの並びを毎回同じにするための比較（環境の言語設定に左右されない単純な文字列比較） */
+function compareKeys(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 function parseDate(value: string): Date | null {
@@ -143,7 +151,7 @@ export async function getUnifiedNews(now: number = Date.now()): Promise<UnifiedN
   const promotedNews = promotedSocialNews(now).filter((entry) => !knownHrefs.has(entry.href ?? ""));
 
   return [...collectionNews, ...manualNews, ...promotedNews].sort(
-    (a, b) => b.date.getTime() - a.date.getTime(),
+    (a, b) => b.date.getTime() - a.date.getTime() || compareKeys(a.sourceKey, b.sourceKey),
   );
 }
 
