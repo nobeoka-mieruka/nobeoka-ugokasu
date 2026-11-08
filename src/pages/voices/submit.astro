@@ -49,10 +49,25 @@ const schemas = [
 
       {voicesConfig.googleFormUrl ? (
         <div class="text-center">
-          <a href={voicesConfig.googleFormUrl} target="_blank" rel="noopener noreferrer" class="btn-primary">
-            Googleフォームで意見を送る
-            <Icon name="external-link" class="w-4 h-4" />
+          {/*
+            フォームはページに埋め込まず、新しいタブで開く（みんなの声ポストと同じ方式）。
+            埋め込み表示はスマートフォンで縦に長くなり（約1,800px）、ブラウザやGoogleのログイン状態によって
+            「ファイルが使用できません」などのエラーで表示されないことがあるため。回答先のフォームは変更していない。
+          */}
+          <a
+            href={voicesConfig.googleFormUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-primary w-full sm:w-auto min-h-[64px] px-4 sm:px-12 text-xl shadow-md justify-center"
+            data-voices-form
+            data-track="voice_form_click"
+            data-track-type="general"
+          >
+            意見を送る（Googleフォーム）
+            <Icon name="external-link" class="w-5 h-5" />
+            <span class="sr-only">（新しいタブで開きます）</span>
           </a>
+          <p class="mt-3 text-sm text-ink-soft">Googleフォームが新しいタブで開きます。匿名で送ることができます。</p>
         </div>
       ) : (
         <div class="card text-center py-10 flex flex-col items-center gap-3">
@@ -85,25 +100,22 @@ const schemas = [
 
   {voicesConfig.googleFormUrl && (
     <section class="pb-14 sm:pb-20">
-      <div class="section-wrap max-w-3xl">
-        <h2 class="text-xl font-bold text-ink mb-4 text-center">フォームからも直接ご記入いただけます</h2>
-        <div class="rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white w-full">
-          <iframe
-            src={`${voicesConfig.googleFormUrl}?embedded=true`}
-            title="福富千恵と延岡を動かす会 みんなの声フォーム"
-            class="w-full block"
-            style="border: 0; min-height: 1800px;"
-            loading="lazy"
-          >
-            フォームを読み込んでいます…
-          </iframe>
-        </div>
-        <p class="mt-3 text-center text-sm text-ink-soft">
-          フォームが表示されない場合は、
-          <a href={voicesConfig.googleFormUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
-            外部サイトでGoogleフォームを開いてください
-            <span class="sr-only">（新しいタブで開く）</span>
-          </a>
+      <div class="section-wrap max-w-2xl text-center">
+        <a
+          href={voicesConfig.googleFormUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn-primary w-full sm:w-auto min-h-[64px] px-4 sm:px-12 text-xl shadow-md justify-center"
+          data-voices-form
+          data-track="voice_form_click"
+          data-track-type="general_bottom"
+        >
+          意見を送る（Googleフォーム）
+          <Icon name="external-link" class="w-5 h-5" />
+          <span class="sr-only">（新しいタブで開きます）</span>
+        </a>
+        <p class="mt-4 text-sm text-ink-soft">
+          福祉についてのご意見は<a href="/voice-post/" class="underline font-bold text-ink">福祉の声ポスト（みんなの声ポスト）</a>へお寄せください。
         </p>
       </div>
     </section>

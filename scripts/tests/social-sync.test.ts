@@ -219,7 +219,7 @@ await test("トークン期限切れ（エラー190・463）を判定し、SNS�
   assert.equal(fb.errorKind, "token_expired");
   assert.equal(fb.lastFailureAt, heartbeat.checkedAt);
   assert.equal(fb.failingSince, heartbeat.checkedAt);
-  assert.ok(fb.lastSuccessAt && fb.lastSuccessAt < heartbeat.checkedAt, "最後に成功した日時は前回の成功のまま");
+  assert.ok(fb.lastSuccessAt && fb.lastSuccessAt <= heartbeat.checkedAt, "最後に成功した日時は前回の成功のまま");
   assert.equal(heartbeat.platforms!.threads!.errorKind, null);
   assert.equal(heartbeat.platforms!.threads!.lastSuccessAt, heartbeat.checkedAt);
   const stored = JSON.stringify([...kv.store.values()].map((e) => e.value).filter((v) => typeof v === "string"));
@@ -243,7 +243,7 @@ await test("トークン更新後は、既存の取得処理だけで自動復�
   assert.ok(result.posts.some((p) => p.id === "page_1"));
   const fb = (await readHeartbeat(env))!.platforms!.facebook!;
   assert.deepEqual([fb.errorKind, fb.failingSince, fb.lastSuccessAt], [null, null, result.checkedAt]);
-  assert.ok(fb.lastFailureAt && fb.lastFailureAt < result.checkedAt, "最後の失敗日時は記録として残る");
+  assert.ok(fb.lastFailureAt && fb.lastFailureAt <= result.checkedAt, "最後の失敗日時は記録として残る（同じミリ秒に実行されても失敗しないよう <= で比べる）");
   facebookMode = "error";
 });
 

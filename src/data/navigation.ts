@@ -24,7 +24,9 @@ const cityGuideNavItem: NavItem = { label: "市役所案内", href: "/city-guide
 const photosNavItem: NavItem = { label: "活動写真", href: "/photos/" };
 const dialogueNavItem: NavItem = { label: "意見交換会", href: "/dialogue/" };
 const eventsNavItem: NavItem = { label: "イベント", href: "/events/" };
-const voicePostNavItem: NavItem = { label: "みんなの声ポスト", href: "/voice-post/" };
+// 「みんなの声」は /voices/ に一本化する。福祉の声（みんなの声ポスト /voice-post/）へは /voices/ の入口カードから案内する
+// （/voice-post/ のページとURLは残す。お知らせ記事や外部からのリンクもそのまま使える）
+const voicesNavItem: NavItem = { label: "みんなの声", href: "/voices/" };
 
 export const headerNav: NavItem[] = [
   { label: "ホーム", href: "/" },
@@ -32,8 +34,7 @@ export const headerNav: NavItem[] = [
   { label: "私たちの提言", href: "/vision/" },
   { label: "活動報告", href: "/activities/" },
   dialogueNavItem,
-  { label: "みんなの声", href: "/voices/" },
-  voicePostNavItem,
+  voicesNavItem,
   ...(hasPublishedVideos ? [videoNavItem] : []),
   cityGuideNavItem,
   { label: "後援会について", href: "/supporters/" },
@@ -49,8 +50,7 @@ export const footerNav: NavItem[] = [
   photosNavItem,
   dialogueNavItem,
   eventsNavItem,
-  { label: "みんなの声", href: "/voices/" },
-  voicePostNavItem,
+  voicesNavItem,
   ...(hasPublishedVideos ? [videoNavItem] : []),
   cityGuideNavItem,
   { label: "後援会について", href: "/supporters/" },
