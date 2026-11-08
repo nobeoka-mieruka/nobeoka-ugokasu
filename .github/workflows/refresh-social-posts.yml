@@ -14,6 +14,8 @@
 # 現在公開中のビルドの署名（/social-build-manifest.json）を比べ、
 # 変化があるときだけCloudflare Pagesのデプロイフックを呼び出して再ビルドします。
 # 変化が無いときは何もしない（コミットもデプロイも行わない）ため、不要なビルドは発生しません。
+# 判定は scripts/social-rebuild.mjs（サイトの定期チェックと共通）。同じ計算方法の署名どうしを比べ、
+# 直前のビルドから20分以内は再ビルドしないため、不一致が続いても再ビルドを繰り返しません。
 #
 # 必要な設定（2026年9月7日に設定済み）
 #   GitHub → Settings → Secrets and variables → Actions
@@ -57,7 +59,7 @@ jobs:
           FORCE: ${{ github.event.inputs.force }}
         run: |
           node --input-type=module -e '
-            import { postsSignature } from "./scripts/social-signature.mjs";
+            import { decideSocialRebuild } from "./scripts/social-rebuild.mjs";
             import { appendFileSync } from "node:fs";
             const site = process.env.SITE_URL;
             const get = async (p) => {
@@ -65,20 +67,16 @@ jobs:
               if (!res.ok) throw new Error(p + " HTTP " + res.status);
               return res.json();
             };
-            let changed = false;
-            try {
-              const feed = await get("/api/social-feed");
-              const latest = postsSignature(feed.posts);
-              let built = null;
-              try { built = (await get("/social-build-manifest.json")).signature; } catch (e) { console.log("manifest:", e.message); }
-              changed = latest !== built;
-              console.log(`最新=${latest} 公開中=${built} 変化=${changed}`);
-            } catch (e) {
-              // 本番APIが一時的に応答しない場合は、再ビルドせずに次回へ回す
-              console.log("::warning::比較できませんでした: " + e.message);
-            }
-            if (process.env.FORCE === "true") changed = true;
-            appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\n`);
+            let feed = null;
+            let manifest = null;
+            try { feed = await get("/api/social-feed"); } catch (e) { console.log("::warning::本番APIを読めませんでした: " + e.message); }
+            try { manifest = await get("/social-build-manifest.json"); } catch (e) { console.log("manifest:", e.message); }
+            // 本番APIが一時的に応答しない場合は、再ビルドせずに次回へ回す（state=unknown）
+            const result = decideSocialRebuild({ feed, manifest, force: process.env.FORCE === "true" });
+            const age = result.buildAgeMinutes === null ? "不明" : Math.round(result.buildAgeMinutes) + "分前";
+            console.log(`最新=${result.latest} 公開中=${result.built} 公開中のビルド=${age} 判定=${result.state} 再ビルド=${result.rebuild}`);
+            if (result.state === "waiting") console.log("直前のビルドから間もないため、今回は再ビルドしません（次回に再確認）。");
+            appendFileSync(process.env.GITHUB_OUTPUT, `changed=${result.rebuild}\n`);
           '
 
       - name: 変化があるときだけCloudflare Pagesを再ビルドする

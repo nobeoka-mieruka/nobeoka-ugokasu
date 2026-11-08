@@ -79,6 +79,8 @@ async function main() {
 
   let posts;
   let fetchedAt;
+  // 本番APIが返した投稿一覧そのものの署名（再ビルドの要否判定に使う）。APIから取得できなかった場合は null
+  let feedSignature = null;
   if (feedUrl === "off") {
     console.log("[sync-social-posts] SOCIAL_FEED_URL=off のため、前回のスナップショットを使います。");
     posts = existing.posts;
@@ -88,6 +90,7 @@ async function main() {
       const feed = await fetchFeed(feedUrl);
       posts = feed.posts;
       fetchedAt = feed.updatedAt ?? null;
+      feedSignature = postsSignature(posts);
       console.log(`[sync-social-posts] ${feedUrl} から ${posts.length}件を取得しました。`);
     } catch (err) {
       console.warn(
@@ -107,7 +110,17 @@ async function main() {
   writeFileSync(snapshotPath, `${JSON.stringify({ generatedAt, fetchedAt, signature, posts: sanitized }, null, 2)}\n`, "utf8");
 
   mkdirSync(path.dirname(manifestPath), { recursive: true });
-  writeFileSync(manifestPath, `${JSON.stringify({ generatedAt, signature, count: sanitized.length })}\n`, "utf8");
+  // 公開中のビルドがどのSNSデータから作られたかの記録（/social-build-manifest.json）
+  //   signature     … ページに埋め込んだ（整形後の）投稿一覧の署名
+  //   feedSignature … 本番API（/api/social-feed）の投稿一覧と同じ計算の署名。refresh-social-posts.yml とサイトの定期チェックはこれと
+  //                   最新のAPIを比べる（整形後の signature と比べると、整形で内容が変わる投稿があったときに永久に不一致となり、
+  //                   再ビルドを繰り返すため）
+  //   fetchedAt     … このビルドに使ったSNSデータの最終取得日時
+  writeFileSync(
+    manifestPath,
+    `${JSON.stringify({ generatedAt, signature, feedSignature, fetchedAt, count: sanitized.length })}\n`,
+    "utf8",
+  );
 
   const withImage = sanitized.filter((p) => p.localImage).length;
   console.log(`[sync-social-posts] スナップショット: ${sanitized.length}件（画像あり ${withImage}件） 署名=${signature}`);

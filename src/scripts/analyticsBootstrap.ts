@@ -73,9 +73,11 @@ function setupAutoClickTracking(): void {
       const linkText = anchor.textContent?.trim().slice(0, 100);
 
       // 明示的にdata-track属性が付いているリンク（例：活動報告の続きを読む）を優先する
+      // data-track-type があれば、ボタンの位置などの種類（例："top"・"bottom"）を content_type として送る（個人情報は送らない）
       const trackedAncestor = target.closest<HTMLElement>("[data-track]");
       if (trackedAncestor?.dataset.track) {
-        trackEvent(trackedAncestor.dataset.track, { link_url: href });
+        const type = trackedAncestor.dataset.trackType;
+        trackEvent(trackedAncestor.dataset.track, { link_url: href, ...(type ? { content_type: type } : {}) });
         return;
       }
 

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dialogueConfig } from "../../src/config/dialogueConfig";
 import { voicesConfig } from "../../src/config/voicesConfig";
+import { renderNewsList } from "../../src/utils/newsCards";
 import { VOICE_POST_NOTICES, VOICE_POST_OPTIONS, resolveVoicePostFormUrl, voicePostConfig } from "../../src/config/voicePostConfig";
 
 let passed = 0;
@@ -66,6 +67,27 @@ test("非掲載の団体名とイベント限定の表現がページのソー�
     assert.ok(!/エンタメ|実行委員会/.test(source), file);
     assert.ok(!/期間限定|イベント当日|11月22日|ファッションショー|募集期限|締切|締め切り/.test(source), file);
   }
+});
+
+test("GA4：回答ボタンのクリックを位置（上部・下部）だけで計測する（個人情報・回答内容は送らない）", () => {
+  const source = readFileSync("src/pages/voice-post.astro", "utf8");
+  assert.equal(source.match(/data-track="voice_post_click"/g)?.length, 2);
+  assert.ok(source.includes('data-track-type="top"') && source.includes('data-track-type="bottom"'));
+  const bootstrap = readFileSync("src/scripts/analyticsBootstrap.ts", "utf8");
+  assert.ok(bootstrap.includes("dataset.trackType") && bootstrap.includes("content_type: type"), "data-track-type は content_type として送る");
+  // 送ってよい項目だけに絞る既存の仕組み（src/utils/analytics.ts）を通す
+  const analytics = readFileSync("src/utils/analytics.ts", "utf8");
+  assert.ok(analytics.includes("content_type"));
+});
+
+test("GA4：お知らせカードから詳細への移動を計測する（サイト内・外部を区別）", () => {
+  const html = renderNewsList([
+    { key: "article:a", date: "2026-11-08", title: "記事", summary: "", category: "お知らせ", href: "/news/a/", displayOrder: 0 },
+    { key: "social:1", date: "2026-11-07", title: "投稿", summary: "", category: "活動報告", href: "https://www.facebook.com/p/1", displayOrder: 0 },
+    { key: "d1:1", date: "2026-11-06", title: "リンクなし", summary: "", category: "お知らせ", href: "", displayOrder: 0 },
+  ]);
+  assert.equal(html.match(/data-track="news_detail_click"/g)?.length, 2, "リンクの無いお知らせは計測しない");
+  assert.ok(html.includes('data-track-type="internal"') && html.includes('data-track-type="external"'));
 });
 
 console.log(`\n${passed}件のテストに合格しました。`);

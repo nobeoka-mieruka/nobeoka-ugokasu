@@ -3,7 +3,9 @@
 // 日時・会場などはチラシの記載どおりです。内容を変更する場合はチラシと食い違わないようにしてください。
 //
 // ・意見交換会ページ（/dialogue/）の上部に表示します（src/components/WelfareDialogueSection.astro）。
-// ・各回は schema.org Event としても出力します（ビルド時点で開催日を過ぎた回は出力しません）。
+// ・各回の受付状況（受付中／受付終了／開催終了）は、日本時間の「今日」で判定します。
+//   ページは配信時に functions/dialogue/index.ts がその日の状況に書き換えるため、ビルドした日の表示で固定されません。
+// ・各回は schema.org Event としても出力します（開催日を過ぎた回は出力しません。これも配信時に判定します）。
 //   同じ回を執行部ポータル（/staff/dialogue/）にも登録すると構造化データが重複するため、登録しないでください。
 
 import type { DialogueEvent } from "../types/dialogue";
@@ -22,6 +24,15 @@ export const WELFARE_DIALOGUE_OG_IMAGE_ALT = "福祉の現場の声を聴く 意
 
 export const WELFARE_DIALOGUE_TARGET = "福祉のお仕事に携わっている方";
 export const WELFARE_DIALOGUE_DEADLINE = "各開催日の2日前まで";
+/** 申込締切：開催日の何日前まで受け付けるか（WELFARE_DIALOGUE_DEADLINE の「2日前まで」と同じ値にする） */
+export const WELFARE_DIALOGUE_DEADLINE_DAYS_BEFORE = 2;
+
+/**
+ * 申込フォーム（Googleフォーム）が回答を受け付けているか。
+ * Googleフォームの「回答を受け付ける」をオフにしたときは、ここも false にしてください（全日程を「受付終了」と表示します）。
+ * サイトの定期チェック（docs/site-monitoring.md）が、ページの表示とGoogleフォームの受付状態の食い違いを知らせます。
+ */
+export const WELFARE_DIALOGUE_FORM_ACCEPTING = true;
 export const WELFARE_DIALOGUE_DURATION = "各回、1時間～1時間半程度を予定しています。";
 export const WELFARE_DIALOGUE_NOTICE = "利用者さまなど個人が特定される情報は控えてお話しください。";
 
@@ -63,7 +74,68 @@ const SCHEMA_DESCRIPTION =
 
 /** 各回の schema.org Event（意見交換会ページの他の回と同じ形式。住所は確認できている市・県までに留める） */
 export function welfareDialogueEventSchemas(today: string) {
-  const events: DialogueEvent[] = WELFARE_DIALOGUE_SESSIONS.map((session) => ({
+  return dialogueEventSchemas(welfareDialogueEvents(today), today);
+}
+
+// ---- 受付状況（日本時間の日付で判定） ----
+
+/** open … 受付中／closed … 受付終了（締切を過ぎた、またはフォームの受付を止めた）／finished … 開催終了（開催日を過ぎた） */
+export type WelfareSessionStatus = "open" | "closed" | "finished";
+
+export const WELFARE_SESSION_STATUS_LABELS: Record<WelfareSessionStatus, string> = {
+  open: "受付中",
+  closed: "受付終了",
+  finished: "開催終了",
+};
+
+/** YYYY-MM-DD の日付を days 日ずらす */
+function shiftDate(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** 申込締切日（この日まで受け付ける。YYYY-MM-DD） */
+export function welfareSessionDeadline(session: Pick<WelfareDialogueSession, "eventDate">): string {
+  return shiftDate(session.eventDate, -WELFARE_DIALOGUE_DEADLINE_DAYS_BEFORE);
+}
+
+/** today は日本時間の今日（todayInJapan()）。開催日当日は「受付終了」、翌日から「開催終了」 */
+export function welfareSessionStatus(
+  session: Pick<WelfareDialogueSession, "eventDate">,
+  today: string,
+  formAccepting: boolean = WELFARE_DIALOGUE_FORM_ACCEPTING,
+): WelfareSessionStatus {
+  if (today > session.eventDate) return "finished";
+  if (!formAccepting || today > welfareSessionDeadline(session)) return "closed";
+  return "open";
+}
+
+export interface WelfareDialogueState {
+  today: string;
+  sessions: (WelfareDialogueSession & { status: WelfareSessionStatus; deadline: string })[];
+  /** 受付中の回があるか（申込ボタンを表示するか） */
+  anyOpen: boolean;
+  /** 全回とも開催日を過ぎたか */
+  allFinished: boolean;
+}
+
+export function welfareDialogueState(today: string, formAccepting: boolean = WELFARE_DIALOGUE_FORM_ACCEPTING): WelfareDialogueState {
+  const sessions = WELFARE_DIALOGUE_SESSIONS.map((session) => ({
+    ...session,
+    status: welfareSessionStatus(session, today, formAccepting),
+    deadline: welfareSessionDeadline(session),
+  }));
+  return {
+    today,
+    sessions,
+    anyOpen: sessions.some((session) => session.status === "open"),
+    allFinished: sessions.every((session) => session.status === "finished"),
+  };
+}
+
+/** 各回の DialogueEvent（構造化データ用）。受付状況を反映する */
+export function welfareDialogueEvents(today: string, formAccepting: boolean = WELFARE_DIALOGUE_FORM_ACCEPTING): DialogueEvent[] {
+  return welfareDialogueState(today, formAccepting).sessions.map((session) => ({
     id: session.round,
     title: `${WELFARE_DIALOGUE_TITLE}（第${session.round}回）`,
     eventDate: session.eventDate,
@@ -73,9 +145,8 @@ export function welfareDialogueEventSchemas(today: string) {
     address: "",
     description: `${SCHEMA_DESCRIPTION}会場：${session.facility}（${session.room}）`,
     capacity: null,
-    status: "open",
-    applicationOpen: true,
+    status: session.status === "finished" ? "completed" : session.status,
+    applicationOpen: session.status === "open",
     displayOrder: session.round,
   }));
-  return dialogueEventSchemas(events, today);
 }

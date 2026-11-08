@@ -4,6 +4,9 @@
 //   deploy      … mainの最新コミットが本番に反映されているか（/build-version.json と比べる）
 //   site_update … 自動処理（GitHub Actions）の最新の実行が失敗していないか
 //   rss         … /rss.xml と /news/（お知らせ一覧）・トップページの内容と順番が一致しているか
+//   sns_build   … SNSの定期取得（/api/social-feed）は最新なのに、公開中のHTML（検索エンジンが読む内容）だけ古いままになっていないか
+//                 （判定は scripts/social-rebuild.mjs。再ビルドは既存の refresh-social-posts.yml が行う。ここでは再ビルドしない）
+//   dialogue_form … 意見交換会ページの申込受付の表示と、Googleフォームの実際の受付状態が一致しているか
 // 結果は POST /api/admin/site-health に送り、執行部ポータルの「サイトの状態」（/staff/status/）に表示する。
 // 送る内容は「種類・状態・短い説明」だけ。秘密キーはログに出さない。
 //
@@ -15,6 +18,11 @@
 //   GITHUB_TOKEN, GITHUB_REPOSITORY … 自動処理の実行結果を読むため（読み取り権限だけ）
 
 import { pathToFileURL } from "node:url";
+import { decideSocialRebuild, STALE_HTML_MINUTES } from "../social-rebuild.mjs";
+
+/** 意見交換会の申込フォーム（src/config/dialogueConfig.ts の GOOGLE_FORM_URL と同じ。テストで一致を確認） */
+export const DIALOGUE_FORM_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLScmY6pGcRApiGwAgG2o0PaWqspnjv2cgqwg_tpaEKNkD5tLOQ/viewform";
 
 /** 最新のコミットが本番へ反映されるまで待つ時間（これを過ぎても反映されていなければ失敗） */
 export const DEPLOY_GRACE_MINUTES = 30;
@@ -80,12 +88,103 @@ export function evaluateRss({ rss, list, home }) {
   return { key: "rss", status: "warning", summary: `${parts.join("。")}。数分後に自然に解消しない場合は確認してください。` };
 }
 
+/**
+ * 公開中のHTML（ビルド）のSNS投稿が、定期取得した最新の内容に追いついているか。
+ * 再ビルド待ち（直前のビルドから間もない・不一致になって間もない）は正常とし、
+ * 不一致が STALE_HTML_MINUTES 分以上続いたときだけ「要確認」にする。
+ */
+export function evaluateSnsBuild({ feed, manifest, now = Date.now() }) {
+  if (!feed) return { key: "sns_build", status: "warning", summary: "SNSの本番API（/api/social-feed）を読めませんでした。" };
+  if (!manifest) return { key: "sns_build", status: "warning", summary: "公開中のビルドのSNS情報（/social-build-manifest.json）を読めませんでした。" };
+  const result = decideSocialRebuild({ feed, manifest, now });
+  const builtAt = manifest.generatedAt ? `（公開中のHTMLのビルド：${formatJst(manifest.generatedAt)}）` : "";
+  if (result.state === "match") return { key: "sns_build", status: "ok", summary: `公開中のHTMLは最新のSNS投稿と一致しています${builtAt}。` };
+  if (result.state === "waiting" || (result.buildAgeMinutes !== null && result.buildAgeMinutes < STALE_HTML_MINUTES)) {
+    return { key: "sns_build", status: "ok", summary: `新しいSNS投稿の公開中のHTMLへの反映を待っています${builtAt}。` };
+  }
+  return {
+    key: "sns_build",
+    status: "warning",
+    summary: `SNSの定期取得は最新ですが、公開中のHTML（検索エンジン向け）が${STALE_HTML_MINUTES}分以上古いままです${builtAt}。GitHubのActionsタブで「Refresh social posts」の実行結果を確認してください。`,
+  };
+}
+
+/**
+ * Googleフォームのページ（申込フォームURLをGETした結果）から、回答を受け付けているかを判定する。
+ * 受付を止めたフォームは /closedform へ転送され「回答を受け付けていません」と表示される。判断できない場合は null。
+ */
+export function googleFormAccepting({ finalUrl, html }) {
+  if (typeof finalUrl === "string" && /\/closedform(\?|$)/.test(finalUrl)) return false;
+  if (typeof html !== "string") return null;
+  if (/回答を受け付けていません|no longer accepting responses/i.test(html)) return false;
+  if (html.includes("FB_PUBLIC_LOAD_DATA_") && typeof finalUrl === "string" && /\/viewform(\?|$)/.test(finalUrl)) return true;
+  return null;
+}
+
+/** 意見交換会ページの申込受付の表示（[data-dialogue-form-apply] の中身）。判断できない場合は null */
+export function dialoguePageAccepting(html) {
+  if (typeof html !== "string") return null;
+  if (html.includes("data-dialogue-form-closed")) return false;
+  if (html.includes("data-dialogue-form-open")) return true;
+  return null;
+}
+
+export function evaluateDialogueForm({ pageAccepting, formAccepting }) {
+  if (pageAccepting === null) return { key: "dialogue_form", status: "warning", summary: "意見交換会ページの申込受付の表示を読み取れませんでした。" };
+  if (formAccepting === null) return { key: "dialogue_form", status: "warning", summary: "Googleフォームの受付状態を確認できませんでした。" };
+  if (pageAccepting === formAccepting) {
+    return {
+      key: "dialogue_form",
+      status: "ok",
+      summary: pageAccepting ? "意見交換会ページの申込受付中の表示と、Googleフォームの受付状態が一致しています。" : "申込受付は終了しており、Googleフォームも回答を受け付けていません。",
+    };
+  }
+  if (pageAccepting) {
+    return {
+      key: "dialogue_form",
+      status: "error",
+      summary: "意見交換会ページは申込受付中ですが、Googleフォームが回答を受け付けていません（申し込めない状態です）。フォームの受付を再開するか、src/data/welfareDialogue.ts の WELFARE_DIALOGUE_FORM_ACCEPTING を false にしてください。",
+    };
+  }
+  return {
+    key: "dialogue_form",
+    status: "warning",
+    summary: "意見交換会ページは申込受付を終了していますが、Googleフォームは回答を受け付けたままです。Googleフォームの「回答を受け付ける」をオフにしてください。",
+  };
+}
+
+function formatJst(iso) {
+  const time = Date.parse(iso);
+  if (!Number.isFinite(time)) return "不明";
+  return new Date(time).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 async function fetchText(url) {
   try {
     const res = await fetch(url, { headers: { "Cache-Control": "no-cache" }, signal: AbortSignal.timeout(30000) });
     return res.ok ? await res.text() : null;
   } catch {
     return null;
+  }
+}
+
+async function fetchJson(url) {
+  const text = await fetchText(url);
+  if (text === null) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/** Googleフォームの公開ページを読む（読み取りだけ。回答は送らない） */
+async function fetchFormPage(url) {
+  try {
+    const res = await fetch(url, { headers: { "Accept-Language": "ja" }, redirect: "follow", signal: AbortSignal.timeout(30000) });
+    return { finalUrl: res.url, html: res.ok ? await res.text() : null };
+  } catch {
+    return { finalUrl: null, html: null };
   }
 }
 
@@ -109,11 +208,16 @@ async function latestRun(file) {
 
 export async function runChecks(env = process.env) {
   const site = (env.SITE_URL ?? "").replace(/\/$/, "");
-  const [versionText, rssXml, newsHtml, homeHtml] = await Promise.all([
+  const stamp = `t=${Date.now()}`;
+  const [versionText, rssXml, newsHtml, homeHtml, feed, manifest, dialogueHtml, formPage] = await Promise.all([
     fetchText(`${site}/build-version.json`),
     fetchText(`${site}/rss.xml`),
     fetchText(`${site}/news/`),
     fetchText(`${site}/`),
+    fetchJson(`${site}/api/social-feed?${stamp}`),
+    fetchJson(`${site}/social-build-manifest.json?${stamp}`),
+    fetchText(`${site}/dialogue/`),
+    fetchFormPage(DIALOGUE_FORM_URL),
   ]);
   let liveSha = null;
   try {
@@ -134,6 +238,8 @@ export async function runChecks(env = process.env) {
       list: newsHtml === null ? null : cardTitles(newsHtml, "data-news-list"),
       home: homeHtml === null ? null : cardTitles(homeHtml, "data-news-home"),
     }),
+    evaluateSnsBuild({ feed, manifest }),
+    evaluateDialogueForm({ pageAccepting: dialoguePageAccepting(dialogueHtml), formAccepting: googleFormAccepting(formPage) }),
   ];
 }
 

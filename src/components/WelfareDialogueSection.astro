@@ -2,24 +2,36 @@
 // 意見交換会ページ（/dialogue/）の「福祉の現場の声を聴く 意見交換会」（全3回）の開催案内。
 // 掲載内容は src/data/welfareDialogue.ts（出典：案内チラシPDF）にまとめています。
 // 日時・会場・対象・締切などはPDFだけに頼らず、すべてHTMLの本文として掲載します。
+//
+// 受付状況（募集バッジ・各回の受付中／受付終了／開催終了・申込ボタン・構造化データ）は日付で変わるため、
+// [data-welfare-…] の中身を src/utils/welfareDialogueView.ts で組み立てます。ここではビルド時点の状態で出力し、
+// 配信時に functions/dialogue/index.ts が日本時間の今日の状態に差し替えます。
 import Icon from "./Icon.astro";
 import InlineRelatedLinks from "./InlineRelatedLinks.astro";
-import { dialogueConfig } from "../config/dialogueConfig";
 import {
   WELFARE_DIALOGUE_DEADLINE,
   WELFARE_DIALOGUE_DURATION,
   WELFARE_DIALOGUE_NOTICE,
   WELFARE_DIALOGUE_PDF_URL,
   WELFARE_DIALOGUE_SECTION_ID,
-  WELFARE_DIALOGUE_SESSIONS,
   WELFARE_DIALOGUE_TARGET,
   WELFARE_DIALOGUE_TITLE,
   WELFARE_DIALOGUE_TOPICS,
+  welfareDialogueState,
   welfareSessionLabels,
 } from "../data/welfareDialogue";
+import { todayInJapan } from "../utils/dialogueEvents";
+import {
+  renderWelfareApply,
+  renderWelfareBadge,
+  renderWelfareSchemaScripts,
+  renderWelfareSessionStatus,
+} from "../utils/welfareDialogueView";
 import { ORGANIZATION_NAME } from "../config/siteIdentity";
 
-const sessions = WELFARE_DIALOGUE_SESSIONS.map((session) => ({ ...session, ...welfareSessionLabels(session) }));
+const today = todayInJapan();
+const state = welfareDialogueState(today);
+const sessions = state.sessions.map((session) => ({ ...session, ...welfareSessionLabels(session) }));
 
 const relatedLinks = [
   { title: "福富千恵について", href: "/profile/" },
@@ -28,8 +40,7 @@ const relatedLinks = [
   { title: "お問い合わせ", href: "/contact/" },
 ];
 
-// 「参加を申し込む」は最も目立つ塗りボタン、「案内チラシを見る（PDF）」は一段控えめな枠線ボタン
-const applyButtonClass = "btn-primary w-full sm:w-auto min-h-[60px] px-6 sm:px-10 text-xl shadow-md";
+// 「参加を申し込む」は最も目立つ塗りボタン（welfareDialogueView.ts）、「案内チラシを見る（PDF）」は一段控えめな枠線ボタン
 const pdfButtonClass = "btn-secondary w-full sm:w-auto min-h-[52px] px-4 sm:px-6 text-base sm:text-lg bg-white";
 ---
 
@@ -45,7 +56,7 @@ const pdfButtonClass = "btn-secondary w-full sm:w-auto min-h-[52px] px-4 sm:px-6
       <!-- 開催案内 -->
       <div class="text-center">
         <p class="inline-flex flex-wrap items-center justify-center gap-2 text-sm font-bold">
-          <span class="rounded-full bg-brand-orange-dark px-3 py-1 text-white">参加者募集中</span>
+          <span class="contents" data-welfare-badge set:html={renderWelfareBadge(state)} />
           <span class="rounded-full bg-white px-3 py-1 text-brand-orange-dark ring-1 ring-brand-orange-dark/30">
             福祉のお仕事に携わる方へ
           </span>
@@ -71,12 +82,8 @@ const pdfButtonClass = "btn-secondary w-full sm:w-auto min-h-[52px] px-4 sm:px-6
       </div>
 
       <!-- 申込ボタン（上部） -->
-      <div class="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4">
-        <a href={dialogueConfig.formUrl} target="_blank" rel="noopener noreferrer" class={applyButtonClass} data-welfare-apply>
-          参加を申し込む
-          <Icon name="external-link" class="w-5 h-5" />
-          <span class="sr-only">：{WELFARE_DIALOGUE_TITLE}（申込フォームが新しいタブで開きます）</span>
-        </a>
+      <div class="mt-8 flex flex-col sm:flex-row items-stretch sm:items-end justify-center gap-4">
+        <div class="flex flex-col items-stretch sm:items-center gap-2 text-center" data-welfare-apply-area="top" set:html={renderWelfareApply(state, "top")} />
         <a href={WELFARE_DIALOGUE_PDF_URL} target="_blank" rel="noopener" class={pdfButtonClass} data-welfare-pdf>
           <Icon name="document" class="w-5 h-5" />
           案内チラシを見る（PDF）
@@ -93,6 +100,7 @@ const pdfButtonClass = "btn-secondary w-full sm:w-auto min-h-[52px] px-4 sm:px-6
               <p class="self-start rounded-full bg-brand-orange-light px-3 py-1 text-sm font-bold text-brand-orange-dark">
                 第{session.round}回
               </p>
+              <p class="mt-3 flex flex-wrap items-center gap-2" data-welfare-status={String(session.round)} set:html={renderWelfareSessionStatus(session)} />
               <dl class="mt-4 space-y-4 text-ink">
                 <div class="flex items-start gap-3">
                   <dt class="flex-shrink-0">
@@ -123,6 +131,30 @@ const pdfButtonClass = "btn-secondary w-full sm:w-auto min-h-[52px] px-4 sm:px-6
         <p class="mt-4 text-center text-ink-soft">{WELFARE_DIALOGUE_DURATION}</p>
       </div>
 
+      <!-- 開催概要 -->
+      <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="rounded-2xl bg-white ring-1 ring-black/5 p-5">
+          <h3 class="flex items-center gap-2 text-lg font-bold text-ink">
+            <Icon name="users" class="w-5 h-5 text-brand-orange-dark" />対象
+          </h3>
+          <p class="mt-2 text-ink">{WELFARE_DIALOGUE_TARGET}</p>
+          <p class="mt-1 text-sm text-ink-soft">職種・立場・経験年数は問いません</p>
+        </div>
+        <div class="rounded-2xl bg-white ring-1 ring-black/5 p-5">
+          <h3 class="flex items-center gap-2 text-lg font-bold text-ink">
+            <Icon name="form" class="w-5 h-5 text-brand-orange-dark" />申込締切
+          </h3>
+          <p class="mt-2 text-ink">{WELFARE_DIALOGUE_DEADLINE}</p>
+          <p class="mt-1 text-sm text-ink-soft">各回の締切日は、上の日程に記載しています</p>
+        </div>
+        <div class="rounded-2xl bg-white ring-1 ring-black/5 p-5">
+          <h3 class="flex items-center gap-2 text-lg font-bold text-ink">
+            <Icon name="handshake" class="w-5 h-5 text-brand-orange-dark" />主催
+          </h3>
+          <p class="mt-2 text-ink">{ORGANIZATION_NAME}</p>
+        </div>
+      </div>
+
       <!-- こんなお話をお聞かせください -->
       <div class="mt-12">
         <h3 class="text-xl sm:text-2xl font-bold text-ink text-center">こんなお話をお聞かせください</h3>
@@ -141,29 +173,6 @@ const pdfButtonClass = "btn-secondary w-full sm:w-auto min-h-[52px] px-4 sm:px-6
         </p>
       </div>
 
-      <!-- 開催概要 -->
-      <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="rounded-2xl bg-white ring-1 ring-black/5 p-5">
-          <h3 class="flex items-center gap-2 text-lg font-bold text-ink">
-            <Icon name="users" class="w-5 h-5 text-brand-orange-dark" />対象
-          </h3>
-          <p class="mt-2 text-ink">{WELFARE_DIALOGUE_TARGET}</p>
-          <p class="mt-1 text-sm text-ink-soft">職種・立場・経験年数は問いません</p>
-        </div>
-        <div class="rounded-2xl bg-white ring-1 ring-black/5 p-5">
-          <h3 class="flex items-center gap-2 text-lg font-bold text-ink">
-            <Icon name="form" class="w-5 h-5 text-brand-orange-dark" />申込締切
-          </h3>
-          <p class="mt-2 text-ink">{WELFARE_DIALOGUE_DEADLINE}</p>
-        </div>
-        <div class="rounded-2xl bg-white ring-1 ring-black/5 p-5">
-          <h3 class="flex items-center gap-2 text-lg font-bold text-ink">
-            <Icon name="handshake" class="w-5 h-5 text-brand-orange-dark" />主催
-          </h3>
-          <p class="mt-2 text-ink">{ORGANIZATION_NAME}</p>
-        </div>
-      </div>
-
       <p class="mt-4 flex items-start gap-3 rounded-2xl bg-white border-l-4 border-brand-orange px-5 py-4 text-ink" role="note">
         <Icon name="check" class="w-6 h-6 flex-shrink-0 text-brand-orange-dark" />
         <span><span class="font-bold">ご参加にあたってのお願い：</span>{WELFARE_DIALOGUE_NOTICE}</span>
@@ -179,19 +188,7 @@ const pdfButtonClass = "btn-secondary w-full sm:w-auto min-h-[52px] px-4 sm:px-6
           <p>フォームでは、3回の日程それぞれについて「参加する」「参加しない」をお選びいただけます。</p>
           <p>複数回の参加も可能です。</p>
         </div>
-        <div class="mt-6">
-          <a href={dialogueConfig.formUrl} target="_blank" rel="noopener noreferrer" class={applyButtonClass} data-welfare-apply>
-            参加を申し込む
-            <Icon name="external-link" class="w-5 h-5" />
-            <span class="sr-only">：{WELFARE_DIALOGUE_TITLE}（申込フォームが新しいタブで開きます）</span>
-          </a>
-        </div>
-        <p class="mt-4 text-sm text-ink-soft">
-          <a href={dialogueConfig.formUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
-            福祉従事者向け意見交換会に参加を申し込む（Googleフォーム）
-            <span class="sr-only">（新しいタブで開きます）</span>
-          </a>
-        </p>
+        <div class="mt-6 flex flex-col items-stretch sm:items-center gap-2" data-welfare-apply-area="bottom" set:html={renderWelfareApply(state, "bottom")} />
       </div>
 
       <!-- 案内チラシ -->
@@ -212,6 +209,9 @@ const pdfButtonClass = "btn-secondary w-full sm:w-auto min-h-[52px] px-4 sm:px-6
           </a>
         </div>
       </div>
+
+      <!-- 各回の構造化データ（schema.org Event）。配信時に、開催日を過ぎた回を除いた内容へ差し替える -->
+      <div hidden data-welfare-schema set:html={renderWelfareSchemaScripts(today)} />
 
       <div class="mt-10 max-w-3xl mx-auto">
         <InlineRelatedLinks heading="関連ページ" items={relatedLinks} />

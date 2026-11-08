@@ -262,7 +262,8 @@ await test("13. 正しい秘密キーで実行でき、デプロイ未完了な�
 });
 
 await test("14. migrations/0008 はテーブル定義と一致し、何度実行しても既存データを壊さない", async () => {
-  const text = readFileSync("migrations/0008_public_pages.sql", "utf8");
+  // Windowsで取り出すと改行が CRLF になるため、改行をそろえてから比べる
+  const text = readFileSync("migrations/0008_public_pages.sql", "utf8").replace(/\r\n/g, "\n");
   const statements = text
     .split("\n")
     .filter((line) => !line.startsWith("--"))

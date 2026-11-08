@@ -72,9 +72,10 @@ function cardHtml(item: NewsDisplayItem): string {
       // URLとして読めない値は登録時に拒否しているため、ここには来ない
     }
   }
-  return `<a href="${escapeHtml(item.href)}" class="card flex flex-col gap-3 h-full hover:shadow-md transition-shadow" data-news-item${
-    external ? ' target="_blank" rel="noopener noreferrer"' : ""
-  }>
+  // GA4：お知らせから詳細（記事・案内ページ、または外部の投稿）への移動を計測する（src/scripts/analyticsBootstrap.ts の data-track）
+  return `<a href="${escapeHtml(item.href)}" class="card flex flex-col gap-3 h-full hover:shadow-md transition-shadow" data-news-item data-track="news_detail_click" data-track-type="${
+    external ? "external" : "internal"
+  }"${external ? ' target="_blank" rel="noopener noreferrer"' : ""}>
   ${header}${
     external
       ? `\n  <span class="mt-auto inline-flex items-center gap-1 pt-1 text-sm font-bold text-brand-orange-dark">${label}${EXTERNAL_ICON}<span class="sr-only">（新しいタブで開く）</span></span>`
