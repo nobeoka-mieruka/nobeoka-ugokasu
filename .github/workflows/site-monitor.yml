@@ -1,0 +1,50 @@
+# =============================================================
+# サイトの定期チェック（1時間ごと）
+# =============================================================
+# 本番デプロイの反映、自動処理の失敗、RSSとお知らせ一覧の一致を調べ、
+# 執行部ポータルの「サイトの状態」（/staff/status/）に記録する（scripts/monitor/site-check.mjs）。
+#
+# 安全対策
+#   ・読み取りだけ（サイトの内容・コード・設定は変更しない）。コミットもデプロイもしない
+#   ・GitHubの権限は読み取りだけ（contents: read, actions: read）
+#   ・正常のまま変わらない項目は書き込まない。異常になったときだけ確認待ちとして記録する
+#
+# 必要な設定：GitHub → Settings → Secrets and variables → Actions
+#   NEWS_DETECT_SECRET … 新しいページの検知と同じ秘密キー（未設定の間は結果をログに出すだけ）
+
+name: Site monitor
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: site-monitor
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 本番サイトの状態を確認する
+        env:
+          SITE_URL: https://nobeoka-ugokasu.pages.dev
+          SECRET: ${{ secrets.NEWS_DETECT_SECRET }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          export HEAD_SHA="$(git rev-parse HEAD)"
+          export HEAD_COMMITTED_AT="$(git log -1 --format=%cI)"
+          node scripts/monitor/site-check.mjs

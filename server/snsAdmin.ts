@@ -10,7 +10,7 @@
 import type { PlatformSyncStatus, SocialPlatform } from "../src/types/social";
 import { auditStatement, AUDIT_SCHEMA_SQL, nowSeconds } from "./auditLog";
 import type { SocialSyncEnv } from "./env";
-import { readCache, readHeartbeat } from "./kv";
+import { readCache, readHeartbeat, type SyncErrorKind } from "./kv";
 import { runSocialSync, summarizeForLog } from "./socialSync";
 
 export const SNS_PLATFORMS = ["facebook", "instagram", "threads"] as const;
@@ -68,6 +68,16 @@ export interface SnsPlatformStatus {
   state: SnsDisplayState;
   /** 保存済みの投稿のうち、このSNSの件数 */
   postCount: number;
+  /** 取得に失敗している場合の種類（token_expired ならトークンの更新が必要）。正常・未設定なら null */
+  errorKind: SyncErrorKind | null;
+  /** このSNSから最後に取得に成功した日時（記録が無ければ null） */
+  lastSuccessAt: string | null;
+  /** このSNSで最後に取得に失敗した日時 */
+  lastFailureAt: string | null;
+  /** 現在の失敗が始まった日時 */
+  failingSince: string | null;
+  /** 保存済みの投稿のうち、このSNSで最も新しい投稿の日時 */
+  latestPostAt: string | null;
 }
 
 export interface SnsStatus {
@@ -90,11 +100,22 @@ export async function readSnsStatus(env: SocialSyncEnv, db: D1Database): Promise
   const posts = cache?.posts ?? [];
   const status = heartbeat?.status ?? cache?.status;
   return {
-    platforms: SNS_PLATFORMS.map((platform) => ({
-      platform,
-      state: displayState(configured[platform], status?.[platform]),
-      postCount: posts.filter((post) => post.platform === platform).length,
-    })),
+    platforms: SNS_PLATFORMS.map((platform) => {
+      const state = displayState(configured[platform], status?.[platform]);
+      const record = heartbeat?.platforms?.[platform];
+      const own = posts.filter((post) => post.platform === platform);
+      return {
+        platform,
+        state,
+        postCount: own.length,
+        // 記録が無い（以前の形式の）失敗は「その他のエラー」として扱う
+        errorKind: state === "error" ? (record?.errorKind ?? "api_error") : null,
+        lastSuccessAt: record?.lastSuccessAt ?? null,
+        lastFailureAt: record?.lastFailureAt ?? null,
+        failingSince: state === "error" ? (record?.failingSince ?? null) : null,
+        latestPostAt: own.reduce<string | null>((latest, post) => (latest === null || post.publishedAt > latest ? post.publishedAt : latest), null),
+      };
+    }),
     lastCheckedAt: heartbeat?.checkedAt ?? null,
     lastSuccessAt: heartbeat?.lastSuccessAt ?? null,
     postsUpdatedAt: cache?.updatedAt ?? null,

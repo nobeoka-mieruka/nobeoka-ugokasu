@@ -16,12 +16,36 @@ export interface SocialPostsCache {
   signature?: string;
 }
 
+/**
+ * 取得失敗の種類（画面・ログに出してよい分類だけ。SNS側のエラーメッセージ本文は保存しない）
+ * ・token_expired     … アクセストークンの期限切れ・無効（Meta Graph API のエラーコード190）。管理者によるトークン更新が必要
+ * ・permission_denied … 権限不足（コード10・200〜299）
+ * ・rate_limited      … 呼び出し回数の制限（コード4・17・32・613）。時間をおけば自然に回復する
+ * ・api_error         … その他のAPIエラー
+ * ・network_error     … 通信できなかった等、APIの応答を得られなかった
+ */
+export type SyncErrorKind = "token_expired" | "permission_denied" | "rate_limited" | "api_error" | "network_error";
+
+/** SNSごとの取得の記録 */
+export interface PlatformSyncRecord {
+  /** 最後に取得に成功した日時 */
+  lastSuccessAt: string | null;
+  /** 最後に取得に失敗した日時 */
+  lastFailureAt: string | null;
+  /** 現在失敗が続いている場合の種類（成功すると null に戻る） */
+  errorKind: SyncErrorKind | null;
+  /** 現在の失敗が始まった日時（成功すると null に戻る） */
+  failingSince: string | null;
+}
+
 export interface SocialSyncHeartbeat {
   /** 最後に同期を実行した日時（成功・失敗を問わない） */
   checkedAt: string;
   /** 最後にいずれかのSNSから取得が成功した日時 */
   lastSuccessAt: string | null;
   status: SocialFeedStatus;
+  /** SNSごとの記録（この項目を追加する前に保存された値には無い） */
+  platforms?: Partial<Record<keyof SocialFeedStatus, PlatformSyncRecord>>;
 }
 
 const DEFAULT_STATUS: SocialFeedStatus = { facebook: "not_configured", instagram: "not_configured", threads: "not_configured" };

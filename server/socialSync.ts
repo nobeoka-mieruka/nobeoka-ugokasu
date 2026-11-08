@@ -4,6 +4,7 @@ import { fetchFacebookPosts, fetchInstagramMedia } from "./metaClient";
 import { fetchThreadsPosts } from "./threadsClient";
 import { normalizeFacebookPost, normalizeInstagramMedia, normalizeThreadsPost } from "./normalize";
 import { postsSignature, readCache, readHeartbeat, writeCache, writeHeartbeat } from "./kv";
+import type { PlatformSyncRecord, SocialSyncHeartbeat, SyncErrorKind } from "./kv";
 import { mirrorPostImages } from "./socialImages";
 
 // プラットフォームごとの取得件数（既定6件）。SOCIAL_POST_LIMITで上書き可能。
@@ -35,6 +36,63 @@ export function dedupePosts(posts: SocialPost[]): SocialPost[] {
 }
 
 type PlatformOutcome = { attempted: boolean; posts: SocialPost[]; error: string | null };
+
+/**
+ * 取得失敗のエラー（metaClient・threadsClient が投げる "<sns>_api_error:{...}"）から種類を判定する。
+ * エラーメッセージの本文は使わず、Meta Graph API のエラーコードだけで判定する。
+ */
+export function classifySyncError(message: string): SyncErrorKind {
+  const match = /^[a-z]+_api_error:(\{.*\})$/s.exec(message);
+  if (!match) return "network_error";
+  let code: number | null = null;
+  try {
+    const detail = JSON.parse(match[1]) as { code?: unknown };
+    code = typeof detail.code === "number" ? detail.code : null;
+  } catch {
+    return "api_error";
+  }
+  // 190: アクセストークンの期限切れ・無効（サブコード463=期限切れ、460=パスワード変更、467=無効など）／102: セッション無効
+  if (code === 190 || code === 102) return "token_expired";
+  if (code === 10 || (code !== null && code >= 200 && code <= 299)) return "permission_denied";
+  if (code === 4 || code === 17 || code === 32 || code === 613) return "rate_limited";
+  return "api_error";
+}
+
+/**
+ * SNSごとの取得記録を更新する。
+ * 記録が無い（この項目を追加する前の）場合、そのSNSだけが連携対象なら、全体の最終成功日時をそのSNSの最終成功日時とみなす。
+ */
+function nextPlatformRecord(
+  previous: PlatformSyncRecord | undefined,
+  outcome: PlatformOutcome,
+  checkedAt: string,
+  seedLastSuccessAt: string | null,
+): PlatformSyncRecord | undefined {
+  if (!outcome.attempted) return previous;
+  const base: PlatformSyncRecord = previous ?? { lastSuccessAt: seedLastSuccessAt, lastFailureAt: null, errorKind: null, failingSince: null };
+  if (outcome.error === null) return { lastSuccessAt: checkedAt, lastFailureAt: base.lastFailureAt, errorKind: null, failingSince: null };
+  return {
+    lastSuccessAt: base.lastSuccessAt,
+    lastFailureAt: checkedAt,
+    errorKind: classifySyncError(outcome.error),
+    failingSince: base.failingSince ?? checkedAt,
+  };
+}
+
+function nextPlatformRecords(
+  previous: SocialSyncHeartbeat | null,
+  outcomes: Record<keyof SocialFeedStatus, PlatformOutcome>,
+  checkedAt: string,
+): SocialSyncHeartbeat["platforms"] {
+  const attemptedCount = Object.values(outcomes).filter((o) => o.attempted).length;
+  const seed = attemptedCount === 1 ? (previous?.lastSuccessAt ?? null) : null;
+  const result: NonNullable<SocialSyncHeartbeat["platforms"]> = {};
+  for (const platform of ["facebook", "instagram", "threads"] as const) {
+    const record = nextPlatformRecord(previous?.platforms?.[platform], outcomes[platform], checkedAt, seed);
+    if (record) result[platform] = record;
+  }
+  return result;
+}
 
 /** 1つのSNSの取得を実行する。例外はここで受け止め、他のSNSの処理へ影響させない */
 async function fetchPlatform(enabled: boolean, run: () => Promise<SocialPost[]>): Promise<PlatformOutcome> {
@@ -113,6 +171,7 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
   };
   const anySucceeded = succeeded(facebook) || succeeded(instagram) || succeeded(threads);
   const lastSuccessAt = anySucceeded ? checkedAt : (previousHeartbeat?.lastSuccessAt ?? null);
+  const platforms = nextPlatformRecords(previousHeartbeat, { facebook, instagram, threads }, checkedAt);
 
   const baseResult = {
     checkedAt,
@@ -128,7 +187,7 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
 
   if (!anySucceeded) {
     // 全SNSが未設定または失敗。保存済みの投稿は一切変更せず、実行状況だけを記録する。
-    await writeHeartbeat(env, { checkedAt, lastSuccessAt, status });
+    await writeHeartbeat(env, { checkedAt, lastSuccessAt, status, platforms });
     const noneAttempted = !facebook.attempted && !instagram.attempted && !threads.attempted;
     return {
       ok: false,
@@ -172,7 +231,7 @@ export async function runSocialSync(env: SocialSyncEnv): Promise<SocialSyncResul
   if (changed || statusChanged(previous?.status, status)) {
     await writeCache(env, mirrored.posts, status, signature);
   }
-  await writeHeartbeat(env, { checkedAt, lastSuccessAt, status });
+  await writeHeartbeat(env, { checkedAt, lastSuccessAt, status, platforms });
 
   return {
     ok: true,
@@ -212,6 +271,10 @@ export function summarizeForLog(result: SocialSyncResult): Record<string, unknow
     facebookError: result.facebookError,
     instagramError: result.instagramError,
     threadsError: result.threadsError,
+    // 失敗の種類（token_expired ならアクセストークンの更新が必要）
+    facebookErrorKind: result.facebookError ? classifySyncError(result.facebookError) : null,
+    instagramErrorKind: result.instagramError ? classifySyncError(result.instagramError) : null,
+    threadsErrorKind: result.threadsError ? classifySyncError(result.threadsError) : null,
     skippedReason: result.skippedReason ?? null,
   };
 }

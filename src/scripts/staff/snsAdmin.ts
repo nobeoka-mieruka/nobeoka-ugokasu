@@ -5,9 +5,19 @@ import { apiErrorMessage, showNotice, staffApi } from "./api";
 
 type Platform = "facebook" | "instagram" | "threads";
 type State = "ok" | "error" | "not_configured" | "not_synced";
+type ErrorKind = "token_expired" | "permission_denied" | "rate_limited" | "api_error" | "network_error";
 
 interface SnsStatus {
-  platforms: { platform: Platform; state: State; postCount: number }[];
+  platforms: {
+    platform: Platform;
+    state: State;
+    postCount: number;
+    errorKind: ErrorKind | null;
+    lastSuccessAt: string | null;
+    lastFailureAt: string | null;
+    failingSince: string | null;
+    latestPostAt: string | null;
+  }[];
   lastCheckedAt: string | null;
   lastSuccessAt: string | null;
   postsUpdatedAt: string | null;
@@ -22,6 +32,24 @@ const STATE_VIEW: Record<State, { text: string; classes: string[]; hint?: string
   error: { text: "エラー", classes: ["bg-red-50", "text-red-800", "ring-1", "ring-red-700"], hint: "直近の同期で取得に失敗しました。以前に取得できた投稿をそのまま表示しています。" },
   not_configured: { text: "未設定", classes: ["bg-black/5", "text-ink-soft"], hint: "連携に必要な設定が登録されていないため、同期していません。" },
   not_synced: { text: "未同期", classes: ["bg-brand-orange-light", "text-ink"], hint: "設定はありますが、まだ同期の記録がありません。" },
+};
+
+/** 失敗の種類ごとの案内（1行目は見出し） */
+const ERROR_VIEW: Record<ErrorKind, { badge: string; lines: string[] }> = {
+  token_expired: {
+    badge: "トークンの更新が必要",
+    lines: [
+      "アクセストークンの有効期限が切れているため、投稿を取得できません。",
+      "管理者がMetaでアクセストークンを再発行し、Cloudflare Pagesの環境変数（Metaのアクセストークン）を更新してください（手順：META_SOCIAL_SETUP.md の13章）。更新後は約3分以内に自動で取得が再開します。",
+    ],
+  },
+  permission_denied: {
+    badge: "権限の確認が必要",
+    lines: ["アクセストークンに必要な権限が付いていないため、投稿を取得できません。", "Metaでトークンの権限（pages_read_engagement など）を確認してください。"],
+  },
+  rate_limited: { badge: "一時的な制限", lines: ["SNS側の呼び出し回数の制限に達しました。時間をおくと自動で回復します。"] },
+  api_error: { badge: "エラー", lines: ["SNS側のエラーで取得に失敗しました。続く場合はサーバーログ（social-sync）を確認してください。"] },
+  network_error: { badge: "通信エラー", lines: ["SNSへ接続できませんでした。一時的な障害の可能性があります。続く場合はサーバーログを確認してください。"] },
 };
 
 const notice = document.querySelector<HTMLElement>("[data-staff-notice]");
@@ -57,9 +85,28 @@ function render(status: SnsStatus): void {
     const badge = card.querySelector<HTMLElement>('[data-sns-field="state"]')!;
     badge.className = "rounded-full px-3 py-1 text-xs font-bold";
     badge.classList.add(...view.classes);
-    badge.textContent = view.text;
-    card.querySelector('[data-sns-field="postCount"]')!.textContent = item.state === "not_configured" ? "—" : `${item.postCount}件`;
-    card.querySelector('[data-sns-field="checkedAt"]')!.textContent = item.state === "not_configured" ? "—" : formatDateTime(status.lastCheckedAt);
+    const errorView = item.state === "error" && item.errorKind ? ERROR_VIEW[item.errorKind] : null;
+    badge.textContent = errorView ? errorView.badge : view.text;
+    const off = item.state === "not_configured";
+    card.querySelector('[data-sns-field="postCount"]')!.textContent = off ? "—" : `${item.postCount}件`;
+    card.querySelector('[data-sns-field="checkedAt"]')!.textContent = off ? "—" : formatDateTime(status.lastCheckedAt);
+    card.querySelector('[data-sns-field="lastSuccessAt"]')!.textContent = off ? "—" : formatDateTime(item.lastSuccessAt);
+    card.querySelector('[data-sns-field="latestPostAt"]')!.textContent = off ? "—" : formatDateTime(item.latestPostAt);
+    const action = card.querySelector<HTMLElement>('[data-sns-field="action"]')!;
+    action.replaceChildren(
+      ...(errorView
+        ? [
+            ...errorView.lines.map((line, i) => {
+              const p = document.createElement("p");
+              p.textContent = line;
+              if (i === 0) p.className = "font-bold";
+              return p;
+            }),
+            ...(item.failingSince ? [Object.assign(document.createElement("p"), { textContent: `失敗が続いている期間：${formatDateTime(item.failingSince)} から` })] : []),
+          ]
+        : []),
+    );
+    action.classList.toggle("hidden", !errorView);
     const hint = card.querySelector<HTMLElement>('[data-sns-field="hint"]')!;
     hint.textContent = view.hint ?? "";
     hint.classList.toggle("hidden", !view.hint);

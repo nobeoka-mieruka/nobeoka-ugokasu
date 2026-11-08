@@ -25,7 +25,10 @@
     "test:events": "esbuild scripts/tests/events.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/events.test.mjs --log-level=warning && node --no-warnings .astro/test/events.test.mjs",
     "test:tasks": "esbuild scripts/tests/tasks.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/tasks.test.mjs --log-level=warning && node --no-warnings .astro/test/tasks.test.mjs",
     "test:sns-admin": "esbuild scripts/tests/sns-admin.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/sns-admin.test.mjs --log-level=warning && node --no-warnings .astro/test/sns-admin.test.mjs",
-    "test:documents": "esbuild scripts/tests/documents.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/documents.test.mjs --log-level=warning && node --no-warnings .astro/test/documents.test.mjs"
+    "test:documents": "esbuild scripts/tests/documents.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/documents.test.mjs --log-level=warning && node --no-warnings .astro/test/documents.test.mjs",
+    "test:page-announcements": "esbuild scripts/tests/page-announcements.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/page-announcements.test.mjs --log-level=warning && node --no-warnings .astro/test/page-announcements.test.mjs",
+    "test:news-rss": "esbuild scripts/tests/news-rss.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/news-rss.test.mjs --log-level=warning && node --no-warnings .astro/test/news-rss.test.mjs",
+    "test:site-health": "esbuild scripts/tests/site-health.test.ts --bundle --platform=node --format=esm --outfile=.astro/test/site-health.test.mjs --log-level=warning && node --no-warnings .astro/test/site-health.test.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

@@ -86,7 +86,7 @@ const status = async (env: Env, auth: Auth) => {
   const r = await call(env, "/staff/api/sns/status", auth);
   assert.equal(r.res.status, 200, r.text);
   assertNoSecrets(r.text, "状態API");
-  return (r.json as { status: { platforms: { platform: string; state: string; postCount: number }[]; lastCheckedAt: string | null; recentPosts: { title: string }[]; manualSyncAvailableAt: number | null } }).status;
+  return (r.json as { status: { platforms: { platform: string; state: string; postCount: number; errorKind: string | null; lastFailureAt: string | null; failingSince: string | null }[]; lastCheckedAt: string | null; recentPosts: { title: string }[]; manualSyncAvailableAt: number | null } }).status;
 };
 const sync = (env: Env, auth: Auth, extra: Record<string, unknown> = {}) => call(env, "/staff/api/sns/sync", { method: "POST", body: {}, ...auth, ...extra });
 const auditRows = async (env: Env) => {
@@ -194,7 +194,13 @@ await test("6. 同期に失敗した場合は「失敗」だけを返し、API�
   assertNoSecrets(r.text, "同期API（失敗時）");
   assert.ok(!r.text.includes("Invalid OAuth"), "SNS側のエラー文を返さない");
   assert.equal((r.json as { synced: boolean }).synced, false);
-  assert.equal((await status(env, auth)).platforms[0].state, "error");
+  const afterFailure = await status(env, auth);
+  assert.equal(afterFailure.platforms[0].state, "error");
+  // エラーコード190（トークン無効・期限切れ）は「トークンの更新が必要」と表示するための分類だけを返す（エラー文は返さない）
+  assert.equal(afterFailure.platforms[0].errorKind, "token_expired");
+  assert.ok(afterFailure.platforms[0].lastFailureAt && afterFailure.platforms[0].failingSince);
+  assertNoSecrets(JSON.stringify(afterFailure), "状態API（失敗時）");
+  assert.ok(!JSON.stringify(afterFailure).includes("Invalid OAuth"));
   const audit = await auditRows(env);
   assert.deepEqual(JSON.parse(audit[0].detail), { ok: false, facebook: 0, instagram: 0, threads: 0 });
   assertNoSecrets(JSON.stringify(audit), "操作ログ");
