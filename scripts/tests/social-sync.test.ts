@@ -7,7 +7,8 @@
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import type { SocialSyncEnv } from "../../server/env";
-import { runSocialSync } from "../../server/socialSync";
+import { classifySyncError, runSocialSync, summarizeForLog } from "../../server/socialSync";
+import { readHeartbeat } from "../../server/kv";
 import { getSocialFeed } from "../../server/socialFeed";
 import { readImageSize } from "../../server/socialImages";
 import { onRequestGet as socialImageGet } from "../../functions/api/social-image";
@@ -210,6 +211,53 @@ await test("Facebook取得失敗時は直前の投稿と保存済み画像を引
   const carried = third.posts.find((p) => p.id === "page_1")!;
   assert.match(carried.localImage!.src, /facebook_page_1_/);
   assert.equal(imageFetches.length, before, "引き継いだ投稿の期限切れURLを再取得していない");
+});
+
+await test("トークン期限切れ（エラー190・463）を判定し、SNSごとに失敗・成功日時を記録する（秘密情報は保存しない）", async () => {
+  const heartbeat = (await readHeartbeat(env))!;
+  const fb = heartbeat.platforms!.facebook!;
+  assert.equal(fb.errorKind, "token_expired");
+  assert.equal(fb.lastFailureAt, heartbeat.checkedAt);
+  assert.equal(fb.failingSince, heartbeat.checkedAt);
+  assert.ok(fb.lastSuccessAt && fb.lastSuccessAt < heartbeat.checkedAt, "最後に成功した日時は前回の成功のまま");
+  assert.equal(heartbeat.platforms!.threads!.errorKind, null);
+  assert.equal(heartbeat.platforms!.threads!.lastSuccessAt, heartbeat.checkedAt);
+  const stored = JSON.stringify([...kv.store.values()].map((e) => e.value).filter((v) => typeof v === "string"));
+  assert.ok(!stored.includes("Session has expired") && !stored.includes("TOKEN_SHOULD_NEVER_APPEAR"));
+});
+
+await test("失敗が続いても、失敗の開始日時は最初の失敗のまま", async () => {
+  const since = (await readHeartbeat(env))!.platforms!.facebook!.failingSince;
+  await new Promise((r) => setTimeout(r, 5));
+  const result = await silence(() => runSocialSync(env));
+  const fb = (await readHeartbeat(env))!.platforms!.facebook!;
+  assert.equal(fb.failingSince, since);
+  assert.equal(fb.lastFailureAt, result.checkedAt);
+  assert.equal(summarizeForLog(result).facebookErrorKind, "token_expired");
+});
+
+await test("トークン更新後は、既存の取得処理だけで自動復旧する（状態・記録が正常に戻る）", async () => {
+  facebookMode = "ok";
+  const result = await silence(() => runSocialSync(env));
+  assert.equal(result.status.facebook, "ok");
+  assert.ok(result.posts.some((p) => p.id === "page_1"));
+  const fb = (await readHeartbeat(env))!.platforms!.facebook!;
+  assert.deepEqual([fb.errorKind, fb.failingSince, fb.lastSuccessAt], [null, null, result.checkedAt]);
+  assert.ok(fb.lastFailureAt && fb.lastFailureAt < result.checkedAt, "最後の失敗日時は記録として残る");
+  facebookMode = "error";
+});
+
+await test("エラーの種類の判定（エラーコードだけで判定する）", () => {
+  const e = (code: number, sns = "facebook") => `${sns}_api_error:${JSON.stringify({ httpStatus: 400, type: "OAuthException", code, subcode: null, message: "x" })}`;
+  assert.equal(classifySyncError(e(190)), "token_expired");
+  assert.equal(classifySyncError(e(190, "threads")), "token_expired");
+  assert.equal(classifySyncError(e(10)), "permission_denied");
+  assert.equal(classifySyncError(e(200)), "permission_denied");
+  assert.equal(classifySyncError(e(4)), "rate_limited");
+  assert.equal(classifySyncError(e(613)), "rate_limited");
+  assert.equal(classifySyncError(e(1)), "api_error");
+  assert.equal(classifySyncError("fetch failed"), "network_error");
+  assert.equal(classifySyncError("facebook_api_error:{broken"), "network_error");
 });
 
 // ---- 全SNS失敗 ----

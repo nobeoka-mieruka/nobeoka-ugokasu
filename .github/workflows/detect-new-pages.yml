@@ -1,0 +1,90 @@
+# =============================================================
+# 新しく公開されたページを検知し、「最新のお知らせ」の下書きを作る
+# =============================================================
+# 流れ（詳しくは docs/news-auto-detect.md）
+#   1. mainへpushされると起動する（Cloudflare Pagesのビルドと並行して動く）
+#   2. 本番サイトの /build-version.json が、pushしたコミットになるまで待つ
+#      （＝Cloudflare Pagesへのデプロイが実際に完了したことを確認する。push成功だけでは判定しない）
+#   3. 本番の /api/admin/detect-new-pages を呼ぶ。サイトマップに新しく増えたページがあれば、
+#      執行部ポータルに「下書き（非公開）」のお知らせができる。公開は執行部が確認してから行う
+#
+# 安全対策
+#   ・このワークフローはコミットもデプロイもしない（D1に下書きを書くだけ）。自分自身を再び起動することはない
+#   ・同じページの下書きは1件だけ（再実行しても二重に作られない）
+#   ・待つのは最大20分。デプロイが終わらない・失敗した場合は何もせず、警告を残して終了する
+#     （次のpushで、その時点までに増えたページがまとめて検知される）
+#   ・一時的な通信エラーは、回数と間隔を決めて再試行する。無限に再試行はしない
+#
+# 必要な設定（本番導入時に設定する。未設定の間は何もしない）
+#   GitHub → Settings → Secrets and variables → Actions
+#     NEWS_DETECT_SECRET : Cloudflare Pagesの環境変数 NEWS_DETECT_SECRET と同じ値
+
+name: Detect new pages
+
+on:
+  push:
+    branches: [main]
+  # 手動実行（Actionsタブの「Run workflow」）
+  workflow_dispatch:
+    inputs:
+      record_only:
+        description: "増えたページを記録するだけで、下書きは作らない（要確認ページを確認し終えたとき）"
+        type: boolean
+        default: false
+
+# GitHubの権限は読み取りだけ（リポジトリへの書き込みはしない）
+permissions:
+  contents: read
+
+concurrency:
+  group: detect-new-pages
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: 本番へのデプロイ完了を待ち、新しいページを検知する
+        env:
+          SITE_URL: https://nobeoka-ugokasu.pages.dev
+          SECRET: ${{ secrets.NEWS_DETECT_SECRET }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+          RECORD_ONLY: ${{ github.event.inputs.record_only == 'true' }}
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [ -z "$SECRET" ]; then
+            echo "::warning::NEWS_DETECT_SECRET が未設定のため、検知をスキップしました。"
+            exit 0
+          fi
+
+          # 手動実行のときは、公開中のコミットを問わない（すでに公開済みのサイトを調べる）
+          if [ "$MANUAL" = "true" ]; then EXPECTED_COMMIT=""; fi
+
+          # 最大40回（30秒おき＝約20分）。デプロイ完了前は 409 が返る
+          for attempt in $(seq 1 40); do
+            status=$(curl -s -o result.json -w '%{http_code}' --max-time 60 \
+              -X POST "$SITE_URL/api/admin/detect-new-pages" \
+              -H "Authorization: Bearer $SECRET" \
+              -H "Content-Type: application/json" \
+              -d "{\"expectedCommit\":\"$EXPECTED_COMMIT\",\"recordOnly\":$RECORD_ONLY}" || echo "000")
+            case "$status" in
+              200)
+                node -e '
+                  const r = require("./result.json");
+                  console.log(`状態: ${r.status} / 公開中のコミット: ${r.liveCommit} / 対象ページ: ${r.pageCount}`);
+                  for (const d of r.drafted) console.log(`::notice::お知らせの下書きを作成しました: ${d.path} 「${d.title}」（執行部ポータルで確認してください）`);
+                  for (const n of r.needsReview) console.log(`::warning::要確認: ${n.path} … ${n.reason}`);
+                '
+                exit 0 ;;
+              409)
+                echo "($attempt/40) 本番はまだ以前のコミットです。30秒後にもう一度確認します。" ;;
+              401|503)
+                echo "::error::検知を実行できませんでした (HTTP $status)。秘密キーまたはD1の設定を確認してください。"
+                exit 1 ;;
+              *)
+                echo "($attempt/40) 一時的なエラー (HTTP $status)。30秒後に再試行します。" ;;
+            esac
+            sleep 30
+          done
+          echo "::warning::20分以内に本番への反映を確認できなかったため、検知しませんでした。Cloudflare Pagesのデプロイ状況を確認してください（次のpush時にまとめて検知されます）。"

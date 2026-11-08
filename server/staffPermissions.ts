@@ -19,7 +19,8 @@ export type StaffPermission =
   | "sns:read"
   | "sns:write"
   | "documents:read"
-  | "documents:write";
+  | "documents:write"
+  | "status:read";
 export type StaffRole = "admin";
 
 const ROLE_PERMISSIONS: Record<StaffRole, readonly StaffPermission[]> = {
@@ -36,6 +37,7 @@ const ROLE_PERMISSIONS: Record<StaffRole, readonly StaffPermission[]> = {
     "sns:write",
     "documents:read",
     "documents:write",
+    "status:read",
   ],
 };
 

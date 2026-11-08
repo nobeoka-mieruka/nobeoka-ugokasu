@@ -32,7 +32,17 @@ function renderCard(item: NewsItemRecord): HTMLElement {
   setText(card, "order", String(item.displayOrder));
   if (item.sourceKey) {
     // イベント管理から掲載したお知らせは、イベントを編集すると内容が上書きされる
-    setText(card, "source", item.sourceKey.startsWith("event:") ? "イベント管理から掲載したお知らせです（内容はイベントの編集に合わせて更新されます）" : "既存のお知らせから移行したデータです");
+    setText(
+      card,
+      "source",
+      item.sourceKey.startsWith("event:")
+        ? "イベント管理から掲載したお知らせです（内容はイベントの編集に合わせて更新されます）"
+        : item.sourceKey.startsWith("page:")
+          ? item.isPublished
+            ? "新しいページの公開を自動で検知して作成したお知らせです"
+            : "【確認待ち】新しいページの公開を自動で検知した下書きです。内容と掲載日を確認してから公開してください"
+          : "既存のお知らせから移行したデータです",
+    );
     card.querySelector('[data-field="source"]')?.classList.remove("hidden");
   }
 

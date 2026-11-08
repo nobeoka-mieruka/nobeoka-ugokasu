@@ -47,7 +47,10 @@ const termClass = "flex-shrink-0 whitespace-nowrap text-xs font-bold text-ink-so
             <dl class="space-y-2 text-sm text-ink">
               <div class="flex gap-3"><dt class={termClass}>保存済みの投稿</dt><dd data-sns-field="postCount">—</dd></div>
               <div class="flex gap-3"><dt class={termClass}>最終同期</dt><dd data-sns-field="checkedAt">—</dd></div>
+              <div class="flex gap-3"><dt class={termClass}>最終取得成功</dt><dd data-sns-field="lastSuccessAt">—</dd></div>
+              <div class="flex gap-3"><dt class={termClass}>最新の投稿</dt><dd data-sns-field="latestPostAt">—</dd></div>
             </dl>
+            <div data-sns-field="action" role="alert" class="hidden rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-700 space-y-1"></div>
             <p data-sns-field="hint" class="hidden text-sm text-ink-soft"></p>
             <div class="mt-auto pt-2">
               {platform.url ? (

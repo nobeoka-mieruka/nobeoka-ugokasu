@@ -7,7 +7,7 @@
 import type { IconName } from "../types/icon";
 
 export interface StaffSection {
-  key: "top" | "dialogue" | "news" | "events" | "tasks" | "sns" | "documents";
+  key: "top" | "dialogue" | "news" | "events" | "tasks" | "sns" | "documents" | "status";
   /** ナビゲーションでの表示名 */
   label: string;
   /** ポータルTOPのカードの見出し・説明（TOP自身はカードを出さない） */
@@ -67,6 +67,14 @@ export const STAFF_SECTIONS: readonly StaffSection[] = [
     description: "Google Drive などにある執行部の資料へのリンクの整理",
     icon: "document",
     href: "/staff/documents/",
+  },
+  {
+    key: "status",
+    label: "サイトの状態",
+    cardTitle: "サイトの状態",
+    description: "本番デプロイ・お知らせ・SNS取得・RSSの状態を「正常／要確認／失敗」で確認",
+    icon: "check",
+    href: "/staff/status/",
   },
 ];
 

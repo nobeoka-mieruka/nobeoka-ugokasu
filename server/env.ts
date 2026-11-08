@@ -86,6 +86,17 @@ export interface DialogueEnv {
   STAFF_DB?: D1Database;
 }
 
+/**
+ * 新しいページの公開検知（/api/admin/detect-new-pages）の設定です。
+ * GitHub Actions（.github/workflows/detect-new-pages.yml）だけが呼び出します。
+ */
+export interface PageDetectEnv extends AssetsEnv {
+  /** お知らせの下書きを保存するD1（執行部ポータルと同じ。binding名: STAFF_DB） */
+  STAFF_DB?: D1Database;
+  /** 呼び出しを認証する秘密キー（GitHubのSecret NEWS_DETECT_SECRET と同じ値）。未設定の間は誰も実行できない */
+  NEWS_DETECT_SECRET?: string;
+}
+
 /** 静的ファイル（ビルド成果物）を取得するためのPages標準バインディング */
 export interface AssetsEnv {
   ASSETS: Fetcher;
