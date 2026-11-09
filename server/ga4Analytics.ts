@@ -533,7 +533,11 @@ const memoryCache = new Map<string, { value: string; expiresAt: number }>();
 export function resetGa4Caches(): void {
   memoryCache.clear();
   tokenCache.clear();
+  urlPathWarned = false;
 }
+
+/** GA4_PROXY_URL のパスを外したことを、同じ Worker の中で1回だけログに出す */
+let urlPathWarned = false;
 
 export function reportCacheKey(propertyId: string, range: AnalyticsRange): string {
   return `ga4-analytics:report:v1:${propertyId}:${range.key}:${range.start}:${range.end}`;
@@ -584,6 +588,11 @@ export async function getAnalyticsReport(env: Ga4Env, range: AnalyticsRange, dep
   // 中継の設定（GA4_PROXY_URL・GA4_PROXY_SECRET）があれば中継方式、無ければ従来の鍵方式
   const proxy = readGa4ProxyConfig(env);
   if (proxy.kind === "invalid") return { ok: true, configured: false, issue: proxy.issue };
+  if (proxy.kind === "ok" && proxy.config.urlPathIgnored && !urlPathWarned) {
+    urlPathWarned = true;
+    // URL の値そのものは出さない。Cloudflare の GA4_PROXY_URL を https://ホスト名 だけに直すと、この記録は出なくなる
+    console.log(JSON.stringify({ event: "ga4-proxy-config-warning", issue: "url_path_ignored" }));
+  }
   let keyConfig: Ga4Config | null = null;
   if (proxy.kind === "none") {
     const setting = readGa4Config(env);

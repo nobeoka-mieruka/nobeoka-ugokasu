@@ -14,7 +14,7 @@ Cloudflare には setup.sh から接続しないため、ここだけは管理�
 | 名前 | 値 |
 |---|---|
 | `GA4_PROPERTY_ID` | `546942310` |
-| `GA4_PROXY_URL` | setup.sh の最後に表示された Cloud Run の URL（`https://ga4-proxy-….a.run.app`） |
+| `GA4_PROXY_URL` | setup.sh の最後に表示された Cloud Run の URL（`https://ga4-proxy-….a.run.app`）。`/health-check` などのパスは付けません（付いていても自動で外しますが、ログに `url_path_ignored` が記録されます） |
 | `GA4_PROXY_SECRET` | 手順1でコピーした値 |
 
 4. 「保存」したら、**デプロイ** → 最新の本番デプロイの「…」→ **デプロイを再試行**（環境変数は次のデプロイから有効になります）。
@@ -66,7 +66,7 @@ Cloudflare の Functions のログ（`ga4-analytics-error`）にも、次の項�
 |---|---|
 | `method` | 失敗した要求（`batchRunReports`＝合計・日別・ページなど、`runReport`＝ボタンのクリック） |
 | `status` | 中継が返した HTTP の状態（401＝署名の不一致、404＝URL のパスの誤り、502＝GA4 の失敗、503・504＝Cloud Run 本体） |
-| `proxyError` | 中継のエラーの種類（`upstream_error` など）。`non_json`＝Cloud Run 本体のエラーページ、`empty_body`＝URL のパスの誤りが多い |
+| `proxyError` | 中継のエラーの種類（`upstream_error` など）。`non_json`＝Cloud Run 本体のエラーページ、`empty_body`＝中継が 404（要求先のパスの誤り）。Cloud Run のログの `ga4-proxy-rejected`（`reason: not_found`）に、届いたパスが記録されます |
 | `upstreamStatus` | GA4 が返した HTTP の状態（400＝要求の内容を受け付けない、403＝権限、429＝上限） |
 | `cause` | `timeout`＝15秒で応答なし、`fetch_failed`＝接続できない、`exception`＝プログラムの例外（`name` に例外の名前） |
 
