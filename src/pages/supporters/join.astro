@@ -72,6 +72,8 @@ const ruleSummaries = [
           target="_blank"
           rel="noopener noreferrer"
           class="btn-primary w-full sm:w-auto justify-center"
+          data-track="supporter_join_click"
+          data-track-type="intro"
         >
           後援会入会申込フォームを開く
           <Icon name="external-link" class="w-5 h-5" />
@@ -207,6 +209,8 @@ const ruleSummaries = [
                 target="_blank"
                 rel="noopener noreferrer"
                 class="btn-primary w-full sm:w-auto justify-center"
+                data-track="supporter_join_click"
+                data-track-type="form_area"
               >
                 後援会入会申込フォームを開く
                 <Icon name="external-link" class="w-5 h-5" />
@@ -227,7 +231,7 @@ const ruleSummaries = [
             )}
             <p class="mt-3 text-center text-sm text-ink-soft">
               フォームが正しく表示されない場合は、
-              <a href={supportersConfig.membershipFormUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink">
+              <a href={supportersConfig.membershipFormUrl} target="_blank" rel="noopener noreferrer" class="underline font-bold text-ink" data-track="supporter_join_click" data-track-type="fallback_link">
                 こちらから入会申込フォームを開いてください
                 <span class="sr-only">（新しいタブで開く）</span>
               </a>

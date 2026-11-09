@@ -97,6 +97,22 @@ export interface PageDetectEnv extends AssetsEnv {
   NEWS_DETECT_SECRET?: string;
 }
 
+/**
+ * 執行部ポータル「アクセス解析」（/staff/analytics/）がGA4 Data APIを読むための設定です。
+ * 3つともCloudflare Pagesの本番環境に「暗号化（Secret）」で登録します（手順は docs/analytics-dashboard.md）。
+ * どれかが未設定の間は、画面に設定手順だけを表示し、数値は表示しません。
+ */
+export interface AnalyticsEnv {
+  /** GA4のプロパティID（数字のみ。例: "123456789"）。G- で始まる測定ID（seoConfig.ga4Id）とは別の値 */
+  GA4_PROPERTY_ID?: string;
+  /** GA4プロパティに「閲覧者」として追加したサービスアカウントのメールアドレス */
+  GA4_SERVICE_ACCOUNT_EMAIL?: string;
+  /** サービスアカウントの秘密鍵（JSONキーの private_key。PEM形式。秘密情報） */
+  GA4_SERVICE_ACCOUNT_PRIVATE_KEY?: string;
+  /** 取得結果のキャッシュ先（SNS投稿と同じKVを、別のキーで使う）。無い場合はWorkerのメモリ上にキャッシュする */
+  SOCIAL_POSTS_KV?: KVNamespace;
+}
+
 /** 静的ファイル（ビルド成果物）を取得するためのPages標準バインディング */
 export interface AssetsEnv {
   ASSETS: Fetcher;

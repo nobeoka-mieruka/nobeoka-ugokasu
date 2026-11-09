@@ -90,7 +90,7 @@ function setupAutoClickTracking(): void {
         return;
       }
       if (voicesConfig.googleFormUrl && href.startsWith(voicesConfig.googleFormUrl)) {
-        trackOutboundClick("voice_form_click", href, linkText);
+        trackOutboundClick("voices_form_click", href, linkText);
         return;
       }
       if (supportersConfig.membershipFormUrl && href.startsWith(supportersConfig.membershipFormUrl)) {
