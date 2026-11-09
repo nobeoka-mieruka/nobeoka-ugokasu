@@ -6,6 +6,8 @@ import LastUpdated from "../../components/LastUpdated.astro";
 import RelatedContent from "../../components/RelatedContent.astro";
 import { articleSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
+import { siteConfig } from "../../config/siteConfig";
+import { seoConfig } from "../../config/seoConfig";
 
 export async function getStaticPaths() {
   const entries = await getCollection("news", ({ data }) => data.published);
@@ -36,6 +38,10 @@ const schemas = [
     description,
     datePublished: entry.data.date,
     dateModified: entry.data.updatedDate,
+    // Google の記事の構造化データで推奨される image。このページの OGP 画像（og:image）と同じものを指定する
+    image: siteConfig.defaultOgpImage,
+    imageWidth: seoConfig.ogpImageWidth,
+    imageHeight: seoConfig.ogpImageHeight,
   }),
   buildBreadcrumbList(breadcrumbItems),
 ];

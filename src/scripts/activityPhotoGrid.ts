@@ -65,7 +65,7 @@ export function createSocialPhotoCardElement(post: SocialPost): HTMLElement | nu
   card.dataset.photoCategory = resolvePhotoCategory(post.id, `${post.title} ${post.description}`);
   card.dataset.photoPermalink = post.permalink;
   card.dataset.photoDate = post.publishedAt;
-  card.setAttribute("aria-label", `${meta.label}の元の投稿を見る`);
+  // aria-label は付けない（カード内の見えている文字＝タイトル・説明・「…で投稿を見る」がそのまま読み上げ名になる。WCAG 2.5.3）
 
   const mediaBox = el("div", "aspect-[4/3] w-full overflow-hidden bg-brand-orange-light");
   const img = document.createElement("img");
@@ -118,6 +118,15 @@ let fallbackRegistered = false;
  * アイコンを残さず、カードごと非表示にする。SSR済みの<img>・ここで動的に追加した<img>の
  * 両方に、イベント委譲で一括対応する（複数回呼ばれても登録は1回だけ）。
  */
+/**
+ * カードを画面からも読み上げ・キーボード操作の対象からも外す。
+ * aria-hidden だけではカード（リンク）にフォーカスが残るため使わず、display:none にする（WCAG 4.1.2）。
+ */
+function hideCard(card: HTMLElement) {
+  card.classList.add("hidden");
+  card.style.display = "none";
+}
+
 export function registerSocialPhotoFallback() {
   if (fallbackRegistered) return;
   fallbackRegistered = true;
@@ -127,8 +136,7 @@ export function registerSocialPhotoFallback() {
   document.querySelectorAll<HTMLImageElement>("img[data-social-photo]").forEach((img) => {
     if (!img.complete || img.naturalWidth > 0) return;
     const card = img.closest<HTMLElement>("[data-photo-card]");
-    card?.classList.add("hidden");
-    card?.setAttribute("aria-hidden", "true");
+    if (card) hideCard(card);
   });
 
   document.addEventListener(
@@ -138,8 +146,7 @@ export function registerSocialPhotoFallback() {
       if (!(img instanceof HTMLImageElement) || !img.matches("[data-social-photo]")) return;
       const card = img.closest<HTMLElement>("[data-photo-card]");
       if (!card) return;
-      card.classList.add("hidden");
-      card.setAttribute("aria-hidden", "true");
+      hideCard(card);
     },
     true,
   );
