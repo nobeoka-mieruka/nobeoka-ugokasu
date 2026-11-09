@@ -1,0 +1,2 @@
+# Cloud Shell・コンテナで使うため、このフォルダは改行をLFに固定する（CRLFだと bash が動かない）
+* text eol=lf
