@@ -381,7 +381,6 @@ await test("14. 通しの確認：認証失敗・GA4の失敗・中継が止ま�
     ["メタデータサーバーの失敗", fakeGoogle({ metadataStatus: 500 }), {}, "api_forbidden", { status: 502, proxyError: "token_unavailable" }],
     ["GA4の上限", fakeGoogle({ dataStatus: 429 }), {}, "rate_limited", { status: 429, proxyError: "upstream_rate_limited", upstreamStatus: 429 }],
     ["GA4の障害", fakeGoogle({ dataStatus: 500 }), {}, "api_error", { status: 502, proxyError: "upstream_error", upstreamStatus: 500 }],
-    ["URL のパスの誤り", fakeGoogle(), {}, "api_error", { status: 404, proxyError: "empty_body" }, "/wrong-path"],
   ];
   for (const [label, google, extra, kind, detail, suffix] of cases) {
     resetGa4Caches();
@@ -777,6 +776,77 @@ await test("28. diagnose.sh：読み取りだけ（作成・変更・削除・�
   assert.match(code, /unset PROXY_TEST_SECRET/);
   const bash = spawnSync("bash", ["-n", `${RELAY_DIR}/scripts/diagnose.sh`]);
   if (!bash.error) assert.equal(bash.status, 0, "diagnose.sh の構文");
+});
+
+await test("29. 再発防止：GA4_PROXY_URL にパスが付いていても、中継の直下（/v1/…）へ送る。URL の値はログに出さない", async () => {
+  // 設定の読み取り：送り先は https://ホスト名 だけ。ホスト・https の検査は今まで通り
+  const env = (url: string) => ({ GA4_PROPERTY_ID: PROPERTY_ID, GA4_PROXY_URL: url, GA4_PROXY_SECRET: SECRET });
+  for (const url of [
+    "https://ga4-proxy-abc.a.run.app/health-check",
+    "https://ga4-proxy-abc.a.run.app/health-check/",
+    "https://ga4-proxy-abc.a.run.app/v1",
+    "https://ga4-proxy-abc.a.run.app/v1/runReport",
+    "https://ga4-proxy-abc.a.run.app//",
+  ]) {
+    assert.deepEqual(
+      readGa4ProxyConfig(env(url)),
+      { kind: "ok", config: { propertyId: PROPERTY_ID, baseUrl: "https://ga4-proxy-abc.a.run.app", secret: SECRET, urlPathIgnored: true } },
+      url,
+    );
+  }
+  for (const url of ["https://ga4-proxy-abc.a.run.app", "https://ga4-proxy-abc.a.run.app/"]) {
+    assert.deepEqual(readGa4ProxyConfig(env(url)), { kind: "ok", config: { propertyId: PROPERTY_ID, baseUrl: "https://ga4-proxy-abc.a.run.app", secret: SECRET } }, url);
+  }
+  assert.deepEqual(readGa4ProxyConfig(env("http://ga4-proxy-abc.a.run.app/health-check")), { kind: "invalid", issue: "proxy_config" }, "http は今まで通り拒否");
+
+  // 通し：本番で起きた「method=runReport・status=404・proxyError=empty_body」と同じ設定で、取得できる
+  for (const suffix of ["/health-check", "/health-check/", "/v1"]) {
+    resetGa4Caches();
+    logs.lines.length = 0;
+    const google = fakeGoogle();
+    const proxy = await startProxy(google);
+    const proxyCalls: string[] = [];
+    const deps = { now: () => NOW, fetch: (input: string, init?: RequestInit) => (proxyCalls.push(String(input)), fetch(input, init)) };
+    try {
+      const result = (await getAnalyticsReport(cfEnv(proxy.url + suffix), range7(), deps)) as Extract<AnalyticsApiResponse, { cached: boolean }>;
+      assert.equal(result.ok, true, suffix);
+      assert.deepEqual(proxyCalls.map((u) => new URL(u).pathname).sort(), ["/v1/batchRunReports", "/v1/runReport", "/v1/runReport"], suffix);
+      assert.ok(!proxy.lines.some((l) => l.includes("not_found")), `${suffix}: 中継で 404 にならない`);
+      // パスを外したことを1回だけ記録（URL の値・シークレットは出さない）
+      assert.deepEqual(logs.lines.map((l) => JSON.parse(l)), [{ event: "ga4-proxy-config-warning", issue: "url_path_ignored" }], suffix);
+      assert.ok(!logs.lines.join("\n").includes("127.0.0.1"), "URL の値を出さない");
+      assertNoSecrets(logs.lines.join("\n"), suffix);
+      await getAnalyticsReport(cfEnv(proxy.url + suffix), parseAnalyticsRange(new URLSearchParams("range=30d"), new Date(NOW))!, deps);
+      assert.equal(logs.lines.filter((l) => l.includes("url_path_ignored")).length, 1, "同じ Worker の中では1回だけ");
+    } finally {
+      await proxy.close();
+    }
+  }
+  // パスの無い正しい URL では記録しない
+  resetGa4Caches();
+  logs.lines.length = 0;
+  const proxy = await startProxy(fakeGoogle());
+  try {
+    assert.equal((await getAnalyticsReport(cfEnv(proxy.url), range7(), { now: () => NOW })).ok, true);
+    assert.deepEqual(logs.lines, []);
+  } finally {
+    await proxy.close();
+  }
+});
+
+await test("30. 中継の 404：方式とパスを短く記録（1分に1件。記号は ? に置き換え）。応答は今まで通り本文なし", async () => {
+  const lines: string[] = [];
+  const proxy = createProxy(baseConfig(), { fetch: fakeGoogle().fetchFn, now: () => NOW, log: (e: unknown) => lines.push(JSON.stringify(e)) });
+  const wrong = await proxy.handle(await signed("/health-check/v1/runReport", REPORT_BODY));
+  assert.deepEqual(wrong, { status: 404, body: "" });
+  assert.deepEqual(JSON.parse(lines[0]), { event: "ga4-proxy-rejected", reason: "not_found", method: "POST", path: "/health-check/v1/runReport" });
+  await proxy.handle({ method: "GET", path: `/x"<script>${"a".repeat(200)}`, headers: {}, body: "" });
+  assert.equal(lines.length, 1, "同じ1分の間は件数だけ数える");
+  const other = createProxy(baseConfig(), { fetch: fakeGoogle().fetchFn, now: () => NOW, log: (e: unknown) => lines.push(JSON.stringify(e)) });
+  await other.handle({ method: "GET", path: `/x"<script>${"a".repeat(200)}`, headers: {}, body: "" });
+  const logged = JSON.parse(lines.at(-1)!);
+  assert.ok(logged.path.length <= 80 && !/[<>"]/.test(logged.path), logged.path);
+  assertNoSecrets(lines.join("\n"), "404 のログ");
 });
 
 done();

@@ -17,9 +17,11 @@ const REQUEST_TIMEOUT_MS = 15_000;
 
 export interface Ga4ProxyConfig {
   propertyId: string;
-  /** 中継の URL（末尾の / なし。例: https://ga4-proxy-xxxx.a.run.app） */
+  /** 中継の URL（https://ホスト名 だけ。パスは含めない。例: https://ga4-proxy-xxxx.a.run.app） */
   baseUrl: string;
   secret: string;
+  /** GA4_PROXY_URL にパスが付いていたので外した（ログで知らせるため。URL の値そのものは記録しない） */
+  urlPathIgnored?: true;
 }
 
 export type Ga4ProxySetting =
@@ -51,7 +53,12 @@ export function readGa4ProxyConfig(env: AnalyticsEnv): Ga4ProxySetting {
   if (!schemeOk || url.username || url.password || url.search || url.hash || secret.length < MIN_PROXY_SECRET_LENGTH) {
     return { kind: "invalid", issue: "proxy_config" };
   }
-  return { kind: "ok", config: { propertyId, baseUrl: url.origin + url.pathname.replace(/\/+$/, ""), secret } };
+  // 中継（services/ga4-proxy）はサービスの直下（/v1/runReport・/v1/batchRunReports）だけで受け付ける。
+  // URL にパス（例：稼働確認の /health-check をコピーしたもの）が付いていると、要求先が
+  // /health-check/v1/runReport などになり、中継が 404（本文なし）を返して「未取得」になるため、
+  // パスは使わずに https://ホスト名 だけを使う（送り先のホストは変わらないので安全性は同じ）。
+  const urlPathIgnored = url.pathname !== "/" && url.pathname !== "";
+  return { kind: "ok", config: { propertyId, baseUrl: url.origin, secret, ...(urlPathIgnored ? { urlPathIgnored: true } : {}) } };
 }
 
 const encoder = new TextEncoder();

@@ -137,6 +137,9 @@ export class NonceStore {
   }
 }
 
+/** ログに残す短い文字列（英数字と / _ . - 以外は ? に置き換え、長さを切る） */
+const safeLogText = (value, max) => String(value ?? "").slice(0, max).replace(/[^A-Za-z0-9/_.-]/g, "?");
+
 const reply = (status, payload) => ({ status, body: payload === undefined ? "" : JSON.stringify(payload) });
 
 /** ログ用の GA4 エラーの要約の最大文字数 */
@@ -179,13 +182,13 @@ export function createProxy(config, deps = {}) {
   let token = null;
   // 署名の失敗が大量に来てもログが膨らまないよう、1分ごとに件数だけをまとめて出す
   const rejected = { minute: -1, count: 0 };
-  const noteRejected = (reason, nowMs) => {
+  const noteRejected = (reason, nowMs, detail = {}) => {
     const minute = Math.floor(nowMs / 60_000);
     if (rejected.minute !== minute) {
       if (rejected.count > 0) log({ event: "ga4-proxy-rejected-summary", count: rejected.count });
       rejected.minute = minute;
       rejected.count = 0;
-      log({ event: "ga4-proxy-rejected", reason });
+      log({ event: "ga4-proxy-rejected", reason, ...detail });
     }
     rejected.count++;
   };
@@ -220,7 +223,11 @@ export function createProxy(config, deps = {}) {
     // そのため稼働確認は /health-check を使う（setup.sh・remote-check.mjs・selftest.mjs・テストと同じパス）。
     if (request.method === "GET" && request.path === HEALTH_CHECK_PATH) return { status: 204, body: "" };
     const match = /^\/v1\/([A-Za-z]+)$/.exec(request.path);
-    if (request.method !== "POST" || !match || !ALLOWED_METHODS.has(match[1])) return reply(404);
+    if (request.method !== "POST" || !match || !ALLOWED_METHODS.has(match[1])) {
+      // 呼び出し元の URL の誤り（例：GA4_PROXY_URL にパスが付いている）を調べられるよう、方式とパスを短く残す（1分に1件）
+      noteRejected("not_found", nowMs, { method: safeLogText(request.method, 10), path: safeLogText(request.path, 80) });
+      return reply(404);
+    }
     const method = match[1];
     const headers = request.headers ?? {};
     const body = Buffer.isBuffer(request.body) ? request.body : Buffer.from(request.body ?? "", "utf8");
