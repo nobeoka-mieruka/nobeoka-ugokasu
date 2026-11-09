@@ -49,7 +49,7 @@
   textarea:focus-visible,
   select:focus-visible,
   summary:focus-visible {
-    outline: 3px solid #D9530B;
+    outline: 3px solid #BF4708;
     outline-offset: 2px;
   }
 
@@ -68,11 +68,13 @@
   /*
    * ボタンの文字サイズはtext-xl（20px）にしています。
    * WCAGの文字コントラスト基準は、太字18.66px以上の「大きな文字」であれば3:1、
-   * それ未満は4.5:1が必要です。濃いオレンジ(#D9530B)と白の組み合わせは
-   * 4.04:1のため、20px太字にすることで基準を満たしています（Lighthouse検証済み）。
+   * それ未満は4.5:1が必要です。濃いオレンジ(brand-orange-dark: #BF4708)は
+   * 白・薄いオレンジ・アイボリーのどの背景とも4.5:1以上になる色にしています
+   * （白5.10:1、#FFF0E3で4.57:1、#FFF9EFで4.87:1）。小さな文字のリンクにも使えます。
+   * ホバー時は明るくすると基準を下回るため、少し暗くします（brightness-90）。
    */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-orange-dark px-6 py-3 text-white text-xl font-bold shadow-sm transition-all hover:brightness-110;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-orange-dark px-6 py-3 text-white text-xl font-bold shadow-sm transition-all hover:brightness-90;
   }
 
   .btn-secondary {

@@ -18,11 +18,13 @@ import { ensureNewsSchema } from "./newsItems";
 export type HealthState = "ok" | "warning" | "error";
 
 /** 定期チェックから受け付けるチェックの種類 */
-export const MONITOR_CHECKS = ["deploy", "site_update", "rss"] as const;
+export const MONITOR_CHECKS = ["deploy", "site_update", "rss", "sns_build", "dialogue_form"] as const;
 export type MonitorCheckKey = (typeof MONITOR_CHECKS)[number];
 
 /** 定期チェックがこれより長く動いていなければ「要確認」（定期チェックは1時間ごと） */
 export const MONITOR_STALE_SECONDS = 3 * 60 * 60;
+/** SNSの定期取得（約3分ごと）がこれより長く動いていなければ「要確認」 */
+export const SNS_SYNC_STALE_SECONDS = 15 * 60;
 export const MONITOR_ACTOR = "system:site-monitor";
 const MONITOR_RUN_KEY = "monitor";
 const SUMMARY_MAX = 300;
@@ -183,6 +185,18 @@ async function readLiveBuild(env: SiteStatusEnv, origin: string): Promise<{ comm
   }
 }
 
+/** 公開中のビルドがどのSNSデータから作られたか（scripts/sync-social-posts.mjs が出力する /social-build-manifest.json） */
+async function readSnsBuildManifest(env: SiteStatusEnv, origin: string): Promise<{ generatedAt: string | null; count: number | null } | null> {
+  try {
+    const res = await env.ASSETS.fetch(new URL("/social-build-manifest.json", origin));
+    if (!res.ok) return null;
+    const body = (await res.json()) as { generatedAt?: unknown; count?: unknown };
+    return { generatedAt: typeof body.generatedAt === "string" ? body.generatedAt : null, count: typeof body.count === "number" ? body.count : null };
+  } catch {
+    return null;
+  }
+}
+
 async function readLatestFileNewsDate(env: SiteStatusEnv, origin: string): Promise<string | null> {
   try {
     const res = await env.ASSETS.fetch(new URL("/news/file-items.json", origin));
@@ -199,7 +213,7 @@ export async function readSiteStatus(env: SiteStatusEnv, origin: string, now = n
   const db = env.STAFF_DB;
   await ensureSchema(db);
   await ensureNewsSchema(db);
-  const [checkRows, newsRow, pendingRow, liveBuild, latestArticleDate, sns] = await Promise.all([
+  const [checkRows, newsRow, pendingRow, liveBuild, latestArticleDate, sns, snsBuild] = await Promise.all([
     db.prepare("SELECT check_key, status, summary, since, checked_at FROM site_health_checks").all<CheckRow>(),
     db.prepare("SELECT MAX(updated_at) AS updated_at FROM news_items WHERE deleted_at IS NULL").first<{ updated_at: number | null }>(),
     db
@@ -208,6 +222,7 @@ export async function readSiteStatus(env: SiteStatusEnv, origin: string, now = n
     readLiveBuild(env, origin),
     readLatestFileNewsDate(env, origin),
     env.SOCIAL_POSTS_KV ? readSnsStatus(env as SocialSyncEnv, db).catch(() => null) : Promise.resolve(null),
+    readSnsBuildManifest(env, origin),
   ]);
   const checks = new Map((checkRows.results ?? []).map((row) => [row.check_key, row]));
   const monitorRun = checks.get(MONITOR_RUN_KEY);
@@ -259,6 +274,36 @@ export async function readSiteStatus(env: SiteStatusEnv, origin: string, now = n
     at: facebook?.latestPostAt ?? null,
   });
 
+  // 「最終同期」「最新投稿」「最終ビルド」は別々の日時として表示する
+  //   最終同期   … SNSの定期取得（約3分ごと）を最後に実行した日時。閲覧者の画面（実行時API）はこの内容で最新になる
+  //   最終ビルド … 公開中のHTML（検索エンジンが読む内容）に含まれるSNS投稿を取り込んだ日時
+  const lastSync = sns?.lastCheckedAt ?? null;
+  const syncAgeSeconds = lastSync ? now - Math.floor(Date.parse(lastSync) / 1000) : null;
+  items.push({
+    key: "sns_last_sync",
+    label: "SNSの最終同期",
+    state: syncAgeSeconds !== null && syncAgeSeconds <= SNS_SYNC_STALE_SECONDS ? "ok" : "warning",
+    summary:
+      syncAgeSeconds === null
+        ? "SNSの定期取得の記録がありません。"
+        : syncAgeSeconds <= SNS_SYNC_STALE_SECONDS
+          ? "約3分ごとの定期取得を最後に実行した日時です（取得の成否は「SNS取得エラー」を参照）。"
+          : "SNSの定期取得が15分以上実行されていません。定期実行Worker（nobeoka-ugokasu-social-cron）を確認してください。",
+    at: lastSync,
+  });
+  items.push(
+    snsBuild?.generatedAt
+      ? {
+          key: "sns_build_time",
+          label: "SNSを反映した最終ビルド",
+          state: "ok",
+          summary: `公開中のHTML（検索エンジン向け）に含まれるSNS投稿（${snsBuild.count ?? "?"}件）を取り込んだ日時です。`,
+          at: snsBuild.generatedAt,
+        }
+      : { key: "sns_build_time", label: "SNSを反映した最終ビルド", state: "warning", summary: "公開中のビルドのSNS情報（/social-build-manifest.json）を読めませんでした。", at: null },
+  );
+  items.push(fromMonitor("sns_build", "SNSの公開中HTML（検索エンジン向け）"));
+
   const failing = (sns?.platforms ?? []).filter((p) => p.state === "error");
   items.push({
     key: "sns_errors",
@@ -283,6 +328,7 @@ export async function readSiteStatus(env: SiteStatusEnv, origin: string, now = n
   });
   items.push(fromMonitor("site_update", "サイト更新（自動処理）"));
   items.push(fromMonitor("rss", "RSS・お知らせ一覧の一致"));
+  items.push(fromMonitor("dialogue_form", "意見交換会の申込フォーム"));
   items.push({
     key: "monitor",
     label: "定期チェック",

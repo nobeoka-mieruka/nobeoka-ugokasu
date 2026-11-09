@@ -22,7 +22,19 @@ import {
 } from "../../server/siteHealth";
 import { onRequest as siteHealthApi } from "../../functions/api/admin/site-health";
 import * as siteStatusApi from "../../functions/staff/api/site-status";
-import { cardTitles, evaluateDeploy, evaluateRss, evaluateWorkflows, rssTitles } from "../monitor/site-check.mjs";
+import {
+  cardTitles,
+  dialoguePageAccepting,
+  evaluateDeploy,
+  evaluateDialogueForm,
+  evaluateRss,
+  evaluateSnsBuild,
+  evaluateWorkflows,
+  googleFormAccepting,
+  rssTitles,
+} from "../monitor/site-check.mjs";
+import { decideSocialRebuild } from "../social-rebuild.mjs";
+import { postsSignature } from "../social-signature.mjs";
 import { renderNewsRss } from "../../server/newsRss";
 import { renderHomeNews, renderNewsList } from "../../src/utils/newsCards";
 import type { NewsDisplayItem } from "../../src/types/news";
@@ -271,12 +283,92 @@ await test("11. RSSの一致の判定：実際の描画（RSS・お知らせ一�
 });
 
 await test("12. migration 0009：ファイルの定義が実行時の定義と一致し、CREATE … IF NOT EXISTS だけを含む（既存データを変えない）", () => {
-  const sql = readFileSync("migrations/0009_site_health_checks.sql", "utf8");
+  // Windowsで取り出すと改行が CRLF になるため、改行をそろえてから比べる
+  const sql = readFileSync("migrations/0009_site_health_checks.sql", "utf8").replace(/\r\n/g, "\n");
   const statements = sql.replace(/--.*$/gm, "").split(";").map((s) => s.trim()).filter(Boolean);
-  const norm = (s: string) => s.replace(/s+/g, " ").trim();
+  const norm = (s: string) => s.replace(/\s+/g, " ").trim();
   assert.deepEqual(statements.map(norm), [norm(SITE_HEALTH_SCHEMA_SQL[0])]);
   assert.ok(statements.every((s) => /^CREATE TABLE IF NOT EXISTS /.test(s)));
-  assert.ok(!/(DROP|DELETE|ALTER|UPDATE|INSERT)/i.test(sql.replace(/--.*$/gm, "")));
+  assert.ok(!/\b(DROP|DELETE|ALTER|UPDATE|INSERT)\b/i.test(sql.replace(/--.*$/gm, "")));
+});
+
+// ---- SNSの公開中HTML・意見交換会の申込フォーム（第2次改善） ----
+
+const feedOf = (ids: string[]) => ({
+  posts: ids.map((id) => ({ platform: "facebook", id, publishedAt: "2026-11-04T07:36:22+0000", title: `投稿${id}`, description: "", permalink: `https://www.facebook.com/p/${id}`, localImage: null, mediaCount: 1 })),
+});
+const NOW_MS = Date.parse("2026-11-09T03:00:00Z");
+const minutesAgo = (m: number) => new Date(NOW_MS - m * 60000).toISOString();
+
+await test("13. 再ビルドの判定：同じ計算の署名で比べ、一致なら何もしない。不一致でも直前のビルドから20分以内は再ビルドしない", () => {
+  const feed = feedOf(["1", "2"]);
+  const latest = postsSignature(feed.posts);
+  const match = decideSocialRebuild({ feed, manifest: { generatedAt: minutesAgo(90), signature: "x", feedSignature: latest }, now: NOW_MS });
+  assert.deepEqual([match.rebuild, match.state], [false, "match"]);
+  const stale = { generatedAt: minutesAgo(90), signature: "x", feedSignature: "old" };
+  assert.equal(decideSocialRebuild({ feed, manifest: stale, now: NOW_MS }).rebuild, true);
+  const fresh = { ...stale, generatedAt: minutesAgo(5) };
+  const waiting = decideSocialRebuild({ feed, manifest: fresh, now: NOW_MS });
+  assert.deepEqual([waiting.rebuild, waiting.state], [false, "waiting"], "ビルド直後は再ビルドを重ねない（無限ループ・重複ビルドの防止）");
+  assert.equal(decideSocialRebuild({ feed, manifest: fresh, now: NOW_MS, force: true }).rebuild, true, "手動の強制再ビルドは可能");
+  assert.equal(decideSocialRebuild({ feed: null, manifest: stale, now: NOW_MS }).rebuild, false, "本番APIを読めないときは再ビルドしない");
+  // 以前のビルド（feedSignature が無い）は signature で比べる
+  assert.equal(decideSocialRebuild({ feed, manifest: { generatedAt: minutesAgo(90), signature: latest }, now: NOW_MS }).state, "match");
+  assert.equal(decideSocialRebuild({ feed, manifest: null, now: NOW_MS }).rebuild, true, "公開中のビルドの記録が無ければ作り直す");
+});
+
+await test("14. SNSの公開中HTML：定期取得が最新なのにHTMLだけ60分以上古いときだけ「要確認」。反映待ちは正常", () => {
+  const feed = feedOf(["1", "2"]);
+  const latest = postsSignature(feed.posts);
+  assert.equal(evaluateSnsBuild({ feed, manifest: { generatedAt: minutesAgo(300), feedSignature: latest }, now: NOW_MS }).status, "ok");
+  assert.equal(evaluateSnsBuild({ feed, manifest: { generatedAt: minutesAgo(10), feedSignature: "old" }, now: NOW_MS }).status, "ok", "再ビルド待ち");
+  const stale = evaluateSnsBuild({ feed, manifest: { generatedAt: minutesAgo(120), feedSignature: "old" }, now: NOW_MS });
+  assert.equal(stale.status, "warning");
+  assert.match(stale.summary, /公開中のHTML（検索エンジン向け）が60分以上古い/);
+  assert.equal(evaluateSnsBuild({ feed: null, manifest: null, now: NOW_MS }).status, "warning");
+});
+
+await test("15. 申込フォームの受付状態の読み取り（受付を止めたフォームは /closedform へ転送される）", () => {
+  const base = "https://docs.google.com/forms/d/e/abc";
+  assert.equal(googleFormAccepting({ finalUrl: `${base}/viewform`, html: "<script>var FB_PUBLIC_LOAD_DATA_ = []</script>" }), true);
+  assert.equal(googleFormAccepting({ finalUrl: `${base}/closedform`, html: "<html></html>" }), false);
+  assert.equal(googleFormAccepting({ finalUrl: `${base}/viewform`, html: "このフォームは回答を受け付けていません" }), false);
+  assert.equal(googleFormAccepting({ finalUrl: "https://accounts.google.com/ServiceLogin", html: "<html></html>" }), null, "判断できないときは推測しない");
+  assert.equal(googleFormAccepting({ finalUrl: null, html: null }), null);
+  assert.equal(dialoguePageAccepting('<div data-dialogue-form-apply><a data-dialogue-form-open href="x">'), true);
+  assert.equal(dialoguePageAccepting("<p data-dialogue-form-closed>"), false);
+  assert.equal(dialoguePageAccepting("<html></html>"), null);
+});
+
+await test("16. 意見交換会：ページの受付表示とGoogleフォームの受付状態が食い違ったら知らせる", () => {
+  assert.equal(evaluateDialogueForm({ pageAccepting: true, formAccepting: true }).status, "ok");
+  assert.equal(evaluateDialogueForm({ pageAccepting: false, formAccepting: false }).status, "ok");
+  assert.equal(evaluateDialogueForm({ pageAccepting: true, formAccepting: false }).status, "error", "受付中と表示しているのに申し込めない");
+  const stillOpen = evaluateDialogueForm({ pageAccepting: false, formAccepting: true });
+  assert.equal(stillOpen.status, "warning");
+  assert.match(stillOpen.summary, /「回答を受け付ける」をオフ/);
+  assert.equal(evaluateDialogueForm({ pageAccepting: true, formAccepting: null }).status, "warning");
+});
+
+await test("17. 新しいチェック（sns_build・dialogue_form）を受け付け、ポータルに「最終同期」「最新投稿」「最終ビルド」を別々に表示する", async () => {
+  const parsed = parseMonitorChecks({ checks: [{ key: "sns_build", status: "ok", summary: "a" }, { key: "dialogue_form", status: "warning", summary: "b" }] });
+  assert.equal(parsed?.length, 2);
+  const env = await statusEnv();
+  env.ASSETS = assetsWith({
+    "/build-version.json": { commitSha: "9a53c22000000000000000000000000000000000", builtAt: "2026-11-08T14:42:31.000Z" },
+    "/news/file-items.json": { items: [] },
+    "/social-build-manifest.json": { generatedAt: "2026-11-08T15:37:12.000Z", signature: "6-x", feedSignature: "6-x", count: 6 },
+  });
+  const status = await readSiteStatus(env, ORIGIN, Math.floor(Date.parse("2026-11-08T13:58:00Z") / 1000));
+  assert.equal(byKey(status, "sns_last_sync").at, "2026-11-08T13:54:41.000Z");
+  assert.equal(byKey(status, "sns_last_sync").state, "ok");
+  assert.equal(byKey(status, "facebook_latest_post").at, "2026-10-18T01:00:00.000Z");
+  assert.equal(byKey(status, "sns_build_time").at, "2026-11-08T15:37:12.000Z");
+  assert.match(byKey(status, "sns_build_time").summary, /6件/);
+  assert.equal(byKey(status, "sns_build").state, "warning", "定期チェックの記録がまだ無い");
+  assert.equal(byKey(status, "dialogue_form").state, "warning");
+  const later = await readSiteStatus(env, ORIGIN, Math.floor(Date.parse("2026-11-08T14:30:00Z") / 1000));
+  assert.equal(byKey(later, "sns_last_sync").state, "warning", "15分以上同期していない");
 });
 
 logs.restore();
