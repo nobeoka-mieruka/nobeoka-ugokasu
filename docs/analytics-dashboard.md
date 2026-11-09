@@ -119,7 +119,7 @@ Cloudflare からは、共有のシークレットで署名した要求だけを
 ### 6. 確認
 
 - /staff/analytics/ を開き、「過去7日」の数値が GA4 の「レポート」の同じ期間とおおむね一致することを確認します（GA4の画面とはしきい値・集計方法の違いで少しずれることがあります）。
-- 「データは未取得です」と表示される場合：サービスアカウントが GA4 の閲覧者になっているか、Data API が有効か、3つの値が正しいか、中継が動いているかを確認してください。サーバーのログには `ga4-analytics-error` とエラーの種類（`proxy_rejected`＝シークレットの不一致、`api_forbidden`＝GA4の権限、`rate_limited`、`network_error`＝中継に接続できない、など）だけが記録されます。
+- 「データは未取得です」と表示される場合：サービスアカウントが GA4 の閲覧者になっているか、Data API が有効か、3つの値が正しいか、中継が動いているかを確認してください。サーバーのログには `ga4-analytics-error` とエラーの種類（`proxy_rejected`＝シークレットの不一致、`api_forbidden`＝GA4の権限、`rate_limited`、`network_error`＝中継に接続できない、`api_error`＝GA4 が要求を受け付けない・URL の誤りなど）と、切り分けのための状態コード・要求の種類（`method`・`status`・`proxyError`・`upstreamStatus`・`cause`）だけが記録されます。原因の調べ方は `services/ga4-proxy/CLOUDFLARE.md` の「「未取得」の原因を調べる」を参照してください。
 
 ## 計測の確認（GA4 DebugView）
 

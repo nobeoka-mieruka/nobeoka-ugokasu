@@ -30,7 +30,7 @@
 | 別のデータを読まれる | 転送できるのは `runReport`・`batchRunReports` だけ。プロパティIDは中継の設定で固定し、本文で別のプロパティを指定すると 400 |
 | 大量の呼び出し・過剰な課金 | 署名が正しい要求だけを数え、1分60回・1日2000回まで（超えたら 429）。本文は32KBまで、1レポート1000行まで、batchは5件まで。Cloud Run は最大1インスタンス・最小0（使わない間は課金されない）・タイムアウト15秒 |
 | ログの肥大化 | 不正な要求のログは1分に1件と件数のまとめだけ |
-| 秘密情報の漏えい | Google のエラー本文・トークン・シークレットは応答にもログにも出さない（ログはイベント名と種類だけ）。ブラウザから直接呼べない（CORSを許可しない） |
+| 秘密情報の漏えい | トークン・シークレットは応答にもログにも出さない。Google のエラー本文は応答に出さず、Cloud Run のログにだけエラーの種類（`INVALID_ARGUMENT` など）と、HTTP 400 のときの短い説明文（どの項目が不正か。長い英数字は伏せる・200文字まで）を残す。ブラウザから直接呼べない（CORSを許可しない） |
 | シークレットの交換 | `PROXY_HMAC_SECRET_PREVIOUS` に古い値を入れておけば、切り替え中も止まらない |
 | 数値の捏造 | GA4 の応答をそのまま返すか、エラーの種類だけを返す。Cloudflare 側は失敗時に「データは未取得です」、設定不足時に設定手順だけを表示する（従来どおり） |
 
@@ -50,32 +50,41 @@ Cloudflare Pages（本番）には、`GA4_PROPERTY_ID`・`GA4_PROXY_URL`（Cloud
 
 | 誰に | 何を | 範囲 |
 |---|---|---|
-| GA4用サービスアカウント（中継が使う） | GA4 プロパティの「閲覧者」 | GA4（設定済み） |
+| GA4用サービスアカウント `ga4-analytics-reader`（中継が実行時に使う） | GA4 プロパティの「閲覧者」 | GA4（設定済み） |
 | 同上 | `roles/secretmanager.secretAccessor` | シークレット `ga4-proxy-hmac` だけ（プロジェクト全体には付けない） |
-| 同上 | プロジェクトのロール | **付けない**（トークンはメタデータサーバーから取得でき、ログはCloud Runが自動で集める） |
-| デプロイする人 | `roles/run.admin`・GA4用サービスアカウントへの `roles/iam.serviceAccountUser`・`roles/cloudbuild.builds.editor`・`roles/artifactregistry.admin`（初回のみ）・`roles/secretmanager.admin`（シークレット作成時） | プロジェクト（オーナーなら不要） |
-| ビルド用サービスアカウント（`--source` のとき） | `roles/run.builder` | 組織ポリシー `iam.automaticIamGrantsForDefaultServiceAccounts` により既定のサービスアカウントに権限が付かない場合だけ、専用のものを作って付与 |
+| 同上 | プロジェクトのロール | **付けない**（トークンはメタデータサーバーから取得でき、ログは Cloud Run が自動で集める） |
+| ビルド専用サービスアカウント `ga4-proxy-builder`（setup.sh が作成。鍵なし） | `roles/logging.logWriter`・`roles/storage.objectViewer` | プロジェクト（ビルドのログの書き込みと、アップロードしたビルド元の読み取り） |
+| 同上 | `roles/artifactregistry.writer` | リポジトリ `ga4-proxy` だけ |
+| 実行する人 | オーナー、または `run.admin`・`iam.serviceAccountUser`・`iam.serviceAccountAdmin`・`secretmanager.admin`・`resourcemanager.projectIamAdmin`・`cloudbuild.builds.editor`・`artifactregistry.admin` | プロジェクト |
 
-## 導入手順（承認後に、Cloud Shell で実行）
+- Cloud Run は「Googleのログイン確認（呼び出し元のIAM）」を使わず（`--no-invoker-iam-check`）、HMAC 署名で守ります。Cloudflare は Google の認証トークンを作れないためです。
+- 既定の Compute Engine サービスアカウントや Cloud Build の既定のサービスアカウントには、権限を追加しません。
 
-0. 確認（読み取りのみ）：`bash scripts/preflight.sh <GA4用サービスアカウント>`
-1. 予算アラート（例：月300円で通知）を設定する。※予算アラートは通知だけで、自動では止まりません。**有料アカウントへのアップグレードはしません**（下の「無料トライアルの終了」を参照）
-2. APIの有効化（2026年11月時点で有効化済み）：
-   ```
-   gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com --project=nobeoka-ugokasu-staff
-   ```
-3. シークレットを作る（値は画面に出さない）：
-   ```
-   head -c 48 /dev/urandom | base64 | tr -d '\n/+=' | gcloud secrets create ga4-proxy-hmac --data-file=- --replication-policy=user-managed --locations=asia-northeast1 --project=nobeoka-ugokasu-staff
-   gcloud secrets add-iam-policy-binding ga4-proxy-hmac --member="serviceAccount:<SA>" --role=roles/secretmanager.secretAccessor --project=nobeoka-ugokasu-staff
-   ```
-4. デプロイ（このフォルダで）：`bash scripts/deploy.sh <SA>`
-   - 無料枠を最大限使う設定（最小0・最大1インスタンス、要求を処理している間だけCPUを使う、256Mi、起動時のCPU増強なし）でデプロイし、
-     古いコンテナイメージを自動で消す設定（`scripts/cleanup-policy.json`：最新2つを残し、7日より古いものを削除）も行います。
-5. 確認：スクリプトの最後に表示される `healthz: 204`・`署名なしの POST: 401`
-6. Cloudflare Pages（本番）に `GA4_PROPERTY_ID`・`GA4_PROXY_URL`・`GA4_PROXY_SECRET` を登録して再デプロイ。
-   `GA4_PROXY_SECRET` は `gcloud secrets versions access latest --secret=ga4-proxy-hmac --project=nobeoka-ugokasu-staff` で取り出し、貼り付けたらすぐ画面を閉じる
-7. /staff/analytics/ の「過去7日」が GA4 のレポートとおおむね一致することを確認
+## 導入手順（Cloud Shell で1回実行）
+
+```
+git clone --depth 1 https://github.com/nobeoka-mieruka/nobeoka-ugokasu.git ~/nobeoka-ugokasu 2>/dev/null || git -C ~/nobeoka-ugokasu pull --ff-only; cd ~/nobeoka-ugokasu/services/ga4-proxy && bash scripts/setup.sh
+```
+
+`scripts/setup.sh` は次の順に進みます。**手順4までと自己テストは読み取りだけ**で、変更の一覧を表示してから1回だけ `yes` の入力を求めます。
+
+1. Google Cloud の認証とプロジェクトの確認
+2. 課金と必要な5つのAPIの確認（APIの有効化はしません）
+3. 組織ポリシー（Organization Policy API が無効でも、従来の Resource Manager API で読む。読めないものは「未確認」として続行）と、実行する人の権限
+4. GA4用サービスアカウント（有効か・ユーザー管理の鍵が0件か・余分なロールが無いか）
+- コードの構文チェックと自己テスト（`scripts/selftest.mjs`：署名・時刻・再送・レート制限など。Google には接続しない）
+- 現在の状態（既にあるものは再利用）と、これから行う変更の一覧 → **承認（yes）**
+5. Secret Manager：シークレットが無ければ作成してランダムな値を登録（値は表示しない）、GA4用サービスアカウントに読み取り権限
+6. 最小権限：ビルド専用サービスアカウント、Artifact Registry（東京）と古いイメージの自動削除
+7. Cloud Build でイメージを作成 → Cloud Run にデプロイ → 設定が想定どおりかを確認 → エラー以外のアクセスログの95%を記録しない設定
+8. 安全性テスト（`scripts/remote-check.mjs`）：署名なし・別のシークレット・古い時刻・再送の拒否、対象外のメソッドの404。**失敗したら自動で ingress=internal に戻して停止**
+9. GA4 への実接続テスト：ポータルと同じ期間（日本時間で昨日まで）の過去7日・30日・90日の合計、上位ページ、申込ボタンのクリック数、content_type の登録状況を表示
+10. Cloudflare Pages に登録する3つの値の案内（シークレットの値は `bash scripts/show-secret.sh` で1回だけ表示）
+11. 稼働確認と結果のまとめ（`~/ga4-proxy-setup-report.txt` にも保存。シークレットは含まない）
+
+- 確認だけ：`bash scripts/setup.sh --check-only`（何も変更しない）
+- 再実行できます。2回目以降は、既存のシークレット（値は変えない）・サービスアカウント・リポジトリを再利用し、イメージを作り直して Cloud Run を更新します。
+- その後の Cloudflare の設定と本番の確認は **`CLOUDFLARE.md`** を参照してください。
 
 ## 費用と無料枠
 
@@ -85,10 +94,10 @@ Cloudflare Pages（本番）には、`GA4_PROPERTY_ID`・`GA4_PROXY_URL`（Cloud
 |---|---|---|
 | Cloud Run | KVキャッシュのおかげで月数千回以下の見込み（1回0.5秒程度） | 最小0・最大1インスタンス、リクエスト単位の課金（`--cpu-throttling`）、256Mi |
 | Artifact Registry | コンテナイメージ（1つ数十MB） | 自動削除（最新2つを残す）で 0.5GB 以内 |
-| Cloud Build | デプロイのたびに数分 | 毎月の無料のビルド時間の範囲内 |
+| Cloud Build | デプロイのたびに数分 | 既定のマシン（e2-standard-2）で、毎月の無料のビルド時間の範囲内 |
 | Secret Manager | シークレット1つ（版は2つまで） | 交換後は古い版を破棄して、有効な版を少なく保つ |
 | Cloud Logging | 1回1行程度。不正な要求は1分に1行 | 無料の取り込み量の範囲内 |
-| Cloud Storage | `--source` のアップロード（数十KB） | ほぼ0円（東京は無料枠の対象外のため、ごくわずかにかかる場合あり） |
+| Cloud Storage | ビルド元のアップロード（数十KB） | ほぼ0円（東京は無料枠の対象外のため、ごくわずかにかかる場合あり） |
 
 - 通常の利用なら、ほぼ0円（無料トライアルのクレジットもほとんど減らない）の見込みです。
 - 最大1インスタンスにしているため、署名の無い要求を1か月休まず送り続けられた最悪の場合でも、費用には上限があります（概算で月1万円程度。この場合も、無料トライアル中はクレジットから差し引かれます）。予算アラートで早めに気づけるようにしてください。

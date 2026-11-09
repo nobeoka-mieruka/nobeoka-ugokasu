@@ -88,13 +88,44 @@ export async function signProxyRequest(
 /** 中継の応答の状態を、アクセス解析のエラーの種類に置き換える */
 export type ProxyErrorKind = "proxy_rejected" | "api_forbidden" | "rate_limited" | "api_error" | "network_error";
 
+/**
+ * 中継の失敗の内容（ログ用）。秘密情報・GA4 の数値・Google のエラー本文は含めない。
+ * proxyError：中継が返したエラーの種類（英小文字と _ だけのもの）。JSON でない応答（Cloud Run 本体のエラーページなど）は "non_json"、
+ *   本文が空の応答（中継の 404 など。URL のパスの誤りが多い）は "empty_body"
+ * upstreamStatus：GA4 が返した HTTP の状態（中継が upstream_error などと一緒に返したとき）
+ */
+export interface ProxyErrorInfo {
+  kind: ProxyErrorKind;
+  status: number;
+  proxyError?: string;
+  upstreamStatus?: number;
+}
+
+export async function proxyErrorInfo(res: Response): Promise<ProxyErrorInfo> {
+  const text = await res.text().catch(() => "");
+  type ProxyErrorBody = { error?: unknown; upstreamStatus?: unknown };
+  let body: ProxyErrorBody | null = null;
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed && typeof parsed === "object") body = parsed as ProxyErrorBody;
+  } catch {
+    body = null;
+  }
+  let proxyError: string | undefined;
+  if (!body) proxyError = text.trim() ? "non_json" : "empty_body";
+  else if (typeof body.error === "string" && /^[a-z_]{1,40}$/.test(body.error)) proxyError = body.error;
+  const rawUpstream = body?.upstreamStatus;
+  const upstreamStatus = typeof rawUpstream === "number" && Number.isInteger(rawUpstream) ? rawUpstream : undefined;
+  let kind: ProxyErrorKind = "api_error";
+  if (res.status === 401) kind = "proxy_rejected";
+  else if (res.status === 429) kind = "rate_limited";
+  else if (proxyError === "upstream_forbidden" || proxyError === "token_unavailable") kind = "api_forbidden";
+  else if (proxyError === "upstream_unreachable") kind = "network_error";
+  return { kind, status: res.status, ...(proxyError ? { proxyError } : {}), ...(upstreamStatus !== undefined ? { upstreamStatus } : {}) };
+}
+
 export async function proxyErrorKind(res: Response): Promise<ProxyErrorKind> {
-  if (res.status === 401) return "proxy_rejected";
-  if (res.status === 429) return "rate_limited";
-  const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
-  if (body?.error === "upstream_forbidden" || body?.error === "token_unavailable") return "api_forbidden";
-  if (body?.error === "upstream_unreachable") return "network_error";
-  return "api_error";
+  return (await proxyErrorInfo(res)).kind;
 }
 
 export const proxyRequestTimeoutMs = REQUEST_TIMEOUT_MS;
