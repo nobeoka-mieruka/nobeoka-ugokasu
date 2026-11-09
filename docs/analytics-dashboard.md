@@ -7,7 +7,8 @@
 - API：GET /staff/api/analytics（`functions/staff/api/analytics.ts`。権限 `analytics:read`）
 - GA4の読み取り：`server/ga4Analytics.ts`
 - 計測（ブラウザ側）：`src/scripts/analyticsBootstrap.ts`・`src/utils/analytics.ts`
-- テスト：`npm run test:analytics`
+- 中継（Cloud Run・秘密鍵なし）：`services/ga4-proxy`（`server/ga4Proxy.ts` から署名付きで呼ぶ）
+- テスト：`npm run test:analytics`・`npm run test:ga4-proxy`
 
 ## 画面で見られること
 
@@ -80,37 +81,45 @@
 - GA4 の「管理」→「プロパティ」→「プロパティの詳細」の右上にある**数字だけのプロパティID**（例：`123456789`）。
 - `G-` で始まる「測定ID」（`src/config/seoConfig.ts` の `ga4Id`）とは別の値です。測定IDを登録すると、画面に注意が表示されます。
 
-### 3. Google Cloud：サービスアカウントを作る
+### 3. Google Cloud：サービスアカウントを用意する（JSONキーは作らない）
 
-1. Google Cloud コンソールでプロジェクトを作成（既存の後援会用プロジェクトでも可）。
-2. 「APIとサービス」→「ライブラリ」で **Google Analytics Data API** を有効にする。
-3. 「IAMと管理」→「サービスアカウント」→「サービスアカウントを作成」。**プロジェクトへのロール（役割）は付けません。**
-4. 作成したサービスアカウントの「鍵」→「鍵を追加」→「新しい鍵を作成」→ **JSON** を選んでダウンロード。
-   - このJSONファイルは秘密情報です。メール・チャット・Googleドライブの共有フォルダに置かず、登録が済んだら端末から削除してください。
+1. 「APIとサービス」→「ライブラリ」で **Google Analytics Data API** を有効にする。
+2. 「IAMと管理」→「サービスアカウント」でサービスアカウントを作る。**プロジェクトへのロール（役割）は付けません。**
+3. **JSONキーは作りません。** 後援会のプロジェクトでは、親組織の組織ポリシー（`iam.disableServiceAccountKeyCreation`）により作成できず、作る必要もありません。
 
 ### 4. GA4：サービスアカウントを「閲覧者」として追加する
 
 - GA4 の「管理」→「プロパティ」→「プロパティのアクセス管理」→「＋」→「ユーザーを追加」。
 - サービスアカウントのメールアドレス（`…@….iam.gserviceaccount.com`）を入力し、役割は **閲覧者** を選ぶ（通知メールのチェックは外してかまいません）。
 
-### 5. Cloudflare Pages：秘密情報を登録して再デプロイする
+### 5. Cloud Run：中継をデプロイし、Cloudflare Pages に登録する
 
-Cloudflare ダッシュボード → Workers & Pages → このサイトのプロジェクト → 「設定」→「変数とシークレット」→ **本番環境（Production）** に、3つとも種類「**シークレット（暗号化）**」で追加します。
+GA4 は、Cloud Run で動かす小さな中継（`services/ga4-proxy`）が、手順3のサービスアカウントの権限で読みます（鍵なし）。
+Cloudflare からは、共有のシークレットで署名した要求だけを受け付けます。手順・必要な権限・費用・安全のための仕組みは **`services/ga4-proxy/README.md`** にまとめています。
+
+1. 中継を Cloud Run にデプロイする（署名用のシークレットは Secret Manager に保存）。
+2. Cloudflare ダッシュボード → Workers & Pages → このサイトのプロジェクト → 「設定」→「変数とシークレット」→ **本番環境（Production）** に、3つとも種類「**シークレット（暗号化）**」で追加し、**再デプロイ**する。
 
 | 名前 | 値 |
 |---|---|
 | `GA4_PROPERTY_ID` | 手順2の数字のプロパティID |
-| `GA4_SERVICE_ACCOUNT_EMAIL` | JSONキーの `client_email` |
-| `GA4_SERVICE_ACCOUNT_PRIVATE_KEY` | JSONキーの `private_key`（`-----BEGIN PRIVATE KEY-----` から `-----END PRIVATE KEY-----` まで。`\n` の表記のままでも読み取れます） |
+| `GA4_PROXY_URL` | 中継の URL（`https://ga4-proxy-….a.run.app`。https のみ） |
+| `GA4_PROXY_SECRET` | Secret Manager の `ga4-proxy-hmac` と同じ値（32文字以上） |
 
-- 登録後、本番を**再デプロイ**すると反映されます（環境変数は次のデプロイから有効になります）。
 - 値をコード・GitHub・チャットに貼り付けないでください。
 - プレビュー環境には登録しません（プレビューのポータルでは設定手順が表示されます）。
+- `GA4_PROXY_URL`・`GA4_PROXY_SECRET` のどちらかが登録されていると中継方式になります。片方だけ・形式が違うときは、数値を出さずに設定手順と注意を表示します。
+- **Google Cloud の無料トライアル（2026年12月31日終了）について：** 有料アカウントにアップグレードしない場合、終了と同時に中継が止まり、画面は「データは未取得です」になります（数値は推定・表示しません）。/staff/analytics/ に終了日と残り日数を案内します。設定は `src/config/analyticsRelayConfig.ts`（切り替えたら `plan` を `"paid"` に）。詳しくは `services/ga4-proxy/README.md`。
+
+#### 参考：鍵方式（従来。鍵を作れる環境だけ）
+
+中継の値が無いときは、従来どおり `GA4_SERVICE_ACCOUNT_EMAIL`（JSONキーの `client_email`）と `GA4_SERVICE_ACCOUNT_PRIVATE_KEY`（`private_key`）で接続します。
+後援会のプロジェクトでは組織ポリシーにより鍵を作れないため、この方式は使いません。
 
 ### 6. 確認
 
 - /staff/analytics/ を開き、「過去7日」の数値が GA4 の「レポート」の同じ期間とおおむね一致することを確認します（GA4の画面とはしきい値・集計方法の違いで少しずれることがあります）。
-- 「データは未取得です」と表示される場合：サービスアカウントが GA4 の閲覧者になっているか、Data API が有効か、3つの値が正しいかを確認してください。サーバーのログには `ga4-analytics-error` とエラーの種類（`auth_failed`・`api_forbidden` など）だけが記録されます。
+- 「データは未取得です」と表示される場合：サービスアカウントが GA4 の閲覧者になっているか、Data API が有効か、3つの値が正しいか、中継が動いているかを確認してください。サーバーのログには `ga4-analytics-error` とエラーの種類（`proxy_rejected`＝シークレットの不一致、`api_forbidden`＝GA4の権限、`rate_limited`、`network_error`＝中継に接続できない、など）だけが記録されます。
 
 ## 計測の確認（GA4 DebugView）
 
@@ -125,5 +134,5 @@ Cloudflare ダッシュボード → Workers & Pages → このサイトのプ�
 - 広告向けの信号連携（Googleシグナル）・広告のパーソナライズは無効にしています。
 - 訪問者は /privacy/ でアクセス解析を無効にできます。
 - ポータルの画面（/staff/）では GA4 を読み込みません。アクセス解析の画面とAPIはログインした執行部だけが使えます。
-- サービスアカウントは GA4 の「閲覧者」（読み取りのみ）で、データの変更はできません。秘密鍵は Cloudflare の暗号化されたシークレットにだけ保存し、ブラウザ・ログ・キャッシュには出しません（アクセストークンは Worker のメモリ上で期限の少し前まで使い回すだけです）。
+- サービスアカウントは GA4 の「閲覧者」（読み取りのみ）で、データの変更はできません。秘密鍵は作りません。中継が Cloud Run のサービスアカウントの権限で読み、Cloudflare との間は署名用のシークレット（Secret Manager と Cloudflare の暗号化シークレットにだけ保存）で認証します。シークレット・アクセストークン・Google のエラー内容は、ブラウザ・ログ・キャッシュには出しません。
 - 少ない件数の数値を外部へ公表する場合は、個人が推測されないかを確認してから公表してください。

@@ -33,6 +33,12 @@ const thNum = "py-2 pl-3 text-right font-bold text-ink whitespace-nowrap";
     <div class="section-wrap max-w-5xl space-y-6">
       <div data-staff-notice role="status" tabindex="-1" class="hidden rounded-xl px-4 py-3 font-bold"></div>
 
+      <!-- Google Cloud の無料トライアル終了の案内（設定済みのときだけ表示。src/config/analyticsRelayConfig.ts） -->
+      <div data-relay-notice role="note" class="hidden rounded-xl border-2 px-4 py-3 space-y-1">
+        <p data-relay-notice-title class="font-bold"></p>
+        <ul data-relay-notice-lines class="list-disc space-y-1 pl-6 text-sm leading-relaxed"></ul>
+      </div>
+
       <!-- 期間の切り替え -->
       <div class="card p-5 sm:p-8 space-y-4">
         <h2 class="text-lg font-bold text-ink" id="analytics-range-heading">集計期間</h2>
@@ -74,17 +80,20 @@ const thNum = "py-2 pl-3 text-right font-bold text-ink whitespace-nowrap";
       <!-- 未設定：設定手順だけを表示（数値は出さない） -->
       <div data-analytics-setup class="hidden card p-5 sm:p-8 space-y-4 text-ink">
         <h2 class="text-xl font-bold">アクセス解析はまだ設定されていません</h2>
-        <p data-setup-issue class="hidden rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+        <p data-setup-issue="property_id_format" class="hidden rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
           GA4_PROPERTY_ID には、GA4の「プロパティID」（数字のみ）を登録してください。G- で始まる「測定ID」ではありません。
+        </p>
+        <p data-setup-issue="proxy_config" class="hidden rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+          GA4_PROXY_URL は https:// で始まる中継（Cloud Run）のURLを、GA4_PROXY_SECRET は32文字以上の値を登録してください。
         </p>
         <p class="text-ink-soft">管理者が次の手順で設定すると、この画面に数値が表示されます（詳しくは docs/analytics-dashboard.md）。</p>
         <ol class="list-decimal space-y-2 pl-6 text-sm leading-relaxed">
           <li>GA4の「管理 → プロパティの詳細」で、数字のプロパティIDを確認する。</li>
           <li>GA4の「管理 → カスタム定義」で、イベントスコープのカスタムディメンション <code>content_type</code> を登録する（設置場所の内訳に使います）。</li>
-          <li>Google Cloudでプロジェクトを作り、「Google Analytics Data API」を有効にする。</li>
-          <li>サービスアカウントを作り（プロジェクトの役割は付けない）、JSONキーを作成する。</li>
+          <li>Google Cloudで「Google Analytics Data API」を有効にし、サービスアカウントを作る（プロジェクトの役割は付けない。JSONキーは作らない）。</li>
           <li>GA4の「管理 → プロパティのアクセス管理」で、サービスアカウントのメールアドレスを「閲覧者」として追加する。</li>
-          <li>Cloudflare Pagesの本番環境に、GA4_PROPERTY_ID・GA4_SERVICE_ACCOUNT_EMAIL・GA4_SERVICE_ACCOUNT_PRIVATE_KEY を「暗号化」して登録し、再デプロイする。</li>
+          <li>中継（services/ga4-proxy）を、そのサービスアカウントで Cloud Run にデプロイする（署名用のシークレットは Secret Manager に保存）。</li>
+          <li>Cloudflare Pagesの本番環境に、GA4_PROPERTY_ID・GA4_PROXY_URL・GA4_PROXY_SECRET を「暗号化」して登録し、再デプロイする。</li>
         </ol>
       </div>
 
@@ -92,7 +101,7 @@ const thNum = "py-2 pl-3 text-right font-bold text-ink whitespace-nowrap";
       <div data-analytics-unavailable class="hidden card p-5 sm:p-8 space-y-2 text-ink">
         <h2 class="text-xl font-bold">データは未取得です</h2>
         <p class="text-ink-soft">
-          Googleアナリティクスからデータを取得できませんでした。時間をおいて再度お試しください。続く場合は、サービスアカウントの権限（GA4の「閲覧者」）と、Cloudflareに登録した設定を管理者が確認してください。
+          Googleアナリティクスからデータを取得できませんでした。時間をおいて再度お試しください。続く場合は、サービスアカウントの権限（GA4の「閲覧者」）、Cloudflareに登録した設定、中継（Cloud Run）が動いているか（Google Cloud の無料トライアルが終了していないか）を管理者が確認してください。
         </p>
         <button type="button" data-analytics-retry class="btn-secondary min-h-[44px] py-2 text-base">もう一度読み込む</button>
       </div>

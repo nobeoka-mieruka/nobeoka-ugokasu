@@ -99,8 +99,11 @@ export interface PageDetectEnv extends AssetsEnv {
 
 /**
  * 執行部ポータル「アクセス解析」（/staff/analytics/）がGA4 Data APIを読むための設定です。
- * 3つともCloudflare Pagesの本番環境に「暗号化（Secret）」で登録します（手順は docs/analytics-dashboard.md）。
- * どれかが未設定の間は、画面に設定手順だけを表示し、数値は表示しません。
+ * Cloudflare Pagesの本番環境に「暗号化（Secret）」で登録します（手順は docs/analytics-dashboard.md）。
+ *   中継方式（推奨・秘密鍵なし）：GA4_PROPERTY_ID・GA4_PROXY_URL・GA4_PROXY_SECRET
+ *   鍵方式（従来）：GA4_PROPERTY_ID・GA4_SERVICE_ACCOUNT_EMAIL・GA4_SERVICE_ACCOUNT_PRIVATE_KEY
+ * GA4_PROXY_URL・GA4_PROXY_SECRET のどちらかがあれば中継方式になります。
+ * 必要な値が未設定の間は、画面に設定手順だけを表示し、数値は表示しません。
  */
 export interface AnalyticsEnv {
   /** GA4のプロパティID（数字のみ。例: "123456789"）。G- で始まる測定ID（seoConfig.ga4Id）とは別の値 */
@@ -109,6 +112,10 @@ export interface AnalyticsEnv {
   GA4_SERVICE_ACCOUNT_EMAIL?: string;
   /** サービスアカウントの秘密鍵（JSONキーの private_key。PEM形式。秘密情報） */
   GA4_SERVICE_ACCOUNT_PRIVATE_KEY?: string;
+  /** GA4 中継（Cloud Run の services/ga4-proxy）の URL（例: https://ga4-proxy-xxxx.a.run.app）。HTTPS のみ */
+  GA4_PROXY_URL?: string;
+  /** GA4 中継と共有する署名用のシークレット（32文字以上。Google Cloud の Secret Manager と同じ値。秘密情報） */
+  GA4_PROXY_SECRET?: string;
   /** 取得結果のキャッシュ先（SNS投稿と同じKVを、別のキーで使う）。無い場合はWorkerのメモリ上にキャッシュする */
   SOCIAL_POSTS_KV?: KVNamespace;
 }

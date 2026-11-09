@@ -1,8 +1,11 @@
 // 執行部ポータル「アクセス解析」（/staff/analytics/）のための、GA4 Data API の読み取り処理です（Cloudflare Workers で動作）。
 //
 // ・GA4のプロパティ（数字のプロパティID。G- で始まる測定IDとは別）に、閲覧者権限だけを持つサービスアカウントで接続します。
-//   認証は、サービスアカウントの秘密鍵で署名したJWT（RS256・WebCrypto）を Google のトークン発行先で
-//   アクセストークン（読み取り専用スコープ）に交換する方式です。設定手順は docs/analytics-dashboard.md を参照。
+//   接続のしかたは2通りです（設定手順は docs/analytics-dashboard.md を参照）。
+//   1) 中継方式（推奨・秘密鍵なし）：GA4_PROXY_URL・GA4_PROXY_SECRET があるとき。Cloud Run の中継
+//      （services/ga4-proxy）が自分のサービスアカウントの権限で GA4 を読み、ここからは署名付きで問い合わせる（server/ga4Proxy.ts）。
+//   2) 鍵方式（従来）：サービスアカウントの秘密鍵で署名したJWT（RS256・WebCrypto）を Google のトークン発行先で
+//      アクセストークン（読み取り専用スコープ）に交換する。組織ポリシーで鍵を作れない環境では使えない。
 // ・取得結果は1時間（「今日」は15分）キャッシュし、GA4 API の呼び出し回数を抑えます。アクセストークンも期限の少し前まで使い回します。
 // ・Googleからのエラー本文・秘密鍵・アクセストークンは、ブラウザへ返さず、ログにも出しません（ログはエラーの種類だけ）。
 // ・数値はGA4から取得した実データだけを返します。見本の数値や推定値で埋めることはしません。
@@ -11,6 +14,7 @@
 
 import { todayInJapan } from "../src/utils/dialogueEvents";
 import type { AnalyticsEnv } from "./env";
+import { proxyErrorKind, proxyRequestTimeoutMs, readGa4ProxyConfig, signProxyRequest, type Ga4ProxyConfig } from "./ga4Proxy";
 import type {
   AnalyticsApiResponse,
   AnalyticsBreakdownRow,
@@ -214,7 +218,7 @@ export function changePercent(current: number, previous: number): number | null 
 
 // ---- 認証（サービスアカウントのJWT → アクセストークン） ----
 
-export type Ga4ErrorKind = "invalid_key" | "auth_failed" | "api_forbidden" | "rate_limited" | "api_error" | "network_error";
+export type Ga4ErrorKind = "invalid_key" | "auth_failed" | "proxy_rejected" | "api_forbidden" | "rate_limited" | "api_error" | "network_error";
 
 export class Ga4Error extends Error {
   constructor(readonly kind: Ga4ErrorKind) {
@@ -335,6 +339,28 @@ async function callDataApi<T>(fetchFn: FetchFn, token: string, propertyId: strin
     if (res.status === 429) throw new Ga4Error("rate_limited");
     throw new Ga4Error("api_error");
   }
+  const data = (await res.json().catch(() => null)) as T | null;
+  if (!data) throw new Ga4Error("api_error");
+  return data;
+}
+
+/** 中継（Cloud Run）経由で GA4 Data API を呼ぶ。応答は GA4 のものをそのまま受け取る */
+async function callProxy<T>(fetchFn: FetchFn, config: Ga4ProxyConfig, method: string, body: unknown, nowMs: number): Promise<T> {
+  const path = `/v1/${method}`;
+  const text = JSON.stringify(body);
+  const headers = await signProxyRequest(config.secret, path, text, Math.floor(nowMs / 1000));
+  let res: Response;
+  try {
+    res = await fetchFn(`${config.baseUrl}${path}`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: text,
+      signal: AbortSignal.timeout(proxyRequestTimeoutMs),
+    });
+  } catch {
+    throw new Ga4Error("network_error");
+  }
+  if (!res.ok) throw new Ga4Error(await proxyErrorKind(res));
   const data = (await res.json().catch(() => null)) as T | null;
   if (!data) throw new Ga4Error("api_error");
   return data;
@@ -543,23 +569,37 @@ export interface Ga4Deps {
 
 /** アクセス解析のデータを返す（未設定・取得失敗のときは数値を含めない） */
 export async function getAnalyticsReport(env: Ga4Env, range: AnalyticsRange, deps: Ga4Deps = {}): Promise<AnalyticsApiResponse> {
-  const setting = readGa4Config(env);
-  if (!setting.ok) return { ok: true, configured: false, issue: setting.issue };
-  const { config } = setting;
+  // 中継の設定（GA4_PROXY_URL・GA4_PROXY_SECRET）があれば中継方式、無ければ従来の鍵方式
+  const proxy = readGa4ProxyConfig(env);
+  if (proxy.kind === "invalid") return { ok: true, configured: false, issue: proxy.issue };
+  let keyConfig: Ga4Config | null = null;
+  if (proxy.kind === "none") {
+    const setting = readGa4Config(env);
+    if (!setting.ok) return { ok: true, configured: false, issue: setting.issue };
+    keyConfig = setting.config;
+  }
+  const propertyId = proxy.kind === "ok" ? proxy.config.propertyId : keyConfig!.propertyId;
   const fetchFn: FetchFn = deps.fetch ?? ((input, init) => fetch(input, init));
   const nowMs = (deps.now ?? Date.now)();
 
-  const cacheKey = reportCacheKey(config.propertyId, range);
+  const cacheKey = reportCacheKey(propertyId, range);
   const cached = await readCache(env, cacheKey, nowMs);
   if (cached) return { ok: true, configured: true, cached: true, report: cached };
 
   try {
-    const token = await getAccessToken(config, fetchFn, nowMs);
+    let call: <T>(method: string, body: unknown) => Promise<T>;
+    if (proxy.kind === "ok") {
+      const proxyConfig = proxy.config;
+      call = <T>(method: string, body: unknown) => callProxy<T>(fetchFn, proxyConfig, method, body, nowMs);
+    } else {
+      const token = await getAccessToken(keyConfig!, fetchFn, nowMs);
+      call = <T>(method: string, body: unknown) => callDataApi<T>(fetchFn, token, propertyId, method, body);
+    }
     const [main, byPage, byType] = await Promise.all([
-      callDataApi<{ reports?: GaReport[] }>(fetchFn, token, config.propertyId, "batchRunReports", buildMainBatch(range)),
-      callDataApi<GaReport>(fetchFn, token, config.propertyId, "runReport", buildEventsByPageRequest(range)),
+      call<{ reports?: GaReport[] }>("batchRunReports", buildMainBatch(range)),
+      call<GaReport>("runReport", buildEventsByPageRequest(range)),
       // 設置場所（content_type）は未登録だとエラーになるため、失敗してもイベント名だけの集計で続ける
-      callDataApi<GaReport>(fetchFn, token, config.propertyId, "runReport", buildEventsByTypeRequest(range)).catch((err: unknown) => {
+      call<GaReport>("runReport", buildEventsByTypeRequest(range)).catch((err: unknown) => {
         if (err instanceof Ga4Error && err.kind === "api_error") return null;
         throw err;
       }),

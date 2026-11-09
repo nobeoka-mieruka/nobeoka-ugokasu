@@ -1,0 +1,11 @@
+{
+  "name": "nobeoka-ugokasu-ga4-proxy",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cloud Run relay that reads GA4 Data API with the service's own identity (no service account keys)",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/main.mjs"
+  }
+}

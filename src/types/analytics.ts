@@ -76,7 +76,7 @@ export interface AnalyticsReport {
 
 /** GET /staff/api/analytics の応答 */
 export type AnalyticsApiResponse =
-  | { ok: true; configured: false; issue: "missing" | "property_id_format" }
+  | { ok: true; configured: false; issue: "missing" | "property_id_format" | "proxy_config" }
   | { ok: true; configured: true; cached: boolean; report: AnalyticsReport }
   | { ok: false; configured: true; error: "unavailable" }
   | { ok: false; error: "invalid_range" };

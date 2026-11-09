@@ -4,6 +4,9 @@
 import { apiErrorMessage, showNotice, staffApi } from "./api";
 import type { AnalyticsApiResponse, AnalyticsBreakdownRow, AnalyticsDailyPoint, AnalyticsRangeKey, AnalyticsReport } from "../../types/analytics";
 import { CSV_BOM, analyticsReportToCsv } from "../../utils/analyticsCsv";
+import { analyticsRelayHosting } from "../../config/analyticsRelayConfig";
+import { relayHostingNotice } from "../../utils/analyticsRelayNotice";
+import { todayInJapan } from "../../utils/dialogueEvents";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const CHART_COLOR = "#D9530B"; // brand-orange-dark（白背景とのコントラスト3:1以上）
@@ -45,6 +48,34 @@ function showState(state: ViewState): void {
   $("[data-analytics-unavailable]").classList.toggle("hidden", state !== "unavailable");
   $("[data-analytics-content]").classList.toggle("hidden", state !== "content");
   if (state !== "content") currentReport = null;
+  updateRelayNotice(state === "content" || state === "unavailable");
+}
+
+const RELAY_NOTICE_STYLES = {
+  info: "border-sky-200 bg-sky-50 text-ink",
+  warning: "border-amber-300 bg-amber-50 text-amber-900",
+  ended: "border-red-200 bg-red-50 text-red-800",
+} as const;
+
+/** Google Cloud の無料トライアル終了の案内（設定済みの画面＝表示中・未取得のときだけ） */
+function updateRelayNotice(visible: boolean): void {
+  const box = document.querySelector<HTMLElement>("[data-relay-notice]");
+  if (!box) return;
+  const notice = visible ? relayHostingNotice(analyticsRelayHosting, todayInJapan()) : null;
+  box.classList.add("hidden");
+  box.classList.remove(...Object.values(RELAY_NOTICE_STYLES).flatMap((c) => c.split(" ")));
+  if (!notice) return;
+  box.classList.add(...RELAY_NOTICE_STYLES[notice.level].split(" "));
+  box.querySelector<HTMLElement>("[data-relay-notice-title]")!.textContent = notice.title;
+  const list = box.querySelector<HTMLElement>("[data-relay-notice-lines]")!;
+  list.replaceChildren(
+    ...notice.lines.map((line) => {
+      const item = document.createElement("li");
+      item.textContent = line;
+      return item;
+    }),
+  );
+  box.classList.remove("hidden");
 }
 
 function changeText(current: number, previous: number): string {
@@ -237,7 +268,7 @@ async function load(query: string): Promise<void> {
   const result = await staffApi<Record<string, unknown>>(`/staff/api/analytics?${query}`);
   const data = result.data as (AnalyticsApiResponse & { error?: string }) | null;
   if (data && "configured" in data && data.configured === false) {
-    $("[data-setup-issue]").classList.toggle("hidden", data.issue !== "property_id_format");
+    document.querySelectorAll<HTMLElement>("[data-setup-issue]").forEach((el) => el.classList.toggle("hidden", el.dataset.setupIssue !== data.issue));
     $("[data-range-text]").textContent = "—";
     $("[data-prev-text]").textContent = "—";
     $("[data-fetched-at]").textContent = "—";
