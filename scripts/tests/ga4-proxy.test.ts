@@ -28,6 +28,8 @@ import type { AnalyticsApiResponse } from "../../src/types/analytics";
 import { readFileSync } from "node:fs";
 import { analyticsRelayHosting } from "../../src/config/analyticsRelayConfig";
 import { japaneseDate, relayHostingNotice } from "../../src/utils/analyticsRelayNotice";
+import { spawn, spawnSync } from "node:child_process";
+import { evaluatePolicy, evaluateService } from "../../services/ga4-proxy/scripts/eval-lib.mjs";
 
 const logs = captureLogs();
 const { test, done } = testRunner(() => {
@@ -437,6 +439,182 @@ await test("18. 画面：案内の枠があり、設定済みの状態（表示�
   const script = readFileSync("src/scripts/staff/analytics.ts", "utf8");
   assert.match(script, /updateRelayNotice(state === "content" || state === "unavailable")/);
   assert.ok(!/innerHTML/.test(script.slice(script.indexOf("function updateRelayNotice"))), "案内は textContent で表示する");
+});
+
+// ---- Cloud Shell の導入スクリプト（services/ga4-proxy/scripts） ----
+
+const RELAY_DIR = "services/ga4-proxy";
+
+/** 子プロセスを非同期で実行する（同じプロセスの中継サーバーが応答できるように、spawnSync は使わない） */
+function runNode(args: string[], env: Record<string, string> = {}) {
+  return new Promise<{ code: number | null; out: string }>((resolve) => {
+    const child = spawn(process.execPath, args, { env: { PATH: process.env.PATH ?? "", ...env }, stdio: ["ignore", "pipe", "pipe"] });
+    let out = "";
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (out += d));
+    child.on("close", (code) => resolve({ code, out }));
+  });
+}
+
+/** 実際の時刻で動く中継（remote-check は現在時刻で署名するため） */
+async function startRealtimeProxy(google: ReturnType<typeof fakeGoogle>, secret = SECRET) {
+  const setting = readProxyConfig({ GA4_PROPERTY_ID: "546942310", PROXY_HMAC_SECRET: secret, PROXY_METADATA_TOKEN_URL: METADATA_URL });
+  assert.ok(setting.ok);
+  const server = createProxyServer(setting.config, { fetch: google.fetchFn, log: () => {} });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  return { url, close: () => new Promise<void>((resolve) => server.close(() => resolve())) };
+}
+
+await test("19. 自己テスト（selftest.mjs）：Googleに接続せず、署名・再送・レート制限などをすべて確認して成功する", async () => {
+  const result = await runNode([`${RELAY_DIR}/scripts/selftest.mjs`]);
+  assert.equal(result.code, 0, result.out);
+  assert.match(result.out, /自己テスト：すべて合格/);
+  assert.ok(!/^NG/m.test(result.out));
+});
+
+await test("20. 公開後の確認（remote-check.mjs）：安全性の確認が通り、GA4の数値（ここでは架空の値）を表示。シークレットは出さない", async () => {
+  const proxy = await startRealtimeProxy(fakeGoogle());
+  try {
+    const result = await runNode([`${RELAY_DIR}/scripts/remote-check.mjs`, proxy.url], { PROXY_TEST_SECRET: SECRET });
+    assert.equal(result.code, 0, result.out);
+    for (const label of ["署名なしは拒否", "別のシークレットは拒否", "10分前の署名は拒否", "対象外のメソッドは 404", "同じ要求の再送は拒否", "GA4 Data API に接続できました"]) {
+      assert.match(result.out, new RegExp(`OK  ${label}`), label);
+    }
+    assert.match(result.out, /過去 7日/);
+    assert.match(result.out, /過去90日/);
+    assert.match(result.out, /申込の完了数ではありません/);
+    assert.ok(!result.out.includes(SECRET), "シークレットを表示しない");
+    assert.ok(!result.out.includes(ACCESS_TOKEN), "トークンを表示しない");
+  } finally {
+    await proxy.close();
+  }
+});
+
+await test("21. 公開後の確認：シークレットが違えば終了コード2（setup.sh は公開を止める）、GA4の権限が無ければ終了コード3", async () => {
+  const mismatch = await startRealtimeProxy(fakeGoogle(), OLD_SECRET);
+  try {
+    const result = await runNode([`${RELAY_DIR}/scripts/remote-check.mjs`, mismatch.url], { PROXY_TEST_SECRET: SECRET });
+    assert.equal(result.code, 2, result.out);
+    assert.match(result.out, /NG  正しい署名は受け付ける/);
+  } finally {
+    await mismatch.close();
+  }
+  const forbidden = await startRealtimeProxy(fakeGoogle({ dataStatus: 403 }));
+  try {
+    const result = await runNode([`${RELAY_DIR}/scripts/remote-check.mjs`, forbidden.url], { PROXY_TEST_SECRET: SECRET });
+    assert.equal(result.code, 3, result.out);
+    assert.match(result.out, /閲覧者/);
+    assert.ok(!result.out.includes(GOOGLE_ERROR_BODY), "Googleのエラー本文を表示しない");
+  } finally {
+    await forbidden.close();
+  }
+  const usage = await runNode([`${RELAY_DIR}/scripts/remote-check.mjs`, "http://example.test"], { PROXY_TEST_SECRET: "short" });
+  assert.equal(usage.code, 1);
+});
+
+await test("22. 組織ポリシーの判定：東京・ingress=all・必要なAPIを妨げるものだけを NG にする", () => {
+  assert.equal(evaluatePolicy("iam.disableServiceAccountKeyCreation", { booleanPolicy: { enforced: true } })[0], "OK");
+  assert.equal(evaluatePolicy("iam.automaticIamGrantsForDefaultServiceAccounts", { booleanPolicy: { enforced: true } })[0], "OK");
+  assert.equal(evaluatePolicy("iam.allowedPolicyMemberDomains", { listPolicy: { allowedValues: ["C0123"] } })[0], "OK");
+  assert.equal(evaluatePolicy("gcp.resourceLocations", {})[0], "OK");
+  assert.equal(evaluatePolicy("gcp.resourceLocations", { listPolicy: { allowedValues: ["in:asia-locations"] } })[0], "OK");
+  assert.equal(evaluatePolicy("gcp.resourceLocations", { listPolicy: { allowedValues: ["in:jp-locations"] } })[0], "OK");
+  assert.equal(evaluatePolicy("gcp.resourceLocations", { listPolicy: { allowedValues: ["in:us-locations"] } })[0], "NG");
+  assert.equal(evaluatePolicy("gcp.resourceLocations", { listPolicy: { deniedValues: ["in:asia-northeast1-locations"] } })[0], "NG");
+  assert.equal(evaluatePolicy("run.allowedIngress", { listPolicy: { allowedValues: ["internal"] } })[0], "NG");
+  assert.equal(evaluatePolicy("run.allowedIngress", { listPolicy: { allowedValues: ["all", "internal"] } })[0], "OK");
+  assert.equal(evaluatePolicy("gcp.restrictServiceUsage", { listPolicy: { deniedValues: ["run.googleapis.com"] } })[0], "NG");
+  assert.equal(evaluatePolicy("gcp.restrictNonCmekServices", { listPolicy: { deniedValues: ["secretmanager.googleapis.com"] } })[0], "NG");
+  assert.equal(evaluatePolicy("run.allowedBinaryAuthorizationPolicies", { listPolicy: { allowedValues: ["default"] } })[0], "NG");
+  assert.equal(evaluatePolicy("constraints/run.allowedIngress", {})[0], "OK", "constraints/ 付きの名前も受け付ける");
+});
+
+await test("23. Cloud Run の設定の判定：最大1・最小0・リクエスト単位のCPU・256Mi・GA4用サービスアカウント・シークレットは Secret Manager", () => {
+  const SA = "ga4-analytics-reader@nobeoka-ugokasu-staff.iam.gserviceaccount.com";
+  const good = {
+    metadata: { annotations: { "run.googleapis.com/ingress": "all" } },
+    spec: {
+      template: {
+        metadata: { annotations: { "autoscaling.knative.dev/maxScale": "1", "run.googleapis.com/cpu-throttling": "true" } },
+        spec: {
+          serviceAccountName: SA,
+          timeoutSeconds: 15,
+          containers: [
+            {
+              resources: { limits: { memory: "256Mi", cpu: "1" } },
+              env: [
+                { name: "GA4_PROPERTY_ID", value: "546942310" },
+                { name: "PROXY_HMAC_SECRET", valueFrom: { secretKeyRef: { name: "ga4-proxy-hmac", key: "latest" } } },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  };
+  assert.equal(evaluateService(SA, good)[0], "OK");
+  const bad = structuredClone(good);
+  bad.spec.template.metadata.annotations["autoscaling.knative.dev/maxScale"] = "100";
+  bad.spec.template.metadata.annotations["run.googleapis.com/cpu-throttling"] = "false";
+  (bad.spec.template.spec.containers[0].env[1] as Record<string, unknown>) = { name: "PROXY_HMAC_SECRET", value: "plain" };
+  const [status, text] = evaluateService(SA, bad);
+  assert.equal(status, "NG");
+  assert.match(text, /最大インスタンス数/);
+  assert.match(text, /CPUが常時割り当て/);
+  assert.match(text, /環境変数に直接書かれている/);
+  assert.ok(!text.includes("plain"), "判定結果に値を含めない");
+});
+
+await test("24. setup.sh：変更はすべて1回の承認（yes）の後。鍵の作成・APIの有効化・課金の変更・シークレットの表示をしない", () => {
+  const setup = readFileSync(`${RELAY_DIR}/scripts/setup.sh`, "utf8").replace(/\r\n/g, "\n");
+  const code = setup
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("#"))
+    .join("\n");
+  const approval = code.indexOf('read -r -p "上の変更を実行しますか');
+  assert.ok(approval > 0, "承認の確認がある");
+  assert.equal(code.split('read -r -p "上の変更を実行しますか').length - 1, 1, "承認は1回だけ");
+  for (const mutation of [
+    "gcloud secrets create",
+    "gcloud secrets versions add",
+    "add-iam-policy-binding",
+    "gcloud iam service-accounts create",
+    "gcloud artifacts repositories create",
+    "set-cleanup-policies",
+    "gcloud builds submit",
+    "gcloud run deploy",
+    "gcloud logging sinks update",
+    "gcloud run services update",
+  ]) {
+    const at = code.indexOf(mutation);
+    assert.ok(at > approval, `${mutation} は承認の後だけ`);
+  }
+  for (const forbidden of ["keys create", "services enable", "billing projects link", "org-policies set-policy", "orgpolicy", "set -x", "echo $PROXY_TEST_SECRET", "echo \"$PROXY_TEST_SECRET"]) {
+    assert.ok(!code.includes(forbidden), `使わない: ${forbidden}`);
+  }
+  assert.match(code, /gcloud resource-manager org-policies describe/, "組織ポリシーは従来の Resource Manager API で読む");
+  assert.match(code, /CLOUDSDK_CORE_DISABLE_PROMPTS=1/, "APIの有効化の確認で止まらない");
+  assert.match(code, /rec 未確認 "組織ポリシー \$c"/, "読めない制約は未確認として続行");
+  assert.match(code, /--check-only/);
+  for (const flag of ["--min-instances=0", "--max-instances=1", "--cpu-throttling", "--no-cpu-boost", "--memory=256Mi", "--no-invoker-iam-check", "--set-secrets=", "--ingress=internal"]) {
+    assert.ok(code.includes(flag), flag);
+  }
+  assert.ok(!/--set-env-vars="[^"]*PROXY_HMAC_SECRET/.test(code), "シークレットを環境変数に直接書かない");
+  assert.match(code, /--set-secrets="PROXY_HMAC_SECRET=\$\{SECRET_NAME\}:latest"/, "シークレットは Secret Manager から渡す");
+  assert.ok(!/PROXY_TEST_SECRET[^\n]*>>?\s*"?\$REPORT/.test(code), "シークレットをレポートに書かない");
+  const show = readFileSync(`${RELAY_DIR}/scripts/show-secret.sh`, "utf8");
+  assert.match(show, />\/dev\/tty/, "シークレットは端末にだけ表示（ファイル・パイプに流さない）");
+  assert.match(show, /yes/);
+  const build = readFileSync(`${RELAY_DIR}/cloudbuild.yaml`, "utf8");
+  assert.match(build, /logging: CLOUD_LOGGING_ONLY/);
+  assert.ok(!/^\s*machineType/m.test(build), "既定のマシン（無料枠の対象）を使う");
+  const ignore = readFileSync(`${RELAY_DIR}/.gcloudignore`, "utf8");
+  assert.ok(!/!scripts/.test(ignore), "スクリプトはコンテナに入れない");
+  const bash = spawnSync("bash", ["-n", `${RELAY_DIR}/scripts/setup.sh`]);
+  if (!bash.error) assert.equal(bash.status, 0, "setup.sh の構文");
+  const bash2 = spawnSync("bash", ["-n", `${RELAY_DIR}/scripts/show-secret.sh`]);
+  if (!bash2.error) assert.equal(bash2.status, 0, "show-secret.sh の構文");
 });
 
 done();

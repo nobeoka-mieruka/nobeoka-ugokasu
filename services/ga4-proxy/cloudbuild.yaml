@@ -1,0 +1,11 @@
+# GA4 中継のコンテナイメージを作る（setup.sh が gcloud builds submit で使う）。
+# 専用のビルド用サービスアカウントで動かすため、ログは Cloud Logging だけに出す（ログ用のバケットを作らない）。
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "--pull", "-t", "${_IMAGE}", "."]
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+# マシンの種類は指定しない（既定の e2-standard-2 が Cloud Build の無料枠の対象）
+timeout: 600s
