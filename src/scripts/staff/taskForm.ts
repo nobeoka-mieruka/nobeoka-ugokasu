@@ -64,6 +64,21 @@ function editingId(): string | null {
   return /^\/staff\/tasks\/([1-9]\d{0,9})\/edit\/?$/.exec(location.pathname)?.[1] ?? null;
 }
 
+/**
+ * 新規登録のとき、URLの ?title= と ?notes= を初期値として入れる（「サイトの状態」の「タスクに登録」から開いた場合）。
+ * 入れるだけで保存はしない（内容を確認して「登録する」を押したときだけ登録される）。値は .value でのみ扱う。
+ */
+function prefillFromQuery(): void {
+  const params = new URLSearchParams(location.search);
+  for (const name of ["title", "notes"] as const) {
+    const value = params.get(name);
+    if (!value) continue;
+    const input = field<HTMLInputElement | HTMLTextAreaElement>(name);
+    const max = input.maxLength > 0 ? input.maxLength : value.length;
+    if (!input.value) input.value = value.slice(0, max);
+  }
+}
+
 async function init(): Promise<void> {
   if (!form) return;
   const mode = form.dataset.mode;
@@ -83,6 +98,8 @@ async function init(): Promise<void> {
     }
     fillForm(result.data.task);
     form.classList.remove("hidden");
+  } else {
+    prefillFromQuery();
   }
   linkProgressAndCompletion();
 

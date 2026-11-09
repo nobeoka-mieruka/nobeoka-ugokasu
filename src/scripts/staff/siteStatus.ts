@@ -11,10 +11,29 @@ interface HealthItem {
   summary: string;
   at: string | null;
 }
+interface HistoryEntry {
+  at: string;
+  key: string;
+  label: string;
+  state: State;
+  summary: string;
+}
 interface SiteStatus {
   items: HealthItem[];
   counts: Record<State, number>;
+  history?: HistoryEntry[];
   generatedAt: string;
+}
+
+/** 「タスクに登録」のリンク（タスクの新規登録画面に題名とメモを入れて開く。保存は登録画面で行う） */
+function taskHref(item: HealthItem): string {
+  const params = new URLSearchParams({
+    title: `【サイトの状態】${item.label}（${STATE_VIEW[item.state].text}）`,
+    notes: `${item.summary}
+
+（執行部ポータル「サイトの状態」から登録）`,
+  });
+  return `/staff/tasks/new/?${params.toString()}`;
 }
 
 const STATE_VIEW: Record<State, { text: string; classes: string[] }> = {
@@ -54,9 +73,35 @@ function render(status: SiteStatus): void {
       const at = row.querySelector<HTMLElement>('[data-field="at"]')!;
       at.textContent = item.at ? `日時：${formatDateTime(item.at)}` : "";
       at.classList.toggle("hidden", !item.at);
+      const task = row.querySelector<HTMLAnchorElement>('[data-field="task"]')!;
+      if (item.state !== "ok") {
+        task.href = taskHref(item);
+        task.setAttribute("aria-label", `「${item.label}」をタスクに登録`);
+        task.classList.remove("hidden");
+      }
       return row;
     }),
   );
+}
+
+function renderHistory(history: HistoryEntry[]): void {
+  const list = document.querySelector<HTMLUListElement>("[data-status-history]");
+  const template = document.querySelector<HTMLTemplateElement>("[data-status-history-template]");
+  if (!list || !template) return;
+  list.replaceChildren(
+    ...history.map((entry) => {
+      const row = template.content.firstElementChild!.cloneNode(true) as HTMLElement;
+      row.querySelector('[data-history="at"]')!.textContent = formatDateTime(entry.at);
+      const badge = row.querySelector<HTMLElement>('[data-history="state"]')!;
+      badge.classList.add(...STATE_VIEW[entry.state].classes);
+      badge.textContent = STATE_VIEW[entry.state].text;
+      row.querySelector('[data-history="label"]')!.textContent = entry.label;
+      row.querySelector('[data-history="summary"]')!.textContent = entry.summary;
+      return row;
+    }),
+  );
+  list.classList.toggle("hidden", history.length === 0);
+  document.querySelector("[data-status-history-empty]")?.classList.toggle("hidden", history.length > 0);
 }
 
 async function load(): Promise<void> {
@@ -64,6 +109,7 @@ async function load(): Promise<void> {
   if (!result.ok || !result.data) return showNotice(notice, apiErrorMessage(result, "サイトの状態"), "error");
   notice?.classList.add("hidden");
   render(result.data.status);
+  renderHistory(result.data.status.history ?? []);
 }
 
 document.querySelector("[data-status-reload]")?.addEventListener("click", () => void load());
