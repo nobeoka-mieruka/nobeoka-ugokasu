@@ -313,7 +313,11 @@ await test("7. Googleが 403・500 を返したとき、認証に失敗したと
     const google = fakeGoogle(options);
     const result = await getAnalyticsReport(gaEnv(), range7(), { fetch: google.fetchFn, now: () => NOW.getTime() });
     assert.deepEqual(result, { ok: false, configured: true, error: "unavailable" });
-    assert.deepEqual(logs.lines.map((l) => JSON.parse(l)), [{ event: "ga4-analytics-error", kind }]);
+    // ログは種類と、状態コード・どの要求か（method）だけ
+    const logged = logs.lines.map((l) => JSON.parse(l));
+    assert.deepEqual(logged.map(({ event, kind }) => ({ event, kind })), [{ event: "ga4-analytics-error", kind }]);
+    if ("dataStatus" in options) assert.equal(logged[0].status, options.dataStatus);
+    for (const entry of logged) assert.ok(Object.keys(entry).every((k) => ["event", "kind", "method", "status"].includes(k)), JSON.stringify(entry));
     assertNoSecrets(logs.lines.join("\n"), "ログ");
   }
   // 通信できない

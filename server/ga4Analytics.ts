@@ -14,7 +14,7 @@
 
 import { todayInJapan } from "../src/utils/dialogueEvents";
 import type { AnalyticsEnv } from "./env";
-import { proxyErrorKind, proxyRequestTimeoutMs, readGa4ProxyConfig, signProxyRequest, type Ga4ProxyConfig } from "./ga4Proxy";
+import { proxyErrorInfo, proxyRequestTimeoutMs, readGa4ProxyConfig, signProxyRequest, type Ga4ProxyConfig } from "./ga4Proxy";
 import type {
   AnalyticsApiResponse,
   AnalyticsBreakdownRow,
@@ -220,8 +220,14 @@ export function changePercent(current: number, previous: number): number | null 
 
 export type Ga4ErrorKind = "invalid_key" | "auth_failed" | "proxy_rejected" | "api_forbidden" | "rate_limited" | "api_error" | "network_error";
 
+/** ログに添える失敗の内容（状態コード・エラーの種類・どの要求か）。秘密情報・数値・Google のエラー本文は入れない */
+export type Ga4ErrorDetail = Record<string, string | number>;
+
 export class Ga4Error extends Error {
-  constructor(readonly kind: Ga4ErrorKind) {
+  constructor(
+    readonly kind: Ga4ErrorKind,
+    readonly detail: Ga4ErrorDetail = {},
+  ) {
     super(kind);
     this.name = "Ga4Error";
   }
@@ -335,12 +341,13 @@ async function callDataApi<T>(fetchFn: FetchFn, token: string, propertyId: strin
   });
   if (!res.ok) {
     await discard(res);
-    if (res.status === 401 || res.status === 403) throw new Ga4Error("api_forbidden");
-    if (res.status === 429) throw new Ga4Error("rate_limited");
-    throw new Ga4Error("api_error");
+    const detail = { method, status: res.status };
+    if (res.status === 401 || res.status === 403) throw new Ga4Error("api_forbidden", detail);
+    if (res.status === 429) throw new Ga4Error("rate_limited", detail);
+    throw new Ga4Error("api_error", detail);
   }
   const data = (await res.json().catch(() => null)) as T | null;
-  if (!data) throw new Ga4Error("api_error");
+  if (!data) throw new Ga4Error("api_error", { method, status: res.status, cause: "invalid_json" });
   return data;
 }
 
@@ -357,12 +364,17 @@ async function callProxy<T>(fetchFn: FetchFn, config: Ga4ProxyConfig, method: st
       body: text,
       signal: AbortSignal.timeout(proxyRequestTimeoutMs),
     });
-  } catch {
-    throw new Ga4Error("network_error");
+  } catch (err) {
+    // 15秒で打ち切ったのか、接続そのものができなかったのかを分けて記録する
+    const cause = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError") ? "timeout" : "fetch_failed";
+    throw new Ga4Error("network_error", { method, cause });
   }
-  if (!res.ok) throw new Ga4Error(await proxyErrorKind(res));
+  if (!res.ok) {
+    const { kind, ...info } = await proxyErrorInfo(res);
+    throw new Ga4Error(kind, { method, ...info });
+  }
   const data = (await res.json().catch(() => null)) as T | null;
-  if (!data) throw new Ga4Error("api_error");
+  if (!data) throw new Ga4Error("api_error", { method, status: res.status, cause: "invalid_json" });
   return data;
 }
 
@@ -608,9 +620,12 @@ export async function getAnalyticsReport(env: Ga4Env, range: AnalyticsRange, dep
     await writeCache(env, cacheKey, report, range.key === "today" ? TODAY_CACHE_TTL_SECONDS : REPORT_CACHE_TTL_SECONDS, nowMs);
     return { ok: true, configured: true, cached: false, report };
   } catch (err) {
-    // ログにはエラーの種類だけを出す（Googleのエラー本文・鍵・トークンは出さない）
+    // ログにはエラーの種類と、状態コードなどの内容だけを出す（Googleのエラー本文・鍵・トークン・数値は出さない）。
+    // GA4・中継の失敗ではない例外（プログラムの不具合など）は cause: "exception" とし、例外の名前だけを残す。
     const kind = err instanceof Ga4Error ? err.kind : "api_error";
-    console.error(JSON.stringify({ event: "ga4-analytics-error", kind }));
+    const detail: Ga4ErrorDetail =
+      err instanceof Ga4Error ? err.detail : { cause: "exception", name: err instanceof Error && /^\w{1,40}$/.test(err.name) ? err.name : "unknown" };
+    console.error(JSON.stringify({ event: "ga4-analytics-error", kind, ...detail }));
     return { ok: false, configured: true, error: "unavailable" };
   }
 }

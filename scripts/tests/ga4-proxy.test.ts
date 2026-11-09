@@ -11,8 +11,10 @@ import { captureLogs, testRunner } from "./helpers/staffHarness";
 import {
   DATA_API_BASE,
   GA4_SCOPE,
+  GOOGLE_ERROR_MESSAGE_MAX,
   HEALTH_CHECK_PATH,
   MAX_BODY_BYTES,
+  googleErrorSummary,
   NonceStore,
   RateLimiter,
   canonicalString,
@@ -23,8 +25,17 @@ import {
   validateReportBody,
 } from "../../services/ga4-proxy/src/proxy.mjs";
 import { createProxyServer } from "../../services/ga4-proxy/src/server.mjs";
-import { readGa4ProxyConfig, signProxyRequest } from "../../server/ga4Proxy";
-import { getAnalyticsReport, parseAnalyticsRange, resetGa4Caches } from "../../server/ga4Analytics";
+import { proxyErrorInfo, readGa4ProxyConfig, signProxyRequest } from "../../server/ga4Proxy";
+import {
+  TRACKED_EVENTS,
+  buildEventsByPageRequest,
+  buildEventsByTypeRequest,
+  buildMainBatch,
+  getAnalyticsReport,
+  parseAnalyticsRange,
+  resetGa4Caches,
+} from "../../server/ga4Analytics";
+import { PORTAL_TRACKED_EVENTS, portalRange, portalRequests } from "../../services/ga4-proxy/scripts/portal-requests.mjs";
 import type { AnalyticsApiResponse } from "../../src/types/analytics";
 import { readFileSync } from "node:fs";
 import { analyticsRelayHosting } from "../../src/config/analyticsRelayConfig";
@@ -270,10 +281,32 @@ await test("9. GA4・メタデータサーバーの失敗は種類だけを返�
     const proxy = createProxy(baseConfig(), { fetch: fakeGoogle(options).fetchFn, now: () => NOW, log: (e: unknown) => lines.push(JSON.stringify(e)) });
     const result = await proxy.handle(await signed("/v1/runReport", REPORT_BODY));
     assert.equal(result.status, status, kind);
-    assert.deepEqual(JSON.parse(result.body), { error: kind });
+    // 呼び出し元へは、エラーの種類と GA4 の状態コードだけ（Google のエラー本文は返さない）
+    const upstreamStatus = "dataStatus" in options ? options.dataStatus : undefined;
+    assert.deepEqual(JSON.parse(result.body), upstreamStatus ? { error: kind, upstreamStatus } : { error: kind });
     assert.ok(lines.some((l) => l.includes(kind)));
-    assertNoSecrets(result.body + lines.join("\n"), kind);
+    assertNoSecrets(result.body, `${kind} の応答`);
+    if (upstreamStatus === 400) {
+      // 400（要求の内容の誤り）だけは、原因を調べられるよう Cloud Run のログに短い説明文を残す（トークン・シークレットは出さない）
+      assert.equal(JSON.parse(lines.find((l) => l.includes(kind))!).message, GOOGLE_ERROR_BODY);
+      for (const secret of [SECRET, OLD_SECRET, ACCESS_TOKEN]) assert.ok(!lines.join("\n").includes(secret));
+    } else {
+      assertNoSecrets(lines.join("\n"), `${kind} のログ`);
+    }
   }
+});
+
+await test("9b. GA4 のエラーの要約：種類は常に、説明文は 400 のときだけ。長い英数字（トークンらしきもの）は伏せ、200文字で切る", async () => {
+  const token = `ya29.${"A".repeat(60)}`;
+  const body = (status: number, message: string) =>
+    new Response(JSON.stringify({ error: { code: status, status: "INVALID_ARGUMENT", message } }), { status });
+  const summary = await googleErrorSummary(body(400, `Field customEvent:content_type is not a valid dimension. ${token} ${"x ".repeat(300)}`));
+  assert.equal(summary.googleStatus, "INVALID_ARGUMENT");
+  assert.ok(summary.message!.startsWith("Field customEvent:content_type is not a valid dimension."));
+  assert.ok(!summary.message!.includes(token) && summary.message!.includes("[省略]"));
+  assert.ok(summary.message!.length <= GOOGLE_ERROR_MESSAGE_MAX);
+  assert.deepEqual(await googleErrorSummary(body(403, "User does not have sufficient permissions")), { googleStatus: "INVALID_ARGUMENT" });
+  assert.deepEqual(await googleErrorSummary(new Response("<html>not json</html>", { status: 500 })), {});
 });
 
 await test("10. シークレットの切り替え：PREVIOUS に入れた古いシークレットでも受け付ける", async () => {
@@ -341,21 +374,26 @@ await test("13. 通しの確認：設置場所（content_type）が未登録で�
 });
 
 await test("14. 通しの確認：認証失敗・GA4の失敗・中継が止まっているときは「unavailable」だけ（数値なし・ログは種類だけ）", async () => {
-  const cases: [string, ReturnType<typeof fakeGoogle>, Record<string, unknown>, string][] = [
-    ["シークレットが違う", fakeGoogle(), { GA4_PROXY_SECRET: "wrong-secret-0123456789-abcdefghijklmn" }, "proxy_rejected"],
-    ["GA4の閲覧権限が無い", fakeGoogle({ dataStatus: 403 }), {}, "api_forbidden"],
-    ["メタデータサーバーの失敗", fakeGoogle({ metadataStatus: 500 }), {}, "api_forbidden"],
-    ["GA4の上限", fakeGoogle({ dataStatus: 429 }), {}, "rate_limited"],
-    ["GA4の障害", fakeGoogle({ dataStatus: 500 }), {}, "api_error"],
+  // ログには種類に加えて、中継の状態コード・中継のエラーの種類・GA4 の状態コード・どの要求か（method）を残す（原因を切り分けるため）
+  const cases: [string, ReturnType<typeof fakeGoogle>, Record<string, unknown>, string, Record<string, unknown>, string?][] = [
+    ["シークレットが違う", fakeGoogle(), { GA4_PROXY_SECRET: "wrong-secret-0123456789-abcdefghijklmn" }, "proxy_rejected", { status: 401, proxyError: "unauthorized" }],
+    ["GA4の閲覧権限が無い", fakeGoogle({ dataStatus: 403 }), {}, "api_forbidden", { status: 502, proxyError: "upstream_forbidden", upstreamStatus: 403 }],
+    ["メタデータサーバーの失敗", fakeGoogle({ metadataStatus: 500 }), {}, "api_forbidden", { status: 502, proxyError: "token_unavailable" }],
+    ["GA4の上限", fakeGoogle({ dataStatus: 429 }), {}, "rate_limited", { status: 429, proxyError: "upstream_rate_limited", upstreamStatus: 429 }],
+    ["GA4の障害", fakeGoogle({ dataStatus: 500 }), {}, "api_error", { status: 502, proxyError: "upstream_error", upstreamStatus: 500 }],
+    ["URL のパスの誤り", fakeGoogle(), {}, "api_error", { status: 404, proxyError: "empty_body" }, "/wrong-path"],
   ];
-  for (const [label, google, extra, kind] of cases) {
+  for (const [label, google, extra, kind, detail, suffix] of cases) {
     resetGa4Caches();
     logs.lines.length = 0;
     const proxy = await startProxy(google);
     try {
-      const result = await getAnalyticsReport(cfEnv(proxy.url, extra), range7(), { now: () => NOW });
+      const result = await getAnalyticsReport(cfEnv(proxy.url + (suffix ?? ""), extra), range7(), { now: () => NOW });
       assert.deepEqual(result, { ok: false, configured: true, error: "unavailable" }, label);
-      assert.deepEqual(logs.lines.map((l) => JSON.parse(l)), [{ event: "ga4-analytics-error", kind }], label);
+      assert.equal(logs.lines.length, 1, label);
+      const { method, ...logged } = JSON.parse(logs.lines[0]);
+      assert.deepEqual(logged, { event: "ga4-analytics-error", kind, ...detail }, label);
+      assert.ok(method === "batchRunReports" || method === "runReport", label);
       assertNoSecrets(JSON.stringify(result) + logs.lines.join("\n") + proxy.lines.join("\n"), label);
     } finally {
       await proxy.close();
@@ -369,6 +407,42 @@ await test("14. 通しの確認：認証失敗・GA4の失敗・中継が止ま�
   const down = await getAnalyticsReport(cfEnv(stopped.url), range7(), { now: () => NOW });
   assert.deepEqual(down, { ok: false, configured: true, error: "unavailable" });
   assert.equal(JSON.parse(logs.lines.at(-1)!).kind, "network_error");
+  assert.equal(JSON.parse(logs.lines.at(-1)!).cause, "fetch_failed");
+});
+
+await test("14b. 中継の応答の読み取り：JSON でない応答・空の応答・GA4 の状態コードを区別し、許可した形の値だけを残す", async () => {
+  assert.deepEqual(await proxyErrorInfo(new Response("<html>Error: Server Error</html>", { status: 503 })), { kind: "api_error", status: 503, proxyError: "non_json" });
+  assert.deepEqual(await proxyErrorInfo(new Response(null, { status: 404 })), { kind: "api_error", status: 404, proxyError: "empty_body" });
+  assert.deepEqual(await proxyErrorInfo(new Response(JSON.stringify({ error: "upstream_error", upstreamStatus: 400 }), { status: 502 })), {
+    kind: "api_error",
+    status: 502,
+    proxyError: "upstream_error",
+    upstreamStatus: 400,
+  });
+  assert.deepEqual(await proxyErrorInfo(new Response(JSON.stringify({ error: "bad_request" }), { status: 400 })), { kind: "api_error", status: 400, proxyError: "bad_request" });
+  // 想定外の形の値（長い文字列・記号入り）はログに残さない
+  assert.deepEqual(await proxyErrorInfo(new Response(JSON.stringify({ error: `token ${SECRET}`, upstreamStatus: "x" }), { status: 502 })), { kind: "api_error", status: 502 });
+  assert.equal((await proxyErrorInfo(new Response(JSON.stringify({ error: "upstream_unreachable" }), { status: 502 }))).kind, "network_error");
+});
+
+await test("14c. 中継が15秒で応答しないときは network_error（cause: timeout）。プログラムの例外は cause: exception と例外の名前だけ", async () => {
+  resetGa4Caches();
+  logs.lines.length = 0;
+  const timeoutFetch = async () => {
+    throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+  };
+  await getAnalyticsReport(cfEnv("https://ga4-proxy-abc.a.run.app"), range7(), { now: () => NOW, fetch: timeoutFetch });
+  const timeoutLog = JSON.parse(logs.lines.at(-1)!);
+  assert.equal(timeoutLog.kind, "network_error");
+  assert.equal(timeoutLog.cause, "timeout");
+  // 中継は 200 を返したが、中身の形が想定外で組み立てに失敗した（プログラムの例外）
+  resetGa4Caches();
+  logs.lines.length = 0;
+  const broken = async () => Response.json({ reports: [{ rows: 5 }], rows: 5 });
+  const result = await getAnalyticsReport(cfEnv("https://ga4-proxy-abc.a.run.app"), range7(), { now: () => NOW, fetch: broken });
+  assert.deepEqual(result, { ok: false, configured: true, error: "unavailable" });
+  const exceptionLog = JSON.parse(logs.lines.at(-1)!);
+  assert.deepEqual(exceptionLog, { event: "ga4-analytics-error", kind: "api_error", cause: "exception", name: "TypeError" });
 });
 
 await test("15. 通しの確認：中継の設定が足りない・形式違いのときは通信せず未設定（設定手順だけを表示）", async () => {
@@ -643,6 +717,66 @@ await test("25. 稼働確認のパスは /health-check に統一（Cloud Run は
   assert.match(setup, /if \[ "\$REPO_EXISTS" = 0 \]; then\r?\n\s+run "Artifact Registry の作成"/);
   assert.ok(!/service-accounts create "\$RUNTIME_SA|service-accounts create ga4-analytics-reader/.test(setup), "GA4用サービスアカウントは作らない（既存を使う）");
   assert.ok(!/run services delete|artifacts repositories delete|secrets delete|service-accounts delete/.test(setup), "既存の資源を削除しない");
+});
+
+await test("26. 診断（portal-check.mjs）が送る要求は、ポータル（server/ga4Analytics.ts）が送る要求と完全に同じ", () => {
+  assert.deepEqual(PORTAL_TRACKED_EVENTS, TRACKED_EVENTS.map((e) => e.name), "イベント名の一覧");
+  for (const now of [new Date("2026-11-09T15:30:00Z"), new Date("2026-12-31T14:59:00Z"), new Date("2027-01-01T00:00:00Z")]) {
+    for (const key of ["today", "7d", "30d", "90d"]) {
+      const range = parseAnalyticsRange(new URLSearchParams({ range: key }), now)!;
+      assert.deepEqual(portalRange(key, now), range, `${key} の期間`);
+      const [main, byPage, byType] = portalRequests(range);
+      assert.deepEqual(main.body, buildMainBatch(range), `${key} 合計など`);
+      assert.deepEqual(byPage.body, buildEventsByPageRequest(range), `${key} クリック×ページ`);
+      assert.deepEqual(byType.body, buildEventsByTypeRequest(range), `${key} クリック×設置場所`);
+      assert.deepEqual([main.method, byPage.method, byType.method], ["batchRunReports", "runReport", "runReport"]);
+      assert.deepEqual([main.optional, byPage.optional, byType.optional], [false, false, true]);
+      for (const item of [main, byPage, byType]) assert.ok(validateReportBody(item.method, item.body), `${key} は中継の本文の検査を通る`);
+    }
+  }
+});
+
+await test("27. 診断（portal-check.mjs）：成功・GA4 の 400・URL の誤りを区別して表示し、シークレット・トークン・Google のエラー本文は出さない", async () => {
+  const ok = await startRealtimeProxy(fakeGoogle({ typeStatus: 400 }));
+  try {
+    const result = await runNode([`${RELAY_DIR}/scripts/portal-check.mjs`, ok.url, "30d"], { PROXY_TEST_SECRET: SECRET });
+    assert.equal(result.code, 0, result.out);
+    assert.match(result.out, /OK   HTTP 200 .*batchRunReports/);
+    assert.match(result.out, /参考 HTTP 502 .*content_type/);
+    assert.match(result.out, /upstream_error \/ GA4 400/);
+    assertNoSecrets(result.out, "診断の表示");
+  } finally {
+    await ok.close();
+  }
+  const bad = await startRealtimeProxy(fakeGoogle({ dataStatus: 400 }));
+  try {
+    const result = await runNode([`${RELAY_DIR}/scripts/portal-check.mjs`, bad.url], { PROXY_TEST_SECRET: SECRET });
+    assert.equal(result.code, 4, result.out);
+    assert.match(result.out, /NG   HTTP 502 .*batchRunReports[\s\S]*upstream_error \/ GA4 400/);
+    assertNoSecrets(result.out, "診断の表示");
+    const wrongPath = await runNode([`${RELAY_DIR}/scripts/portal-check.mjs`, `${bad.url}/wrong-path`], { PROXY_TEST_SECRET: SECRET });
+    assert.equal(wrongPath.code, 4);
+    assert.match(wrongPath.out, /NG   HTTP 404/);
+  } finally {
+    await bad.close();
+  }
+  const usage = await runNode([`${RELAY_DIR}/scripts/portal-check.mjs`, "https://example.test"], {});
+  assert.equal(usage.code, 1);
+});
+
+await test("28. diagnose.sh：読み取りだけ（作成・変更・削除・デプロイをしない）。シークレットは環境変数で渡すだけ", () => {
+  const code = readFileSync(`${RELAY_DIR}/scripts/diagnose.sh`, "utf8");
+  const commands = code.split(/\r?\n/).filter((line) => !/^\s*#/.test(line) && /\bgcloud /.test(line));
+  assert.ok(commands.length >= 4);
+  for (const line of commands) {
+    assert.match(line, /gcloud (run services describe|secrets versions access|logging read)/, line);
+  }
+  assert.ok(!/\b(deploy|update|create|delete|add-iam-policy-binding|remove-iam-policy-binding|versions add|services enable|set-iam-policy|keys create)\b/.test(code), "変更のコマンドがない");
+  assert.ok(!/set -x/.test(code));
+  assert.ok(!/(echo|printf)[^\n]*\$PROXY_TEST_SECRET/.test(code), "シークレットを表示しない");
+  assert.match(code, /unset PROXY_TEST_SECRET/);
+  const bash = spawnSync("bash", ["-n", `${RELAY_DIR}/scripts/diagnose.sh`]);
+  if (!bash.error) assert.equal(bash.status, 0, "diagnose.sh の構文");
 });
 
 done();

@@ -5,7 +5,8 @@
 // ・呼び出し元（Cloudflare Pages Functions）は、共有シークレットで HMAC-SHA256 署名したリクエストを送ります。
 //   署名・時刻（±120秒）・使い捨ての値（nonce：再送の拒否）を確かめてから GA4 へ転送します。
 // ・転送できるのは runReport と batchRunReports だけで、プロパティIDはこの中継の設定で固定です（呼び出し側から変えられない）。
-// ・Google のエラー本文・トークン・シークレットは、応答にもログにも出しません（ログはイベント名と種類だけ）。
+// ・トークン・シークレットは、応答にもログにも出しません。Google のエラー本文も応答には出さず、ログには
+//   エラーの種類（INVALID_ARGUMENT など）と、HTTP 400 のときの短い説明文（どの項目が不正か）だけを残します。
 // ・数値を作ったり補ったりはしません。GA4 の応答をそのまま返すか、エラーの種類だけを返します。
 //
 // 署名の作り方（Cloudflare 側 server/ga4Proxy.ts と同じ）:
@@ -138,6 +139,33 @@ export class NonceStore {
 
 const reply = (status, payload) => ({ status, body: payload === undefined ? "" : JSON.stringify(payload) });
 
+/** ログ用の GA4 エラーの要約の最大文字数 */
+export const GOOGLE_ERROR_MESSAGE_MAX = 200;
+
+/**
+ * GA4 のエラー応答から、ログに残す要約だけを取り出す。読めなければ空。
+ * ・エラーの種類（INVALID_ARGUMENT など）は常に残す。
+ * ・説明文は HTTP 400（こちらが送った要求の内容の誤り。どの項目が不正か）のときだけ、短く切り、
+ *   長い英数字の並び（トークンなどに見えるもの）を伏せて残す。本文全体は残さない。
+ */
+export async function googleErrorSummary(res) {
+  try {
+    const text = (await res.text()).slice(0, 4096);
+    const error = JSON.parse(text)?.error ?? {};
+    const summary = {};
+    if (typeof error.status === "string" && /^[A-Z_]{1,40}$/.test(error.status)) summary.googleStatus = error.status;
+    if (res.status === 400 && typeof error.message === "string") {
+      summary.message = error.message
+        .replace(/[A-Za-z0-9._~+/=-]{40,}/g, "[省略]")
+        .replace(/\s+/g, " ")
+        .slice(0, GOOGLE_ERROR_MESSAGE_MAX);
+    }
+    return summary;
+  } catch {
+    return {};
+  }
+}
+
 /**
  * 中継の本体。HTTPの入出力から切り離してあり、テストでそのまま呼べる。
  * deps.fetch：GA4・メタデータサーバーへの通信（テストでは偽物）、deps.now：現在時刻（ミリ秒）、deps.log：ログ出力
@@ -254,11 +282,12 @@ export function createProxy(config, deps = {}) {
       return reply(502, { error: "upstream_unreachable" });
     }
     if (!res.ok) {
-      await res.body?.cancel().catch(() => {}); // Google のエラー本文は読まずに捨てる
       if (res.status === 401) token = null;
       const kind = res.status === 401 || res.status === 403 ? "upstream_forbidden" : res.status === 429 ? "upstream_rate_limited" : "upstream_error";
-      log({ event: "ga4-proxy-error", kind, status: res.status });
-      return reply(kind === "upstream_rate_limited" ? 429 : 502, { error: kind });
+      // 原因を調べられるよう、Cloud Run のログにだけ GA4 のエラーの種類と（400 のときは）短い説明文を残す（googleErrorSummary）。
+      // Cloudflare（呼び出し元）へは、エラーの種類と GA4 の状態コードだけを返す。
+      log({ event: "ga4-proxy-error", kind, status: res.status, ...(await googleErrorSummary(res)) });
+      return reply(kind === "upstream_rate_limited" ? 429 : 502, { error: kind, upstreamStatus: res.status });
     }
     const data = await res.text();
     try {

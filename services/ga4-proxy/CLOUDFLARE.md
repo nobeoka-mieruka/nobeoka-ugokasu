@@ -47,9 +47,28 @@ Cloudflare には setup.sh から接続しないため、ここだけは管理�
 |---|---|
 | 「アクセス解析はまだ設定されていません」のまま | 3つのどれかが未登録、または本番を再デプロイしていない |
 | 赤い注意「GA4_PROXY_URL は https:// で始まる…」 | URL の貼り間違い、またはシークレットが32文字未満（コピーの途中で切れている） |
-| 「データは未取得です」 | シークレットが Cloud Run と一致していない（`proxy_rejected`）、GA4 の閲覧者の権限が無い（`api_forbidden`）、中継が止まっている（`network_error`）。Cloudflare の Functions のログには種類だけが記録されます |
+| 「データは未取得です」 | シークレットが Cloud Run と一致していない（`proxy_rejected`）、GA4 の閲覧者の権限が無い（`api_forbidden`）、中継が止まっている（`network_error`）、GA4 が要求を受け付けない・URL の誤りなど（`api_error`）。下の診断で切り分けます |
 
 取得に失敗しているときも、架空の数値や推定値は表示しません。
+
+### 「未取得」の原因を調べる（読み取りのみ）
+
+Cloud Shell で次を実行します（何も変更しません。シークレット・GA4 の数値は表示しません）。
+
+```
+cd ~/ga4-setup/services/ga4-proxy && bash scripts/diagnose.sh 7d
+```
+
+ポータルと同じ3つの要求を中継へ送り、HTTP の状態・エラーの種類・所要時間と、Cloud Run のエラーログを表示します。
+Cloudflare の Functions のログ（`ga4-analytics-error`）にも、次の項目が記録されます（秘密情報・数値は含みません）。
+
+| 項目 | 意味 |
+|---|---|
+| `method` | 失敗した要求（`batchRunReports`＝合計・日別・ページなど、`runReport`＝ボタンのクリック） |
+| `status` | 中継が返した HTTP の状態（401＝署名の不一致、404＝URL のパスの誤り、502＝GA4 の失敗、503・504＝Cloud Run 本体） |
+| `proxyError` | 中継のエラーの種類（`upstream_error` など）。`non_json`＝Cloud Run 本体のエラーページ、`empty_body`＝URL のパスの誤りが多い |
+| `upstreamStatus` | GA4 が返した HTTP の状態（400＝要求の内容を受け付けない、403＝権限、429＝上限） |
+| `cause` | `timeout`＝15秒で応答なし、`fetch_failed`＝接続できない、`exception`＝プログラムの例外（`name` に例外の名前） |
 
 ## 3. 元に戻すとき
 
