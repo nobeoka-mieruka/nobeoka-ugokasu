@@ -2,14 +2,14 @@
 //   PROXY_TEST_SECRET=<値> node scripts/remote-check.mjs <中継のURL>
 // シークレットは環境変数で受け取り、画面・ログには出しません。
 //
-// 1) 安全性：/healthz、署名なし・別のシークレット・古い時刻・再送が拒否されること、対象外のメソッドが 404 になること
+// 1) 安全性：/health-check、署名なし・別のシークレット・古い時刻・再送が拒否されること、対象外のメソッドが 404 になること
 // 2) GA4 への実接続：執行部ポータルと同じ期間（日本時間で昨日まで）の過去7日・30日・90日の合計、
 //    過去7日の上位ページ、申込ボタンのクリック数、設置場所（content_type）の登録状況
 //    → 表示される数値は GA4 の実データです。ポータルや GA4 の画面と照合するために表示します。
 // 終了コード：0 すべて成功／2 安全性の確認に失敗（公開を止めるべき）／3 GA4 への接続に失敗／1 その他
 
 import { randomBytes } from "node:crypto";
-import { canonicalString, sha256Hex, signCanonical } from "../src/proxy.mjs";
+import { HEALTH_CHECK_PATH, canonicalString, sha256Hex, signCanonical } from "../src/proxy.mjs";
 
 const base = (process.argv[2] ?? "").replace(/\/+$/, "");
 const secret = process.env.PROXY_TEST_SECRET ?? "";
@@ -47,10 +47,10 @@ async function main() {
 
   console.log("---- 安全性の確認 ----");
   try {
-    const health = await fetch(`${base}/healthz`, { signal: AbortSignal.timeout(30_000) });
-    check("/healthz", health.status === 204, `HTTP ${health.status}`);
+    const health = await fetch(`${base}${HEALTH_CHECK_PATH}`, { signal: AbortSignal.timeout(30_000) });
+    check(HEALTH_CHECK_PATH, health.status === 204, `HTTP ${health.status}`);
   } catch {
-    console.log("NG  /healthz に接続できません");
+    console.log(`NG  ${HEALTH_CHECK_PATH} に接続できません`);
     return 2;
   }
   const probe = JSON.stringify({ dateRanges: [{ startDate: jstDate(1), endDate: jstDate(1) }], metrics: [{ name: "screenPageViews" }], limit: 1 });

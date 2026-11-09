@@ -199,6 +199,7 @@ PLAN+=("Cloud Build でコンテナイメージを作る（既定のマシン。
 if [ -n "$SERVICE_URL" ]; then
   rec 既存 "Cloud Run $SERVICE" "$SERVICE_URL（新しい版に更新します）"
   PLAN+=("Cloud Run $SERVICE を新しいイメージで更新する（設定は下と同じ）")
+  PLAN+=("  前回の安全性テストの失敗などで外部から届かない状態（ingress=internal）になっている場合も、承認後はインターネットから受け付ける状態に戻す（HMAC署名のない要求はすべて拒否。安全性テストに失敗したら再び internal に戻して停止）")
 else
   PLAN+=("Cloud Run $SERVICE を作成し、インターネットから受け付ける状態で公開する（Googleのログイン確認は使わず、HMAC署名のない要求はすべて拒否）")
 fi
@@ -346,8 +347,8 @@ rec 手作業 "Cloudflare Pages への3つの登録と再デプロイ" "CLOUDFLA
 
 # ---------------------------------------------------------------- 11
 step "11. 稼働確認"
-HEALTH="$(curl -s -o /dev/null -w '%{http_code}' "$SERVICE_URL/healthz" || true)"
-[ "$HEALTH" = "204" ] && rec OK "中継の稼働" "/healthz 204" || rec NG "中継の稼働" "/healthz $HEALTH"
+HEALTH="$(curl -s -o /dev/null -w '%{http_code}' "$SERVICE_URL/health-check" || true)"
+[ "$HEALTH" = "204" ] && rec OK "中継の稼働" "/health-check 204" || rec NG "中継の稼働" "/health-check $HEALTH"
 KEYS_AFTER="$(gcloud iam service-accounts keys list --iam-account="$RUNTIME_SA" --project="$PROJECT" --managed-by=user --format='value(name)' 2>/dev/null | grep -c . || true)"
 rec OK "ユーザー管理の秘密鍵（実行後）" "${KEYS_AFTER:-0}件（このスクリプトでは作成していません）"
 summary

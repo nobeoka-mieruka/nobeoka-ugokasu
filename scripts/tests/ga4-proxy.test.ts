@@ -11,6 +11,7 @@ import { captureLogs, testRunner } from "./helpers/staffHarness";
 import {
   DATA_API_BASE,
   GA4_SCOPE,
+  HEALTH_CHECK_PATH,
   MAX_BODY_BYTES,
   NonceStore,
   RateLimiter,
@@ -206,10 +207,12 @@ await test("5. 不正な呼び出しは401で、GA4もメタデータサーバ�
   assertNoSecrets(lines.join("\n"), "ログ");
 });
 
-await test("6. 転送できるのは runReport・batchRunReports の POST だけ。/healthz は中身を返さない", async () => {
+await test("6. 転送できるのは runReport・batchRunReports の POST だけ。/health-check は中身を返さない", async () => {
   const google = fakeGoogle();
   const proxy = createProxy(baseConfig(), { fetch: google.fetchFn, now: () => NOW, log: () => {} });
-  assert.deepEqual(await proxy.handle({ method: "GET", path: "/healthz", headers: {}, body: "" }), { status: 204, body: "" });
+  assert.deepEqual(await proxy.handle({ method: "GET", path: "/health-check", headers: {}, body: "" }), { status: 204, body: "" });
+  // /healthz は Cloud Run の予約パス（コンテナに届かない）なので、中継でも使わない
+  assert.equal((await proxy.handle({ method: "GET", path: "/healthz", headers: {}, body: "" })).status, 404);
   for (const path of ["/v1/runPivotReport", "/v1/runRealtimeReport", "/v1/getMetadata", "/", "/v1/runReport/x"]) {
     assert.equal((await proxy.handle(await signed(path, REPORT_BODY))).status, 404, path);
   }
@@ -398,7 +401,7 @@ await test("16. HTTPの入口：大きすぎる本文は413、応答はキャッ
     assert.equal(unauth.headers.get("x-content-type-options"), "nosniff");
     assert.equal(unauth.headers.get("access-control-allow-origin"), null, "ブラウザから直接呼べない（CORSを許可しない）");
     await unauth.body?.cancel();
-    const health = await fetch(`${proxy.url}/healthz`);
+    const health = await fetch(`${proxy.url}/health-check`);
     assert.equal(health.status, 204);
     const notFound = await fetch(`${proxy.url}/anything`);
     assert.equal(notFound.status, 404);
@@ -615,6 +618,31 @@ await test("24. setup.sh：変更はすべて1回の承認（yes）の後。鍵�
   if (!bash.error) assert.equal(bash.status, 0, "setup.sh の構文");
   const bash2 = spawnSync("bash", ["-n", `${RELAY_DIR}/scripts/show-secret.sh`]);
   if (!bash2.error) assert.equal(bash2.status, 0, "show-secret.sh の構文");
+});
+
+await test("25. 稼働確認のパスは /health-check に統一（Cloud Run は末尾が z のパスを予約しているため /healthz は使わない）。再実行でシークレットの値を変えない", () => {
+  assert.equal(HEALTH_CHECK_PATH, "/health-check");
+  assert.ok(!HEALTH_CHECK_PATH.endsWith("z"), "末尾が z のパスは Cloud Run の予約パス");
+  // 公開後の確認（Cloud Run に接続する側）は /healthz を一切使わない
+  for (const file of ["scripts/setup.sh", "scripts/remote-check.mjs"]) {
+    assert.ok(!readFileSync(`${RELAY_DIR}/${file}`, "utf8").includes("/healthz"), `${file} に /healthz が残っている`);
+  }
+  assert.match(readFileSync(`${RELAY_DIR}/scripts/remote-check.mjs`, "utf8"), /\$\{base\}\$\{HEALTH_CHECK_PATH\}/);
+  assert.match(readFileSync(`${RELAY_DIR}/src/proxy.mjs`, "utf8"), /request\.path === HEALTH_CHECK_PATH/);
+  const setup = readFileSync(`${RELAY_DIR}/scripts/setup.sh`, "utf8");
+  assert.match(setup, /"\$SERVICE_URL\/health-check"/);
+  // 再実行：シークレットの値の登録は「シークレットが無い」か「有効な値が0件」のときだけ。既存の資源は作り直さない
+  const addIndex = setup.indexOf("gcloud secrets versions add");
+  const guard = setup.lastIndexOf("if [", addIndex);
+  assert.ok(
+    setup.slice(guard, addIndex).includes('if [ "$SECRET_EXISTS" = 0 ] || [ "${SECRET_VERSIONS:-0}" = "0" ]; then'),
+    "既存のシークレットの値は変えない",
+  );
+  assert.equal(setup.match(/gcloud secrets versions add/g)?.length, 1);
+  assert.match(setup, /if \[ "\$BUILDER_EXISTS" = 0 \]; then\r?\n\s+run "ビルド用サービスアカウントの作成"/);
+  assert.match(setup, /if \[ "\$REPO_EXISTS" = 0 \]; then\r?\n\s+run "Artifact Registry の作成"/);
+  assert.ok(!/service-accounts create "\$RUNTIME_SA|service-accounts create ga4-analytics-reader/.test(setup), "GA4用サービスアカウントは作らない（既存を使う）");
+  assert.ok(!/run services delete|artifacts repositories delete|secrets delete|service-accounts delete/.test(setup), "既存の資源を削除しない");
 });
 
 done();

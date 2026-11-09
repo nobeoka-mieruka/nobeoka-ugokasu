@@ -5,7 +5,7 @@
 // 1つでも失敗したら終了コード1（setup.sh はデプロイせずに止まります）。
 
 import { randomBytes } from "node:crypto";
-import { DATA_API_BASE, canonicalString, createProxy, readProxyConfig, sha256Hex, signCanonical } from "../src/proxy.mjs";
+import { DATA_API_BASE, HEALTH_CHECK_PATH, canonicalString, createProxy, readProxyConfig, sha256Hex, signCanonical } from "../src/proxy.mjs";
 import { createProxyServer } from "../src/server.mjs";
 
 const SECRET = randomBytes(32).toString("base64url");
@@ -75,7 +75,8 @@ const server = createProxyServer(setting.config, { fetch: fakeGoogle().fetchFn, 
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
 try {
-  check("HTTP: /healthz は 204", (await fetch(`${base}/healthz`)).status === 204);
+  check(`HTTP: ${HEALTH_CHECK_PATH} は 204`, (await fetch(`${base}${HEALTH_CHECK_PATH}`)).status === 204);
+  check("HTTP: /healthz は使わない（Cloud Run の予約パス）", (await fetch(`${base}/healthz`)).status === 404);
   const unsigned = await fetch(`${base}/v1/runReport`, { method: "POST", body: "{}" });
   check("HTTP: 署名なしは 401", unsigned.status === 401);
   check("HTTP: CORSを許可しない", unsigned.headers.get("access-control-allow-origin") === null);

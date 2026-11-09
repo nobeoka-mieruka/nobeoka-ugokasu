@@ -30,6 +30,8 @@ export const MIN_SECRET_LENGTH = 32;
 export const MAX_BATCH_REQUESTS = 5;
 /** 1レポートあたりの行数（limit）の上限 */
 export const MAX_ROW_LIMIT = 1000;
+/** 稼働確認のパス。Cloud Run では末尾が z のパス（/healthz など）は予約済みで使えない */
+export const HEALTH_CHECK_PATH = "/health-check";
 
 const ALLOWED_METHODS = new Set(["runReport", "batchRunReports"]);
 const NONCE_PATTERN = /^[A-Za-z0-9_-]{16,64}$/;
@@ -186,7 +188,9 @@ export function createProxy(config, deps = {}) {
    */
   async function handle(request) {
     const nowMs = now();
-    if (request.method === "GET" && request.path === "/healthz") return { status: 204, body: "" };
+    // Cloud Run（*.run.app）は末尾が z のパス（/healthz など）を予約しており、コンテナに届く前に Google が 404 を返す。
+    // そのため稼働確認は /health-check を使う（setup.sh・remote-check.mjs・selftest.mjs・テストと同じパス）。
+    if (request.method === "GET" && request.path === HEALTH_CHECK_PATH) return { status: 204, body: "" };
     const match = /^\/v1\/([A-Za-z]+)$/.exec(request.path);
     if (request.method !== "POST" || !match || !ALLOWED_METHODS.has(match[1])) return reply(404);
     const method = match[1];
