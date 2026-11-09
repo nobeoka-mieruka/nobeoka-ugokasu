@@ -124,7 +124,7 @@ const showWelfareDialogue = todayInJapan() <= lastWelfareSession.eventDate;
           <div class="mt-10 flex flex-wrap gap-4">
             <a href="/profile/" class="btn-primary">福富千恵について</a>
             <a href="/vision/" class="btn-secondary">政策・提言を見る</a>
-            <a href="/voices/submit/" class="btn-secondary">声を届ける</a>
+            <a href="/voices/" class="btn-secondary">声を届ける</a>
           </div>
         </div>
         <div class="order-1 lg:order-2 relative rounded-[2rem] overflow-hidden p-4 sm:p-6 md:p-8 lg:p-10">
@@ -351,17 +351,15 @@ const showWelfareDialogue = todayInJapan() <= lastWelfareSession.eventDate;
         </p>
       </div>
       {/*
-        CTAはページ全体で「主要な行動1つ＋補助1つ」に統一する。
-        テーマ一覧・整理方法へのリンクは、みんなの声ページ（/voices/）側にまとめている。
+        「声を届ける」の入口は、みんなの声ページ（/voices/）に一本化している。
+        /voices/ の冒頭で「暮らし・地域の声」（一般用フォーム）と「福祉の声ポスト」（福祉用フォーム）を選べる。
+        テーマ一覧・整理方法へのリンクも /voices/ 側にまとめている。
       */}
       <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-        <a href="/voices/submit/" class="btn-primary">声を届ける</a>
-        <a href="/voices/" class="btn-secondary">みんなの声を見る</a>
+        <a href="/voices/" class="btn-primary">声を届ける</a>
       </div>
-      <p class="mt-4 text-center text-lg text-ink-soft">
-        福祉についてのご意見は
-        <a href="/voice-post/" class="inline-flex min-h-[44px] items-center underline font-bold text-ink">みんなの声ポスト</a>
-        へ
+      <p class="mt-4 text-center text-base text-ink-soft">
+        暮らし・地域についての声と、福祉についての声の2つの窓口があります。
       </p>
 
       {/* 意見交換会への入口。上の2つのCTAと競合しないよう、小さめの補足カードにしている */}

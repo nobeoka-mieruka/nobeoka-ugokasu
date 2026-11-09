@@ -14,7 +14,8 @@ import { webPageSchema } from "../../utils/structuredData";
 import { buildBreadcrumbList } from "../../utils/seo";
 
 const title = "みんなの声｜福富千恵と延岡を動かす会";
-const description = "福富千恵と延岡を動かす会の「みんなの声（ブロードリスニング）」のご紹介です。市民の皆さまの声を集め、整理し、対応状況を公開しています。";
+const description =
+  "延岡での暮らし・地域についての声と、福祉についての声（みんなの声ポスト）を、いつでも匿名で受け付けています。福富千恵と延岡を動かす会が皆さまの声を集めて整理し、対応状況を公開しています。";
 const breadcrumbItems = [{ name: "みんなの声", path: "/voices" }];
 
 const schemas = [
@@ -31,39 +32,94 @@ const schemas = [
   />
 
   {/*
-    「意見を送る」を、このページで最も分かりやすい主要な行動として最初に置く。
-    Googleフォームは /voices/submit/ ページ側から開く既存の導線をそのまま使う。
+    「みんなの声」の入口（ヘッダー・フッター・トップページの「声を届ける」はすべてここへ案内する）。
+    2つの窓口を最初に並べ、どちらに送ればよいかをここで選べるようにする。
+      ① 暮らし・地域の声 … 一般用Googleフォーム（/voices/submit/ から開く）
+      ② 福祉の声ポスト   … 福祉用Googleフォーム（/voice-post/ から開く。URLは従来どおり）
+    2つのフォームの回答は別々に管理する（自動で統合しない）。
   */}
-  <section class="pt-12 sm:pt-16">
-    <div class="section-wrap max-w-4xl">
-      <div class="card border-l-4 border-brand-orange text-center">
-        <h2 class="text-2xl font-bold text-ink">延岡で感じていることを、お聞かせください</h2>
-        <p class="mt-3 text-ink-soft leading-relaxed">
-          小さな困りごとでも、制度について感じていることでも構いません。
-          いただいたご意見は、個人情報を取り除いたうえで整理し、今後の活動や提言に生かします。
-        </p>
-        <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
-          <a href="/voices/submit/" class="btn-primary">延岡についてのご意見を送る</a>
-          <a href="/voices/themes/" class="btn-secondary">募集中のテーマを見る</a>
-        </div>
-        {/*
-          「ご意見」と「お問い合わせ」は宛先も扱いも異なるため、違いを明示する。
-          ・ご意見     → Googleフォーム。匿名で送れ、整理・分析のうえ提言へ反映します
-          ・お問い合わせ → 事務局メール。個別のご質問・ご連絡に事務局がお返事します
-        */}
-        <div class="mt-6 border-t border-black/10 pt-5 text-left">
-          <p class="text-sm text-ink-soft leading-relaxed">
-            <span class="font-bold text-ink">ご意見を送る</span>（上のボタン）は、延岡の課題やお困りごとを
-            <span class="font-bold text-ink">フォーム</span>でお寄せいただくものです。
-            お名前の入力は必須ではなく、個人情報を取り除いたうえで整理し、政策・提言に生かします。
+  <section class="pt-12 sm:pt-16" aria-labelledby="voices-entry-heading">
+    <div class="section-wrap max-w-5xl">
+      <h2 id="voices-entry-heading" class="text-2xl sm:text-3xl font-bold text-ink text-center">声を届ける窓口を選んでください</h2>
+      <p class="mt-3 text-center text-ink-soft leading-relaxed">
+        どちらも匿名で送ることができ、受付期限はありません。いつでもお寄せください。
+      </p>
+      <ul class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6" data-voices-entry>
+        <li class="card !p-6 sm:!p-8 flex flex-col gap-4 border-t-8 border-brand-orange" data-voices-entry-card="general">
+          <span class="flex items-center justify-center w-14 h-14 rounded-full bg-brand-orange-light">
+            <Icon name="megaphone" class="w-8 h-8 text-brand-orange-dark" />
+          </span>
+          <h3 class="text-2xl font-bold text-ink leading-snug [word-break:keep-all]">
+            <span class="text-brand-orange-dark" aria-hidden="true">①</span> 暮らし・地域の声を届ける
+          </h3>
+          <p class="text-lg text-ink-soft leading-relaxed">
+            子育て、交通、防災、行政サービス、まちづくりなど、延岡での暮らしや地域について感じていることをお寄せください。
           </p>
-          <p class="mt-3 text-sm text-ink-soft leading-relaxed">
-            <span class="font-bold text-ink">個別のご質問・ご連絡</span>（掲載内容、後援会、取材のご依頼など）は、
-            事務局あてのメールで承っています。
-          </p>
-          <div class="mt-4">
-            <a href="/contact/" class="btn-secondary">事務局へ問い合わせる</a>
+          <ul class="flex flex-wrap gap-2" aria-label="主なテーマの例">
+            {["子育て", "交通", "防災", "行政サービス", "まちづくり"].map((topic) => (
+              <li class="rounded-full bg-brand-orange-light px-3 py-1 text-sm font-bold text-ink">{topic}</li>
+            ))}
+          </ul>
+          <div class="mt-auto pt-2">
+            <a
+              href="/voices/submit/"
+              class="btn-primary w-full justify-center min-h-[60px] text-xl"
+              data-track="voices_entry_click"
+              data-track-type="general"
+            >
+              暮らし・地域の声を届ける
+              <Icon name="arrow-right" class="w-5 h-5" />
+            </a>
           </div>
+        </li>
+        <li class="card !p-6 sm:!p-8 flex flex-col gap-4 border-t-8 border-accent-welfare" data-voices-entry-card="welfare">
+          <span class="flex items-center justify-center w-14 h-14 rounded-full bg-accent-welfare/15">
+            <Icon name="heart" class="w-8 h-8 text-accent-welfare" />
+          </span>
+          <h3 class="text-2xl font-bold text-ink leading-snug [word-break:keep-all]">
+            <span class="text-brand-orange-dark" aria-hidden="true">②</span> 福祉の声ポスト
+          </h3>
+          <p class="text-lg text-ink-soft leading-relaxed">
+            福祉に関する日ごろの困りごと、制度への疑問、改善してほしいことなどをお寄せください（みんなの声ポスト）。
+          </p>
+          <ul class="flex flex-wrap gap-2" aria-label="募集している内容">
+            {["困っていること", "疑問に思うこと", "こうなったらいいな！"].map((topic) => (
+              <li class="rounded-full bg-accent-welfare/15 px-3 py-1 text-sm font-bold text-ink">{topic}</li>
+            ))}
+          </ul>
+          <div class="mt-auto pt-2">
+            <a
+              href="/voice-post/"
+              class="btn-primary w-full justify-center min-h-[60px] text-xl"
+              data-track="voices_entry_click"
+              data-track-type="welfare"
+            >
+              福祉の声ポストへ
+              <Icon name="arrow-right" class="w-5 h-5" />
+            </a>
+          </div>
+        </li>
+      </ul>
+
+      {/*
+        「ご意見」と「お問い合わせ」は宛先も扱いも異なるため、違いを明示する。
+        ・ご意見     → Googleフォーム。匿名で送れ、整理・分析のうえ提言へ反映します
+        ・お問い合わせ → 事務局メール。個別のご質問・ご連絡に事務局がお返事します
+      */}
+      <div class="mt-8 card text-left">
+        <p class="text-sm text-ink-soft leading-relaxed">
+          <span class="font-bold text-ink">ご意見</span>（上の2つの窓口）は、それぞれの
+          <span class="font-bold text-ink">Googleフォーム</span>でお寄せいただくものです。
+          お名前の入力は必須ではなく、個人情報を取り除いたうえで整理し、今後の活動や政策・提言に生かします。
+          2つの窓口は別々のフォームで、回答も別々に管理します。個人情報の取り扱いについて、詳しくは
+          <a href="/privacy/" class="underline font-bold text-ink">プライバシーポリシー</a>をご覧ください。
+        </p>
+        <p class="mt-3 text-sm text-ink-soft leading-relaxed">
+          <span class="font-bold text-ink">個別のご質問・ご連絡</span>（掲載内容、後援会、取材のご依頼など）は、
+          事務局あてのメールで承っています。
+        </p>
+        <div class="mt-4">
+          <a href="/contact/" class="btn-secondary">事務局へ問い合わせる</a>
         </div>
       </div>
     </div>
@@ -72,12 +128,7 @@ const schemas = [
   <section class="py-14 sm:py-20">
     <div class="section-wrap max-w-4xl">
       <h2 class="sr-only">みんなの声のご案内</h2>
-      <div class="grid gap-6 sm:grid-cols-2">
-        <a href="/voices/submit/" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
-          <Icon name="megaphone" class="w-8 h-8 text-brand-orange" />
-          <h3 class="font-bold text-ink text-lg">声を届ける</h3>
-          <p class="text-sm text-ink-soft">ご意見やお困りごとをお寄せください。</p>
-        </a>
+      <div class="grid gap-6 sm:grid-cols-3">
         <a href="/voices/themes/" class="card hover:shadow-md transition-shadow flex flex-col gap-2">
           <Icon name="document" class="w-8 h-8 text-brand-orange" />
           <h3 class="font-bold text-ink text-lg">意見募集中のテーマ</h3>
@@ -92,11 +143,6 @@ const schemas = [
           <Icon name="handshake" class="w-8 h-8 text-brand-orange" />
           <h3 class="font-bold text-ink text-lg">声の集め方・整理方法</h3>
           <p class="text-sm text-ink-soft">どのように集め、整理しているかをご説明します。</p>
-        </a>
-        <a href="/voice-post/" class="card hover:shadow-md transition-shadow flex flex-col gap-2 sm:col-span-2">
-          <Icon name="heart" class="w-8 h-8 text-brand-orange" />
-          <h3 class="font-bold text-ink text-lg">みんなの声ポスト</h3>
-          <p class="text-sm text-ink-soft">福祉に関するご意見・ご疑問・改善のご提案を、年間を通じて募集しています。</p>
         </a>
       </div>
     </div>

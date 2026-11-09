@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { dialogueConfig } from "../../src/config/dialogueConfig";
 import { voicesConfig } from "../../src/config/voicesConfig";
 import { renderNewsList } from "../../src/utils/newsCards";
+import { headerNav, footerNav } from "../../src/data/navigation";
 import { VOICE_POST_NOTICES, VOICE_POST_OPTIONS, resolveVoicePostFormUrl, voicePostConfig } from "../../src/config/voicePostConfig";
 
 let passed = 0;
@@ -88,6 +89,58 @@ test("GA4：お知らせカードから詳細への移動を計測する（サ�
   ]);
   assert.equal(html.match(/data-track="news_detail_click"/g)?.length, 2, "リンクの無いお知らせは計測しない");
   assert.ok(html.includes('data-track-type="internal"') && html.includes('data-track-type="external"'));
+});
+
+// ---- 「みんなの声」と「みんなの声ポスト」の入口の一本化 ----
+
+test("ナビゲーション：ヘッダー・フッターは「みんなの声」（/voices/）に一本化し、/voice-post/ を別項目にしない", () => {
+  for (const [name, nav] of [["ヘッダー", headerNav], ["フッター", footerNav]] as const) {
+    assert.equal(nav.filter((item) => item.href === "/voices/").length, 1, `${name}に「みんなの声」が1つ`);
+    assert.ok(!nav.some((item) => item.href === "/voice-post/" || item.label.includes("声ポスト")), `${name}に「みんなの声ポスト」を別項目で出さない`);
+  }
+});
+
+test("トップページの「声を届ける」はすべて /voices/ へ案内する", () => {
+  const home = readFileSync("src/pages/index.astro", "utf8");
+  const buttons = [...home.matchAll(/<a href="([^"]+)"[^>]*>声を届ける<\/a>/g)].map((m) => m[1]);
+  assert.ok(buttons.length >= 2);
+  assert.ok(buttons.every((href) => href === "/voices/"), buttons.join(","));
+});
+
+test("/voices/ の冒頭に2つの窓口（暮らし・地域の声／福祉の声ポスト）を大きなカードで並べる（スマホ縦・PC2列）", () => {
+  const page = readFileSync("src/pages/voices/index.astro", "utf8");
+  const entry = page.slice(page.indexOf("voices-entry-heading"), page.indexOf("みんなの声のご案内"));
+  assert.ok(entry.includes("grid-cols-1 md:grid-cols-2"), "スマホは縦並び、PCは2列");
+  assert.ok(entry.includes("暮らし・地域の声を届ける") && entry.includes('href="/voices/submit/"'));
+  assert.ok(entry.includes("福祉の声ポスト") && entry.includes('href="/voice-post/"'));
+  for (const word of ["子育て", "交通", "防災", "行政サービス", "まちづくり"]) assert.ok(entry.includes(word), word);
+  assert.ok(entry.includes('data-track-type="general"') && entry.includes('data-track-type="welfare"'), "収集経路をGA4で区別する");
+  assert.ok(page.indexOf("data-voices-entry") < page.indexOf("受付から反映までの流れ"), "ページの冒頭に置く");
+  assert.ok(page.includes('href="/privacy/"'), "個人情報の取り扱いへの案内を残す");
+});
+
+test("一般用フォームも埋め込まず、新しいタブで開くボタンに統一する（フォームURLは変更しない）", () => {
+  const submit = readFileSync("src/pages/voices/submit.astro", "utf8");
+  assert.ok(!/<iframe|embedded=true/.test(submit), "iframeを使わない");
+  assert.equal(submit.match(/href=\{voicesConfig\.googleFormUrl\}\s+target="_blank"\s+rel="noopener noreferrer"/g)?.length, 2);
+  assert.ok(submit.includes("<VoicePrivacyNotice />"), "既存のプライバシー案内を維持する");
+  assert.equal(voicesConfig.googleFormUrl, "https://docs.google.com/forms/d/e/1FAIpQLSezz5jWvNZUNtpEJaVVHjrLcoEPPYPfGgb4DpbZjZCfr4BY1Q/viewform");
+  assert.notEqual(voicePostConfig.formUrl, voicesConfig.googleFormUrl, "一般用と福祉用は別のフォームのまま");
+});
+
+test("/voice-post/ のURLを維持し、パンくずは「みんなの声」の下に置く", () => {
+  const post = readFileSync("src/pages/voice-post.astro", "utf8");
+  assert.ok(post.includes('path="/voice-post"'));
+  assert.match(post, /\{ name: "みんなの声", path: "\/voices" \},\s*\{ name: "みんなの声ポスト", path: "\/voice-post" \}/);
+  const news = readFileSync("src/content/news/2026-11-08-voice-post-always-open.md", "utf8");
+  assert.ok(news.includes('href="/voice-post/"'), "既存のお知らせ記事のリンクを維持する");
+});
+
+test("みんなの声のページに、非掲載の団体名・イベント用QRコード・期間限定の表現を出さない", () => {
+  for (const file of ["src/pages/voices/index.astro", "src/pages/voices/submit.astro", "src/pages/index.astro"]) {
+    const source = readFileSync(file, "utf8");
+    assert.ok(!/福祉×エンタメ|実行委員会|QRコード|11月22日|期間限定/.test(source), file);
+  }
 });
 
 console.log(`\n${passed}件のテストに合格しました。`);

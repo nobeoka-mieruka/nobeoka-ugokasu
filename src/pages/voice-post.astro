@@ -9,7 +9,11 @@ import { buildBreadcrumbList } from "../utils/seo";
 const title = "みんなの声ポスト｜福富千恵と延岡を動かす会";
 const description =
   "福富千恵と延岡を動かす会が、福祉に関するご意見・ご疑問・改善のご提案を年間を通じて募集するページです。お名前は不要です。回答前に、管理主体と利用目的をご確認いただけます。";
-const breadcrumbItems = [{ name: "みんなの声ポスト", path: "/voice-post" }];
+// /voice-post/ のURLはそのまま。パンくずは「みんなの声」の下に置く（入口は /voices/ に一本化）
+const breadcrumbItems = [
+  { name: "みんなの声", path: "/voices" },
+  { name: "みんなの声ポスト", path: "/voice-post" },
+];
 const schemas = [webPageSchema({ path: "/voice-post", name: title, description }), buildBreadcrumbList(breadcrumbItems)];
 
 // URLが未設定のあいだは null（送信への導線を出力せず、検索エンジンにも登録しない）
