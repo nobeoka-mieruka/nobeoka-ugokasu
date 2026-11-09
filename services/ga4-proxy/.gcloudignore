@@ -1,0 +1,6 @@
+# Cloud Run へのソースのアップロードに含めるものだけ
+*
+!package.json
+!Dockerfile
+!src/
+!src/**
