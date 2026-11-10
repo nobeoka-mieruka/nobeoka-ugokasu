@@ -95,7 +95,6 @@ const clickableCardClass = "hover:ring-brand-orange-dark hover:shadow-md hover:-
             href={item.href}
             target={item.external ? "_blank" : undefined}
             rel={item.external ? "noopener noreferrer" : undefined}
-            aria-label={item.actionText ? `${item.label}（${item.actionText}）` : item.label}
             class:list={[cardClass, clickableCardClass]}
           >
             <VoiceMethodCardContent

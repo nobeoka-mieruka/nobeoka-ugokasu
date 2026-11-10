@@ -19,9 +19,16 @@ function isCurrent(href: string, path: string) {
 }
 ---
 
-<div id="mobile-menu-panel" class="fixed inset-0 z-50 bg-white md:hidden" hidden>
+<div
+  id="mobile-menu-panel"
+  class="fixed inset-0 z-50 overflow-y-auto bg-white lg:hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="mobile-menu-title"
+  hidden
+>
   <div class="flex items-center justify-between px-4 py-4 border-b border-black/10">
-    <span class="font-bold text-ink">メニュー</span>
+    <span id="mobile-menu-title" class="font-bold text-ink">メニュー</span>
     <button
       id="mobile-menu-close"
       type="button"
@@ -57,32 +64,83 @@ function isCurrent(href: string, path: string) {
 </div>
 
 <script>
+  // 開いている間は、メニューの外（ヘッダー・本文・フッター）を inert にして、キーボードやスクリーンリーダーで
+  // 背後の内容へ移動しないようにする（WCAG 2.4.3・2.4.11）。Tab はメニューの中で循環し、Esc でどこからでも閉じる。
   const button = document.getElementById("mobile-menu-button");
   const closeButton = document.getElementById("mobile-menu-close");
   const panel = document.getElementById("mobile-menu-panel");
+  const desktop = window.matchMedia("(min-width: 1024px)");
+  let inerted: HTMLElement[] = [];
+
+  const focusables = () =>
+    panel
+      ? Array.from(panel.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), [tabindex]:not([tabindex=\"-1\"])")).filter(
+          (el) => el.offsetParent !== null || el === document.activeElement,
+        )
+      : [];
+
+  function setBackgroundInert(on: boolean) {
+    if (on) {
+      inerted = Array.from(document.body.children).filter(
+        (el): el is HTMLElement => el instanceof HTMLElement && el !== panel && !el.inert && el.tagName !== "SCRIPT",
+      );
+      inerted.forEach((el) => (el.inert = true));
+    } else {
+      inerted.forEach((el) => (el.inert = false));
+      inerted = [];
+    }
+  }
+
+  function onKeydown(e: KeyboardEvent) {
+    if (!panel || panel.hidden) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeMenu();
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const items = focusables();
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || !panel.contains(active))) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && (active === last || !panel.contains(active))) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
   function openMenu() {
     if (!panel || !button) return;
     panel.hidden = false;
     button.setAttribute("aria-expanded", "true");
     document.body.style.overflow = "hidden";
+    setBackgroundInert(true);
+    document.addEventListener("keydown", onKeydown);
     closeButton?.focus();
   }
 
-  function closeMenu() {
-    if (!panel || !button) return;
+  function closeMenu({ restoreFocus = true } = {}) {
+    if (!panel || !button || panel.hidden) return;
     panel.hidden = true;
     button.setAttribute("aria-expanded", "false");
     document.body.style.overflow = "";
-    button.focus();
+    setBackgroundInert(false);
+    document.removeEventListener("keydown", onKeydown);
+    if (restoreFocus) button.focus();
   }
 
   button?.addEventListener("click", openMenu);
-  closeButton?.addEventListener("click", closeMenu);
-
-  panel?.addEventListener("keydown", (e) => {
-    if (e instanceof KeyboardEvent && e.key === "Escape") {
-      closeMenu();
-    }
+  closeButton?.addEventListener("click", () => closeMenu());
+  // ページ内リンク（#…）を選んだときもメニューを閉じる（移動先へフォーカスを渡すため、ボタンへは戻さない）
+  panel?.addEventListener("click", (e) => {
+    if (e.target instanceof Element && e.target.closest("a[href]")) closeMenu({ restoreFocus: false });
+  });
+  // 画面を回転・拡大してパソコン用の表示（1024px以上）になったら閉じる（背後が操作できないままにならないように）
+  desktop.addEventListener("change", (e) => {
+    if (e.matches) closeMenu({ restoreFocus: false });
   });
 </script>

@@ -54,8 +54,9 @@ const target = siteConfig.contact[to];
 const label = useFullLabel ? target.fullLabel : target.label;
 const href = subject ? `mailto:${target.email}?subject=${encodeURIComponent(subject)}` : `mailto:${target.email}`;
 
-// 読み上げ時に「どちら宛のアドレスか」が必ず伝わるようにする（13章）
-const ariaLabel = `${target.fullLabel}（${target.email}）`;
+// 読み上げ時に「どちら宛のアドレスか」が必ず伝わるようにする（13章）。
+// 音声入力（「〇〇をクリック」）で選べるよう、読み上げ名は画面に見えている文字（アドレス）から始める（WCAG 2.5.3）。
+const ariaLabel = `${target.email}（${target.fullLabel}）`;
 
 const atIndex = target.email.indexOf("@");
 const localPart = target.email.slice(0, atIndex);

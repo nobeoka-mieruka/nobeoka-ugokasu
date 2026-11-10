@@ -16,23 +16,41 @@ function isCurrent(href: string, path: string) {
 <header class="sticky top-0 z-40 bg-brand-ivory/95 backdrop-blur border-b border-black/5">
   <div class="header-wrap flex items-center justify-between gap-4 py-2.5">
     <a href="/" class="flex-shrink-0 min-w-0">
-      <img
-        src="/images/logo/kouenkainamaeirilogo.png"
-        alt={siteConfig.organizationName}
-        width="2172"
-        height="724"
-        class="w-[220px] sm:w-[260px] 2xl:w-[360px] h-auto"
-      />
+      {/*
+        元画像（2172×724px・約0.9MB）は表示幅に対して大きすぎ、スマートフォンの表示を遅くしていたため、
+        表示幅の2倍までに縮小した画像（scripts/generate-logo-variants.mjs で作成）を使い分ける。見た目は同じ。
+      */}
+      <picture>
+        <source
+          type="image/webp"
+          srcset="/images/logo/logo-440.webp 440w, /images/logo/logo-520.webp 520w, /images/logo/logo-720.webp 720w"
+          sizes="(min-width: 1536px) 360px, (min-width: 640px) 260px, 220px"
+        />
+        <img
+          src="/images/logo/logo-720.png"
+          srcset="/images/logo/logo-440.png 440w, /images/logo/logo-520.png 520w, /images/logo/logo-720.png 720w"
+          sizes="(min-width: 1536px) 360px, (min-width: 640px) 260px, 220px"
+          alt={siteConfig.organizationName}
+          width="720"
+          height="240"
+          decoding="async"
+          class="w-[220px] sm:w-[260px] 2xl:w-[360px] h-auto"
+        />
+      </picture>
     </a>
 
-    <nav aria-label="メインメニュー" class="hidden md:block min-w-0 flex-1">
+    {/*
+      横並びのメニューは 1024px 以上で表示する。768〜1023px（タブレットや、パソコンで200%に拡大したとき）は
+      項目が3段に折り返して12pxの小さな文字になり、固定ヘッダーが画面の多くを占めていたため、メニューボタンを使う。
+    */}
+    <nav aria-label="メインメニュー" class="hidden lg:block min-w-0 flex-1">
       <ul class="flex flex-wrap items-center justify-end gap-x-[clamp(6px,1vw,20px)] gap-y-1">
         {headerNav.map((item) => (
           <li class="min-w-0">
             <a
               href={item.href}
               class:list={[
-                "inline-block min-w-0 rounded-lg px-[clamp(4px,0.6vw,10px)] py-2 text-[clamp(12px,0.9vw,15px)] leading-snug font-bold transition-colors border-b-2 [overflow-wrap:break-word]",
+                "inline-block min-w-0 rounded-lg px-[clamp(4px,0.6vw,10px)] py-2 text-[clamp(13px,0.95vw,15px)] leading-snug font-bold transition-colors border-b-2 [overflow-wrap:break-word]",
                 isCurrent(item.href, currentPath)
                   ? "text-ink bg-brand-orange-light border-brand-orange-dark"
                   : "text-ink border-transparent hover:bg-brand-orange-light hover:border-brand-orange-dark",
@@ -47,7 +65,7 @@ function isCurrent(href: string, path: string) {
     </nav>
 
     {/*
-      768〜1535px（横並びナビゲーション表示中）は、ナビゲーション項目自体で
+      1024〜1535px（横並びナビゲーション表示中）は、ナビゲーション項目自体で
       幅を使い切りやすいため、アイコンを追加すると窮屈になりやすい。
       2xl（1536px）から表示することで、どの画面幅でも文字とアイコンが
       重ならないようにしている。1536px未満でもフッターから常に

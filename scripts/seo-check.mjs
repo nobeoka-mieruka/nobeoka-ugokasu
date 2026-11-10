@@ -173,6 +173,13 @@ for (const file of htmlFiles) {
     if (schema["@type"] === "ProfilePage" && !schema.mainEntity) {
       fail(`[${route}] ProfilePageにmainEntityがありません。`);
     }
+
+    // 記事（Article・NewsArticle）は、Google の記事の構造化データで推奨される headline・datePublished・image を持つ
+    if (schema["@type"] === "Article" || schema["@type"] === "NewsArticle") {
+      for (const key of ["headline", "datePublished", "image"]) {
+        if (!schema[key]) fail(`[${route}] ${schema["@type"]}に${key}がありません。`);
+      }
+    }
   }
 
   // 内部リンク切れチェック（相対パス "/..." のみ対象。外部URL・mailto等は対象外）

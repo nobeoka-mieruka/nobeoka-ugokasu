@@ -149,7 +149,6 @@ function formatDateLabel(date: Date): string {
               data-photo-card
               data-photo-source="website"
               data-photo-category={photo.photoCategory}
-              aria-label={`${photo.title}の活動報告を見る`}
             >
               <div class="aspect-[4/3] w-full overflow-hidden bg-brand-orange-light">
                 <Picture
@@ -185,7 +184,6 @@ function formatDateLabel(date: Date): string {
               data-photo-category={photo.photoCategory}
               data-photo-permalink={photo.permalink}
               data-photo-date={photo.date.toISOString()}
-              aria-label={`${SOURCE_LABELS[photo.source]}の元の投稿を見る`}
             >
               <div class="aspect-[4/3] w-full overflow-hidden bg-brand-orange-light">
                 <img
