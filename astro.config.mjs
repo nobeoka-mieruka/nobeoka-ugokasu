@@ -17,6 +17,13 @@ export default defineConfig({
   // 正規URLの方針（末尾スラッシュあり）。Cloudflare Pagesが末尾スラッシュなしのURLを
   // 自動的に308リダイレクトするため、開発サーバーの挙動も本番に合わせて統一する。
   trailingSlash: "always",
+  // 表示速度対策：共有CSS（約41KB、圧縮後約9KB）を各ページのHTMLへ埋め込み、
+  // CSSファイルの取得を待たずに最初の描画を始められるようにする（スマホのFCP/LCP短縮）。
+  // SNSから1ページだけ閲覧されることが多いため、ページ間のキャッシュより初回表示を優先する。
+  // CSPは既に style-src 'unsafe-inline' を許可しているため、public/_headers の変更は不要。
+  build: {
+    inlineStylesheets: "always",
+  },
   integrations: [
     tailwind({
       applyBaseStyles: false,
